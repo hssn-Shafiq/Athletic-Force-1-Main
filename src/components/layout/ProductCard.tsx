@@ -1,0 +1,80 @@
+
+import React from 'react';
+import { Star, Eye, ShoppingBag, Heart } from 'lucide-react';
+import { Product } from '@/types';
+
+interface ProductCardProps {
+  product: Product;
+  onOpenQuickView: (product: Product) => void;
+}
+
+export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickView }) => {
+  return (
+    <div className="group relative bg-white border border-transparent hover:border-slate-100 rounded-[32px] p-4 transition-all duration-300 hover:shadow-xl">
+      {/* Image Container */}
+      <div className="relative aspect-square rounded-[24px] overflow-hidden bg-slate-50 mb-4">
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+          {product.isNew && (
+            <span className="bg-black text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+              New
+            </span>
+          )}
+          {product.discount && (
+            <span className="bg-[#FF7348] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+              {product.discount}
+            </span>
+          )}
+        </div>
+
+        {/* Wishlist Button */}
+        <button className="absolute top-3 right-3 z-10 bg-white/80 backdrop-blur-sm p-2 rounded-full text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
+          <Heart className="w-4 h-4" />
+        </button>
+
+        {/* Main Image */}
+        <img 
+          src={product.image} 
+          alt={product.title}
+          className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
+        />
+
+        {/* Hover Actions */}
+        <div className="absolute inset-0 bg-black/5 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 gap-3">
+          <button 
+            onClick={() => onOpenQuickView(product)}
+            className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-2xl font-bold text-sm hover:bg-slate-100 transition-colors shadow-lg"
+          >
+            <Eye className="w-4 h-4" />
+            <span>View</span>
+          </button>
+          <button 
+            onClick={() => onOpenQuickView(product)}
+            className="flex items-center gap-2 bg-[#141414] text-white px-6 py-3 rounded-2xl font-bold text-sm hover:bg-black transition-colors shadow-lg"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            <span>Add</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="px-2">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">{product.category}</span>
+          <div className="flex items-center gap-1">
+            <Star className="w-3 h-3 fill-[#FF7348] text-[#FF7348]" />
+            <span className="text-xs font-bold text-slate-900">{product.rating}</span>
+          </div>
+        </div>
+        <h3 className="font-bold text-slate-900 text-lg leading-tight mb-3 group-hover:text-[#FF7348] transition-colors line-clamp-1">
+          {product.title}
+        </h3>
+        <div className="flex flex-col">
+          <span className="text-slate-400 text-xs line-through font-medium">${product.originalPrice}</span>
+          <span className="text-[#FF7348] text-2xl font-black">${product.price}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
