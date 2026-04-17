@@ -31,6 +31,12 @@ export const Header: React.FC = () => {
             <Link href="/shop" className="text-sm font-medium text-heading hover:text-accent transition-colors">
               Shop
             </Link>
+            <Link href="/blog" className="text-sm font-medium text-heading hover:text-accent transition-colors">
+              Blog
+            </Link>
+            <Link href="/contact" className="text-sm font-medium text-heading hover:text-accent transition-colors">
+              Contact
+            </Link>
             <button className="text-sm font-medium text-heading hover:text-accent transition-colors flex items-center gap-1">
               Categories <ChevronDown className="w-3 h-3" />
             </button>
