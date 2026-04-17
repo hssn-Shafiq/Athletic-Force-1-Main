@@ -1,5 +1,6 @@
 
 import React from 'react';
+import Link from 'next/link';
 import { Search, ShoppingCart, Heart, User, Menu, ChevronDown } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -20,17 +21,34 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
+      {/* Navigation Menu */}
+      <div className="hidden md:block bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center h-10">
+          <nav className="flex items-center space-x-8">
+            <Link href="/" className="text-sm font-medium text-heading hover:text-accent transition-colors">
+              Home
+            </Link>
+            <Link href="/shop" className="text-sm font-medium text-heading hover:text-accent transition-colors">
+              Shop
+            </Link>
+            <button className="text-sm font-medium text-heading hover:text-accent transition-colors flex items-center gap-1">
+              Categories <ChevronDown className="w-3 h-3" />
+            </button>
+          </nav>
+        </div>
+      </div>
+
       {/* Main Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
         {/* Logo */}
         <div className="flex-shrink-0 flex items-center gap-2">
-          <div className="flex flex-col leading-none font-black text-2xl tracking-tighter italic text-heading">
+          <Link href="/" className="flex flex-col leading-none font-black text-2xl tracking-tighter italic text-heading hover:text-accent transition-colors">
             <span className="flex items-center">
               <span className="text-3xl">A</span>
               <span className="ml-0.5">THLETIC</span>
             </span>
             <span className="text-sm tracking-[0.3em] font-extrabold ml-1">FORCE 1</span>
-          </div>
+          </Link>
         </div>
 
         {/* Search & Categories */}

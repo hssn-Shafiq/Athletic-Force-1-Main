@@ -1,4 +1,6 @@
 
+"use client";
+
 import React from 'react';
 import { Star, Eye, ShoppingBag, Heart } from 'lucide-react';
 import { Product } from '@/types';
