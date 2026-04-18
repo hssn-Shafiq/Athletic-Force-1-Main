@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Slide {
@@ -55,7 +56,7 @@ export const HeroSection: React.FC = () => {
   return (
     <section className="relative w-full rounded-2xl sm:rounded-3xl lg:rounded-[40px] overflow-hidden bg-slate-200 group">
       {/* Background Image Container */}
-      <div className="aspect-[16/9] sm:aspect-[21/9] lg:aspect-[21/8] w-full relative">
+      <div className="aspect-video sm:aspect-21/9 lg:aspect-21/8 w-full relative">
         {/* Slides */}
         {slides.map((slide, index) => (
           <div
@@ -64,10 +65,13 @@ export const HeroSection: React.FC = () => {
               index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
             }`}
           >
-            <img 
-              src={slide.image} 
+            <Image
+              src={slide.image}
               alt={slide.title}
-              className="w-full h-full object-cover brightness-95"
+              fill
+              priority={index === 0}
+              sizes="(min-width: 1024px) 1120px, 100vw"
+              className="object-cover brightness-95"
             />
             
             {/* Decorative Text Overlay */}

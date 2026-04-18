@@ -1,11 +1,12 @@
 
 import React from 'react';
+import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 
 export const PromoBanner: React.FC = () => {
   return (
-    <div className="relative p-[2px] rounded-[40px] bg-gradient-to-r from-orange-500 via-purple-600 to-green-500">
-      <div className="bg-black rounded-[38px] overflow-hidden relative min-h-[400px] flex items-center px-12 md:px-20">
+    <div className="relative p-0.5 rounded-[40px] bg-linear-to-r from-orange-500 via-purple-600 to-green-500">
+      <div className="bg-black rounded-[38px] overflow-hidden relative min-h-100 flex items-center px-12 md:px-20">
         {/* Background Decorative Gradient */}
         <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_20%_50%,rgba(255,115,72,0.3),transparent_40%)]"></div>
         
@@ -26,11 +27,13 @@ export const PromoBanner: React.FC = () => {
 
         {/* Image Side */}
         <div className="hidden lg:block absolute right-0 top-0 bottom-0 w-1/2">
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/20 to-transparent z-10"></div>
-          <img 
-            src="https://af1.groomyorlife.com/wp-content/uploads/2026/01/image-3-e1767615776259.png" 
+          <div className="absolute inset-0 bg-linear-to-r from-black via-black/20 to-transparent z-10"></div>
+          <Image
+            src="https://af1.groomyorlife.com/wp-content/uploads/2026/01/image-3-e1767615776259.png"
             alt="Team Sports"
-            className="w-full h-full object-cover grayscale-[0.2] brightness-75"
+            fill
+            sizes="50vw"
+            className="object-cover grayscale-[0.2] brightness-75"
           />
         </div>
       </div>
