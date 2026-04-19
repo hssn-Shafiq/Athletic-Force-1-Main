@@ -39,7 +39,7 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
   return (
     <div className="min-h-screen bg-white pb-24">
       {/* Hero Section */}
-      <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[72vh] md:min-h-[78vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-black">
           <img 
             src={categoryData.bgImage} 
@@ -49,7 +49,7 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
           <div className="absolute inset-0 bg-linear-to-b from-black/60 via-transparent to-white" />
         </div>
         
-        <div className="relative z-10 max-w-4xl mx-auto px-4 text-center space-y-8">
+        <div className="relative z-10 max-w-4xl mx-auto px-4 text-center pt-20 pb-28 md:pt-24 md:pb-32">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -58,7 +58,7 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
             <div className="p-6 bg-white rounded-3xl shadow-2xl -rotate-3">
               {CATEGORY_ICONS[currentCategory]}
             </div>
-            <h1 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter text-white leading-none">
+            <h1 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter text-white leading-[0.95] md:leading-[0.9]">
               {currentCategory}
             </h1>
             <p className="text-xl text-white/90 font-medium max-w-2xl mx-auto">
@@ -69,7 +69,7 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
       </section>
 
       {/* Sub-categories Grid */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-20">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 md:-mt-14 relative z-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {categoryData.subCategories.map((sub, idx) => (
             <motion.div

@@ -1,5 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { Search, ShoppingCart, Heart, User, Menu, ChevronDown, X } from 'lucide-react';
 import { MegaMenu } from './MegaMenu';
 import { CartSidebar } from './CartSidebar';
@@ -59,21 +61,25 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
         {/* Main Header */}
         <div className="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 h-24 flex items-center justify-between gap-6">
           {/* Logo - Refined to match image */}
-          <div 
-            className="shrink-0 flex items-center gap-3 cursor-pointer group"
-            onClick={onHomeClick}
+          <Link
+            href="/"
+            onClick={(event) => {
+              if (onHomeClick) {
+                event.preventDefault();
+                onHomeClick();
+              }
+            }}
+            className="shrink-0 flex items-center"
           >
-            <div className="relative">
-              <div className="absolute -inset-1 bg-linear-to-tr from-orange-600 to-red-600 rounded-lg blur-sm opacity-0 group-hover:opacity-20 transition-opacity" />
-              <div className="flex items-center justify-center bg-black text-white w-14 h-14 rounded-xl rotate-[-5deg] group-hover:rotate-0 transition-transform duration-500">
-                <span className="text-3xl font-black italic tracking-tighter">A</span>
-              </div>
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-sm tracking-[.4em] font-black text-slate-400 uppercase">Athletic</span>
-              <span className="text-2xl tracking-tighter font-black italic uppercase text-slate-900">Force 1</span>
-            </div>
-          </div>
+            <Image
+              src="/main-logo.png"
+              alt="Athletic Force 1"
+              width={280}
+              height={92}
+              priority
+              className="h-12 md:h-14 w-auto"
+            />
+          </Link>
 
           {/* Search & Categories */}
           <div className="flex-1 max-w-2xl hidden md:flex items-center gap-3">
@@ -127,12 +133,12 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
               <Heart className="w-7 h-7 text-slate-900 group-hover:scale-110 transition-transform" />
               <span className="hidden md:block text-[10px] font-bold mt-1.5 uppercase tracking-widest text-slate-500 group-hover:text-black">Saved</span>
             </button>
-            <button className="flex flex-col items-center group">
+            <Link href="/login" className="flex flex-col items-center group">
               <div className="hover:bg-slate-100 rounded-full p-1.5 transition-colors">
                 <User className="w-7 h-7 text-slate-900" />
               </div>
               <span className="hidden md:block text-[10px] font-bold mt-1.5 uppercase tracking-widest text-slate-500 group-hover:text-black">Profile</span>
-            </button>
+            </Link>
           </div>
         </div>
 

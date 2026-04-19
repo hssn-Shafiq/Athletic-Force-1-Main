@@ -34,7 +34,11 @@ export const ShopProductGrid: React.FC<ShopProductGridProps> = ({
         <ProductCard
           key={product.id}
           product={product}
+<<<<<<< HEAD
+          onOpenQuickView={() => onOpenQuickView(product)}
+=======
           onOpenQuickView={onOpenQuickView}
+>>>>>>> origin/hssn-dev
         />
       ))}
     </div>

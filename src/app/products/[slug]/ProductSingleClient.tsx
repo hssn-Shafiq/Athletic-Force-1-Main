@@ -77,33 +77,27 @@ const ProductSingleClient: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState("XL");
   const [quantity, setQuantity] = useState(1);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [activeAccordion, setActiveAccordion] = useState<string | null>("Benefits");
+  const [activeAccordion, setActiveAccordion] = useState<string | null>("Colors");
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [showWishlistBurst, setShowWishlistBurst] = useState(false);
   const [flyingBox, setFlyingBox] = useState<{ id: number; startX: number; startY: number; endX: number; endY: number } | null>(null);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
-  const [thumbRef, thumbApi] = useEmblaCarousel({
-    containScroll: 'keepSnaps',
-    dragFree: true,
-    axis: 'y', // Vertical on desktop
-  });
 
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const onThumbClick = useCallback(
     (index: number) => {
-      if (!emblaApi || !thumbApi) return;
+      if (!emblaApi) return;
       emblaApi.scrollTo(index);
     },
-    [emblaApi, thumbApi]
+    [emblaApi]
   );
 
   const onSelect = useCallback(() => {
-    if (!emblaApi || !thumbApi) return;
+    if (!emblaApi) return;
     setSelectedIndex(emblaApi.selectedScrollSnap());
-    thumbApi.scrollTo(emblaApi.selectedScrollSnap());
-  }, [emblaApi, thumbApi, setSelectedIndex]);
+  }, [emblaApi, setSelectedIndex]);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -121,7 +115,10 @@ const ProductSingleClient: React.FC = () => {
   const accordions = [
     { id: "Benefits", title: "Benefits", content: product.benefits },
     { id: "Colors", title: "Colors", type: 'colors' },
-    { id: "Sizes", title: "Sizes", type: 'sizes' },
+    { id: "Sizes", title: "Sizes", type: 'sizes' }
+  ];
+
+  const termsAccordions = [
     { id: "Payment", title: "Payment Terms", content: ["Credit Card", "Apple Pay", "Google Pay", "Split Payment"] },
     { id: "Shipping", title: "Shipping Terms", content: ["Standard (3-5 days)", "Express (1-2 days)", "Free over $100"] }
   ];
@@ -171,27 +168,27 @@ const ProductSingleClient: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:pb-20 lg:py-10">
+    <div className="min-h-screen bg-white overflow-x-hidden w-full max-w-full">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:pb-20 lg:py-10 overflow-x-hidden">
         {/* Back Button */}
         <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-black mb-10 group transition-colors">
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           <span className="font-bold uppercase tracking-wider text-xs">Back to Collection</span>
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-14 lg:gap-24">
           {/* Left Column: Images & Reviews List */}
           <div className="space-y-12">
             {/* Image Gallery with Thumbnails on Left */}
             <div className="flex flex-col-reverse md:flex-row gap-6">
               {/* Thumbnails Rail */}
-              <div className="w-full md:w-24 shrink-0 overflow-hidden" ref={thumbRef}>
-                <div className="flex md:flex-col gap-4">
+              <div className="w-full md:w-24 shrink-0 overflow-x-auto md:overflow-visible">
+                <div className="flex md:flex-col gap-3 md:gap-4 w-max md:w-full pr-1">
                   {thumbnails.map((thumb, idx) => (
                     <button 
                       key={idx}
                       onClick={() => onThumbClick(idx)}
-                      className={`relative min-w-20 md:min-w-0 md:w-full aspect-square rounded-2xl overflow-hidden bg-slate-50 border-2 transition-all p-1 group shrink-0 ${
+                      className={`relative min-w-[calc((100vw-2.75rem-0.75rem)/3)] w-[calc((100vw-2.75rem-0.75rem)/3)] md:min-w-0 md:w-full aspect-square rounded-2xl overflow-hidden bg-slate-50 border-2 transition-all p-1 group shrink-0 ${
                         selectedIndex === idx ? "border-black scale-95" : "border-transparent hover:border-slate-200"
                       }`}
                     >
@@ -245,10 +242,10 @@ const ProductSingleClient: React.FC = () => {
             </div>
 
             {/* Overall Rating Section (Image 1) */}
-            <div className="flex items-center justify-between bg-white border border-slate-200 rounded-4xl p-8 shadow-sm">
-              <div className="flex items-center gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-slate-200 rounded-4xl p-5 sm:p-8 shadow-sm">
+              <div className="flex items-center gap-4 sm:gap-6">
                 <div className="text-center">
-                  <div className="text-6xl font-black italic tracking-tighter text-[#FF7348] leading-none">4.5</div>
+                  <div className="text-5xl sm:text-6xl font-black italic tracking-tighter text-[#FF7348] leading-none">4.5</div>
                   <div className="text-xs font-black uppercase tracking-widest text-[#FF7348] mt-2 italic">Rating</div>
                 </div>
                 <div className="h-16 w-px bg-slate-200" />
@@ -263,7 +260,7 @@ const ProductSingleClient: React.FC = () => {
               </div>
               <button 
                 onClick={() => setIsReviewModalOpen(true)}
-                className="bg-[#141414] text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-lg hover:bg-black transition-all hover:scale-105 shadow-xl"
+                className="bg-[#141414] text-white px-6 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-base sm:text-lg hover:bg-black transition-all hover:scale-105 shadow-xl w-full sm:w-auto"
               >
                 Write Review
               </button>
@@ -271,10 +268,10 @@ const ProductSingleClient: React.FC = () => {
           </div>
 
           {/* Right Column: Product Info & Buy */}
-          <div className="space-y-8">
+          <div className="space-y-6 md:space-y-8">
             <div className="space-y-4">
-              <div className="flex justify-between items-start">
-                <h1 className="text-4xl lg:text-5xl font-black italic uppercase tracking-tighter text-slate-900 leading-[0.9]">
+              <div className="flex justify-between items-start gap-3">
+                <h1 className="text-3xl lg:text-4xl font-black italic uppercase tracking-tighter text-slate-900 leading-[0.95]">
                   {product.title}
                 </h1>
                 <motion.button
@@ -302,7 +299,7 @@ const ProductSingleClient: React.FC = () => {
                   </AnimatePresence>
                 </motion.button>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="text-slate-400 text-sm font-bold tracking-widest uppercase">SKU: {product.sku}</span>
                 <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full">
                   <div className="flex -space-x-2">
@@ -345,7 +342,7 @@ const ProductSingleClient: React.FC = () => {
                                   <button 
                                     key={idx}
                                     onClick={() => setSelectedColor(color)}
-                                    className={`relative w-16 h-16 rounded-xl overflow-hidden bg-slate-50 border-2 transition-all p-1 ${
+                                    className={`relative w-[52px] h-[52px] rounded-xl overflow-hidden bg-slate-50 border-2 transition-all p-1 ${
                                       selectedColor.name === color.name ? "border-black ring-4 ring-black/5" : "border-slate-100 hover:border-slate-300"
                                     }`}
                                   >
@@ -414,25 +411,25 @@ const ProductSingleClient: React.FC = () => {
 
             {/* Pricing */}
             <div className="space-y-2">
-              <div className="flex items-baseline gap-4">
-                <span className="text-5xl font-black italic tracking-tighter text-slate-900">${product.price}</span>
-                <span className="text-xl text-slate-300 font-bold line-through">${product.originalPrice}</span>
-                <Link href="#" className="ml-auto text-xs font-black uppercase tracking-[0.2em] text-[#FF7348] border-b-2 border-[#FF7348] hover:text-[#ff8f6d] hover:border-[#ff8f6d] transition-colors pb-1 italic">
+              <div className="flex flex-col sm:flex-row sm:items-baseline gap-3 sm:gap-4">
+                  <span className="text-4xl sm:text-5xl font-black italic tracking-tighter text-slate-900">${product.price}</span>
+                  <span className="text-lg sm:text-xl text-slate-300 font-bold line-through">${product.originalPrice}</span>
+                  <Link href="#" className="sm:ml-auto text-xs font-black uppercase tracking-[0.18em] text-[#FF7348] border-b-2 border-[#FF7348] hover:text-[#ff8f6d] hover:border-[#ff8f6d] transition-colors pb-1 italic w-fit">
                   Sizes & Colors Guide
                 </Link>
               </div>
             </div>
 
             {/* Quantity & Add to Cart */}
-            <div className="flex gap-4">
-              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 w-full sm:w-auto justify-between sm:justify-start">
                 <button 
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   className="p-2 text-slate-400 hover:text-black transition-colors"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
-                <div className="w-12 text-center font-black italic text-xl tabular-nums">
+                <div className="w-12 text-center font-black italic text-lg sm:text-xl tabular-nums">
                   {quantity.toString().padStart(2, '0')}
                 </div>
                 <button 
@@ -444,19 +441,19 @@ const ProductSingleClient: React.FC = () => {
               </div>
               <button 
                 onClick={handleAddToCart}
-                className="relative flex-1 flex items-center justify-center gap-3 bg-[#141414] text-white rounded-2xl font-black uppercase italic tracking-tighter text-xl hover:bg-black transition-all shadow-xl active:scale-95"
+                className="relative flex-1 flex items-center justify-center gap-2 sm:gap-3 bg-[#141414] text-white rounded-2xl font-black uppercase italic tracking-tighter text-lg sm:text-xl px-4 py-4 hover:bg-black transition-all shadow-xl active:scale-95 w-full"
               >
-                <ShoppingBag className="w-6 h-6" />
+                <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
                 <span>Add to Cart</span>
               </button>
             </div>
 
             {/* Big Action Button */}
             <button 
-              className="w-full bg-[#E5633D] text-white py-6 rounded-3xl font-black uppercase italic tracking-tighter text-2xl hover:bg-[#d45431] transition-all shadow-xl active:scale-95 hover:shadow-2xl flex items-center justify-center gap-4"
+              className="w-full bg-[#E5633D] text-white py-4 sm:py-6 rounded-3xl font-black uppercase italic tracking-tighter text-xl sm:text-2xl hover:bg-[#d45431] transition-all shadow-xl active:scale-95 hover:shadow-2xl flex items-center justify-center gap-3 sm:gap-4"
             >
               <span>Buy Now</span>
-              <ChevronRight className="w-8 h-8" />
+              <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
             </button>
 
             {/* Trust Badges */}
@@ -499,15 +496,52 @@ const ProductSingleClient: React.FC = () => {
               </div>
             </div>
 
+            {/* Payment & Shipping Terms (moved below trust badges) */}
+            <div className="pt-8 border-t border-slate-100 space-y-4">
+              {termsAccordions.map((acc) => (
+                <div key={acc.id} className="border-b border-slate-100 pb-4">
+                  <button
+                    className="w-full flex justify-between items-center py-2"
+                    onClick={() => setActiveAccordion(activeAccordion === acc.id ? null : acc.id)}
+                  >
+                    <span className="text-lg font-black italic uppercase tracking-tighter text-slate-900">{acc.title}</span>
+                    <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${activeAccordion === acc.id ? "rotate-180" : ""}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {activeAccordion === acc.id && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-4">
+                          <ul className="space-y-3">
+                            {acc.content?.map((item, i) => (
+                              <li key={i} className="flex items-center gap-3 text-sm font-medium text-slate-600">
+                                <div className="w-1.5 h-1.5 rounded-full bg-[#FF7348]" />
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </div>
+
             {/* Bundle Offer Section */}
-            <div className="pt-12 space-y-6">
-              <div className="flex justify-between items-center">
+            <div className="pt-10 md:pt-12 space-y-6">
+              <div className="flex justify-between items-center gap-3">
                 <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-900">Just for You one time offer</h3>
                 <div className="bg-black text-white px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest italic">35% OFF</div>
               </div>
-              <div className="p-8 border-2 border-slate-200 rounded-[40px] relative">
-                <div className="flex items-start gap-4 sm:gap-6">
-                  <div className="flex-1 space-y-4">
+              <div className="p-5 sm:p-6 md:p-8 border-2 border-slate-200 rounded-[32px] md:rounded-[40px] relative overflow-hidden">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3 sm:gap-6 min-w-0">
+                  <div className="space-y-4 min-w-0">
                     <div className="aspect-square bg-slate-50 rounded-2xl overflow-hidden p-2">
                        <img src={product.image} alt={product.title} className="w-full h-full object-contain mix-blend-multiply" />
                     </div>
@@ -516,8 +550,8 @@ const ProductSingleClient: React.FC = () => {
                       <p className="text-xs font-black text-slate-900">$49.99</p>
                     </div>
                   </div>
-                  <div className="pt-10 text-2xl font-black text-slate-300">+</div>
-                  <div className="flex-1 space-y-4">
+                  <div className="self-center text-2xl font-black text-slate-300">+</div>
+                  <div className="space-y-4 min-w-0">
                     <div className="aspect-square bg-slate-50 rounded-2xl overflow-hidden p-2">
                        <img src="https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png" alt="bundel-item" className="w-full h-full object-contain mix-blend-multiply" />
                     </div>
@@ -528,12 +562,12 @@ const ProductSingleClient: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-8 pt-8 border-t border-slate-100">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-8 pt-8 border-t border-slate-100">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-slate-400 line-through tracking-wider leading-none mb-1">$79.98</span>
                     <span className="text-4xl font-black italic tracking-tighter text-slate-900 leading-none">$49.99</span>
                   </div>
-                  <button className="flex items-center gap-3 bg-black text-white px-8 py-5 rounded-[20px] font-black uppercase italic tracking-tighter text-xl hover:scale-105 transition-all shadow-xl active:scale-95">
+                  <button className="flex items-center justify-center gap-3 bg-black text-white px-6 sm:px-8 py-4 sm:py-5 rounded-[20px] font-black uppercase italic tracking-tighter text-lg sm:text-xl hover:scale-105 transition-all shadow-xl active:scale-95 w-full sm:w-auto">
                     <ShoppingBag className="w-6 h-6" />
                     <span>Buy Now</span>
                   </button>
@@ -542,7 +576,7 @@ const ProductSingleClient: React.FC = () => {
             </div>
 
             {/* Agent Contact */}
-            <button className="w-full border-2 border-black py-6 rounded-2xl font-black uppercase italic tracking-tighter text-2xl hover:bg-black hover:text-white transition-all group flex items-center justify-center gap-4">
+            <button className="w-full border-2 border-black py-4 sm:py-6 rounded-2xl font-black uppercase italic tracking-tighter text-xl sm:text-2xl hover:bg-black hover:text-white transition-all group flex items-center justify-center gap-3 sm:gap-4">
               <span>Contact Our Agent</span>
               <Zap className="w-6 h-6 group-hover:fill-current" />
             </button>

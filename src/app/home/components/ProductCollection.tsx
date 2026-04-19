@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ProductCard } from '@/src/components/layout/ProductCard';
-import { QuickViewModal } from '@/src/components/layout/QuickViewModal';
+import { ProductCard } from '@/components/layout/ProductCard';
+import { QuickViewModal } from '@/components/layout/QuickViewModal';
 import { Product } from '@/types';
 import { ArrowRight } from 'lucide-react';
 
