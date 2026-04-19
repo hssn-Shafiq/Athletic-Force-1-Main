@@ -104,7 +104,7 @@ export const LoginPage: React.FC = () => {
               <div className="flex justify-between">
                 <label className="text-xs font-black uppercase tracking-widest text-slate-400">Password</label>
                 {isLogin && (
-                  <Link href="/forgetPassword" className="text-xs font-bold text-slate-400 hover:text-black transition-colors">
+                  <Link href="/forgot-password" className="text-xs font-bold text-slate-400 hover:text-black transition-colors">
                     Forgot Password?
                   </Link>
                 )}

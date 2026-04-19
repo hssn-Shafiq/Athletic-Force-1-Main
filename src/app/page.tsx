@@ -1,12 +1,17 @@
-"use client";
-
+import dynamic from "next/dynamic";
 import { HeroSection } from "./home/components/HeroSection";
 import { TopCategories } from "../components/sections/features/TopCategories";
 import { ProductCollection } from "./home/components/ProductCollection";
 import { PromoBanner } from "./home/components/PromoBanner";
-import { ExploreCategories } from "./home/components/ExploreCategories";
-import { CategoriesTabs } from "./home/components/CategoriesTabs";
-import { VideoSection } from "./home/components/VideoSections";
+const ExploreCategories = dynamic(
+  () => import("./home/components/ExploreCategories").then((m) => m.ExploreCategories)
+);
+const CategoriesTabs = dynamic(
+  () => import("./home/components/CategoriesTabs").then((m) => m.CategoriesTabs)
+);
+const VideoSection = dynamic(
+  () => import("./home/components/VideoSections").then((m) => m.VideoSection)
+);
 
 export default function Home() {
   return (

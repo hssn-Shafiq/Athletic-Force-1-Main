@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Product } from "@/types";
-import { ProductCard } from "@/components/layout/ProductCard";
+import { ProductCard } from "@/src/components/layout/ProductCard";
 
 interface ShopProductGridProps {
   products: Product[];
@@ -34,7 +34,11 @@ export const ShopProductGrid: React.FC<ShopProductGridProps> = ({
         <ProductCard
           key={product.id}
           product={product}
+<<<<<<< HEAD
           onOpenQuickView={() => onOpenQuickView(product)}
+=======
+          onOpenQuickView={onOpenQuickView}
+>>>>>>> origin/hssn-dev
         />
       ))}
     </div>
