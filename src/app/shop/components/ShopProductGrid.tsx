@@ -34,7 +34,7 @@ export const ShopProductGrid: React.FC<ShopProductGridProps> = ({
         <ProductCard
           key={product.id}
           product={product}
-          onQuickView={() => onOpenQuickView(product)}
+          onOpenQuickView={() => onOpenQuickView(product)}
         />
       ))}
     </div>

@@ -21,3 +21,9 @@ body {
   color: var(--content);
   font-family: var(--font-sans), var(--font-inter), Arial, Helvetica, sans-serif;
 }
+
+html,
+body {
+  width: 100%;
+  overflow-x: hidden;
+}

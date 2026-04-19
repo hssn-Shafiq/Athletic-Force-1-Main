@@ -4,8 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import { Product } from "@/types";
 import { Search, SlidersHorizontal } from "lucide-react";
-import { ProductCard } from "@/src/components/layout/ProductCard";
-import { QuickViewModal } from "@/src/components/layout/QuickViewModal";
+import { ProductCard } from "@/components/layout/ProductCard";
+import { QuickViewModal } from "@/components/layout/QuickViewModal";
 import { ShopFeaturesFaqSection } from "./components/ShopFeaturesFaqSection";
 import { ShopRecentUpdatesSection } from "./components/ShopRecentUpdatesSection";
 
