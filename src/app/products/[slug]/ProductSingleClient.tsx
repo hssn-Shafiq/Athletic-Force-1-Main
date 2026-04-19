@@ -1,0 +1,597 @@
+
+/* eslint-disable @next/next/no-img-element */
+"use client";
+import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'motion/react';
+import useEmblaCarousel from 'embla-carousel-react';
+import { toast } from 'react-toastify';
+import { 
+  Star, 
+  Heart, 
+  ChevronDown, 
+  ShoppingBag, 
+  Zap, 
+  Truck, 
+  Headphones, 
+  RotateCcw, 
+  ShieldCheck,
+  Plus,
+  Minus,
+  Check,
+  ChevronRight,
+  ArrowLeft
+} from 'lucide-react';
+import { ReviewModal } from '../_components/ReviewModal';
+import { VideoReviews } from '../_components/VideoReviews';
+import { ProductReviews } from '../_components/ProductReviews';
+import { Product } from '@/types';
+
+// Extended product type for this page
+interface DetailedProduct extends Product {
+  sku: string;
+  benefits: string[];
+  variants: {
+    colors: { name: string; image: string }[];
+    sizes: string[];
+  };
+  inventory: number;
+  description: string;
+}
+
+const MOCK_DETAILED_PRODUCT: DetailedProduct = {
+  id: '1',
+  title: "custom half sleeves t-shirt series 6050a",
+  sku: "00001",
+  category: "Apparel",
+  price: 49.99,
+  originalPrice: 49.99,
+  discount: "35% OFF",
+  rating: 4.5,
+  image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png",
+  benefits: [
+    "High-quality cotton blend for maximum breathability",
+    "Signature athletic fit designed for performance",
+    "Reinforced stitching in high-stress areas",
+    "Moisture-wicking technology keeps you dry"
+  ],
+  variants: {
+    colors: [
+      { name: "Black", image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png" },
+      { name: "Gray", image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png" },
+      { name: "Navy", image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png" },
+      { name: "Burnt Orange", image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png" },
+      { name: "Classic Black", image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png" }
+    ],
+    sizes: ["XL", "S", "M", "1XL", "2XL"]
+  },
+  inventory: 10,
+  description: "Experience ultimate comfort and style with our athlete-driven apparel line. Designed for those who never stop moving."
+};
+
+const ProductSingleClient: React.FC = () => {
+  // In a real app, we would fetch the product by ID
+  const product = MOCK_DETAILED_PRODUCT;
+
+  const [selectedColor, setSelectedColor] = useState(product.variants.colors[0]);
+  const [selectedSize, setSelectedSize] = useState("XL");
+  const [quantity, setQuantity] = useState(1);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [activeAccordion, setActiveAccordion] = useState<string | null>("Benefits");
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [showWishlistBurst, setShowWishlistBurst] = useState(false);
+  const [flyingBox, setFlyingBox] = useState<{ id: number; startX: number; startY: number; endX: number; endY: number } | null>(null);
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  const [thumbRef, thumbApi] = useEmblaCarousel({
+    containScroll: 'keepSnaps',
+    dragFree: true,
+    axis: 'y', // Vertical on desktop
+  });
+
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const onThumbClick = useCallback(
+    (index: number) => {
+      if (!emblaApi || !thumbApi) return;
+      emblaApi.scrollTo(index);
+    },
+    [emblaApi, thumbApi]
+  );
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi || !thumbApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+    thumbApi.scrollTo(emblaApi.selectedScrollSnap());
+  }, [emblaApi, thumbApi, setSelectedIndex]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
+
+    return () => {
+      emblaApi.off('select', onSelect);
+      emblaApi.off('reInit', onSelect);
+    };
+  }, [emblaApi, onSelect]);
+
+  const thumbnails = [product.image, product.image, product.image, product.image, product.image];
+
+  const accordions = [
+    { id: "Benefits", title: "Benefits", content: product.benefits },
+    { id: "Colors", title: "Colors", type: 'colors' },
+    { id: "Sizes", title: "Sizes", type: 'sizes' },
+    { id: "Payment", title: "Payment Terms", content: ["Credit Card", "Apple Pay", "Google Pay", "Split Payment"] },
+    { id: "Shipping", title: "Shipping Terms", content: ["Standard (3-5 days)", "Express (1-2 days)", "Free over $100"] }
+  ];
+
+  const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const buttonRect = event.currentTarget.getBoundingClientRect();
+    const target = document.getElementById('af1-header-cart-trigger');
+    const targetRect = target?.getBoundingClientRect();
+
+    if (targetRect) {
+      setFlyingBox({
+        id: Date.now(),
+        startX: buttonRect.left + buttonRect.width / 2,
+        startY: buttonRect.top + buttonRect.height / 2,
+        endX: targetRect.left + targetRect.width / 2,
+        endY: targetRect.top + targetRect.height / 2,
+      });
+
+      window.setTimeout(() => {
+        setFlyingBox(null);
+      }, 3000);
+    }
+
+    window.dispatchEvent(new CustomEvent('af1:add-to-cart', { detail: { qty: quantity } }));
+
+    toast.success(`${quantity} item${quantity > 1 ? 's' : ''} added to cart`, {
+      icon: <ShoppingBag className="h-4 w-4" />,
+    });
+  };
+
+  const handleWishlistToggle = () => {
+    const next = !isWishlisted;
+    setIsWishlisted(next);
+    setShowWishlistBurst(true);
+    window.setTimeout(() => setShowWishlistBurst(false), 850);
+
+    if (next) {
+      toast.success('Added to wishlist', {
+        icon: <Heart className="h-4 w-4 fill-red-500 text-red-500" />,
+      });
+      return;
+    }
+
+    toast.info('Removed from wishlist', {
+      icon: <Heart className="h-4 w-4" />,
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:pb-20 lg:py-10">
+        {/* Back Button */}
+        <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-black mb-10 group transition-colors">
+          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+          <span className="font-bold uppercase tracking-wider text-xs">Back to Collection</span>
+        </Link>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
+          {/* Left Column: Images & Reviews List */}
+          <div className="space-y-12">
+            {/* Image Gallery with Thumbnails on Left */}
+            <div className="flex flex-col-reverse md:flex-row gap-6">
+              {/* Thumbnails Rail */}
+              <div className="w-full md:w-24 shrink-0 overflow-hidden" ref={thumbRef}>
+                <div className="flex md:flex-col gap-4">
+                  {thumbnails.map((thumb, idx) => (
+                    <button 
+                      key={idx}
+                      onClick={() => onThumbClick(idx)}
+                      className={`relative min-w-20 md:min-w-0 md:w-full aspect-square rounded-2xl overflow-hidden bg-slate-50 border-2 transition-all p-1 group shrink-0 ${
+                        selectedIndex === idx ? "border-black scale-95" : "border-transparent hover:border-slate-200"
+                      }`}
+                    >
+                      <img src={thumb} alt={`thumb-${idx}`} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform" />
+                      {selectedIndex === idx && (
+                        <div className="absolute inset-0 bg-black/5" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Main Carousel */}
+              <div className="flex-1 overflow-hidden rounded-[40px] bg-slate-50 border border-slate-100 shadow-sm" ref={emblaRef}>
+                <div className="flex h-full select-none cursor-grab active:cursor-grabbing">
+                  {thumbnails.map((img, idx) => (
+                    <div key={idx} className="flex-[0_0_100%] min-w-0 aspect-4/5 relative">
+                      <img 
+                        src={img} 
+                        alt={`${product.title}-${idx}`}
+                        className="w-full h-full object-contain mix-blend-multiply pointer-events-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Testimonials Snippet (Image 1) */}
+            <div className="bg-slate-50 rounded-4xl p-8 space-y-4">
+              <div className="flex justify-between items-start">
+                <div className="flex gap-4">
+                  <img src="https://i.pravatar.cc/100?u=lorem" className="w-12 h-12 rounded-full ring-2 ring-white" alt="avatar" />
+                  <div>
+                    <h4 className="font-black italic uppercase tracking-tighter text-slate-900 leading-none">Lorem Ipsum</h4>
+                    <p className="text-slate-400 text-xs font-bold mt-1">CEO President</p>
+                  </div>
+                </div>
+                <div className="flex gap-0.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-[#FF7348] text-[#FF7348]" />
+                  ))}
+                </div>
+              </div>
+              <p className="text-slate-600 text-sm leading-relaxed font-medium">
+                Team, thanks for creating a consistent tracker for our organization with such a seamless flow.
+                The platform has greatly improved our operations and employee satisfaction. Your teams 
+                professionalism, technical expertise, and dedication to meeting our needs were remarkable.
+                Looking forward to work on more projects with you in future!
+              </p>
+            </div>
+
+            {/* Overall Rating Section (Image 1) */}
+            <div className="flex items-center justify-between bg-white border border-slate-200 rounded-4xl p-8 shadow-sm">
+              <div className="flex items-center gap-6">
+                <div className="text-center">
+                  <div className="text-6xl font-black italic tracking-tighter text-[#FF7348] leading-none">4.5</div>
+                  <div className="text-xs font-black uppercase tracking-widest text-[#FF7348] mt-2 italic">Rating</div>
+                </div>
+                <div className="h-16 w-px bg-slate-200" />
+                <div>
+                   <div className="flex -space-x-3 mb-2">
+                     {[1,2,3,4].map(i => (
+                       <img key={i} src={`https://i.pravatar.cc/100?u=${i}`} className="w-10 h-10 rounded-full border-2 border-white" alt="reviewer" />
+                     ))}
+                   </div>
+                   <div className="text-sm font-black uppercase tracking-wider text-slate-900">150+ Reviews</div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsReviewModalOpen(true)}
+                className="bg-[#141414] text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-lg hover:bg-black transition-all hover:scale-105 shadow-xl"
+              >
+                Write Review
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: Product Info & Buy */}
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <div className="flex justify-between items-start">
+                <h1 className="text-4xl lg:text-5xl font-black italic uppercase tracking-tighter text-slate-900 leading-[0.9]">
+                  {product.title}
+                </h1>
+                <motion.button
+                  type="button"
+                  onClick={handleWishlistToggle}
+                  whileTap={{ scale: 0.9 }}
+                  animate={isWishlisted ? { scale: [1, 1.18, 1] } : { scale: 1 }}
+                  transition={{ duration: 2.35, ease: 'easeOut' }}
+                  className="relative p-3 bg-slate-50 rounded-full text-slate-400 hover:text-red-500 transition-colors shadow-sm"
+                >
+                  <Heart className={`w-6 h-6 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
+
+                  <AnimatePresence>
+                    {showWishlistBurst ? (
+                      <motion.span
+                        initial={{ opacity: 0, y: 6, scale: 0.5 }}
+                        animate={{ opacity: 1, y: -24, scale: 1.05 }}
+                        exit={{ opacity: 0, y: -38, scale: 0.75 }}
+                        transition={{ duration: 0.7, ease: 'easeOut' }}
+                        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2"
+                      >
+                        <Heart className="h-5 w-5 fill-red-500 text-red-500" />
+                      </motion.span>
+                    ) : null}
+                  </AnimatePresence>
+                </motion.button>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-slate-400 text-sm font-bold tracking-widest uppercase">SKU: {product.sku}</span>
+                <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full">
+                  <div className="flex -space-x-2">
+                    {[1,2,3].map(i => (
+                      <img key={i} src={`https://i.pravatar.cc/100?u=${i+10}`} className="w-6 h-6 rounded-full border-2 border-white" alt="av" />
+                    ))}
+                  </div>
+                  <span className="text-xs font-black text-slate-900 leading-none">4.5 <span className="text-[#FF7348] uppercase italic">Rating</span></span>
+                </div>
+              </div>
+            </div>
+
+            {/* Accordions */}
+            <div className="space-y-4 pt-6 border-t border-slate-100">
+              {accordions.map((acc) => (
+                <div key={acc.id} className="border-b border-slate-100 last:border-0 pb-4">
+                  <button 
+                    onClick={() => setActiveAccordion(activeAccordion === acc.id ? null : acc.id)}
+                    className="w-full flex justify-between items-center py-2 group"
+                  >
+                    <span className="text-sm font-black uppercase tracking-widest text-slate-900 group-hover:text-black transition-colors">
+                      {acc.title}
+                    </span>
+                    <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${activeAccordion === acc.id ? "rotate-180" : ""}`} />
+                  </button>
+                  <AnimatePresence>
+                    {activeAccordion === acc.id && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-4 pb-2">
+                          {acc.type === 'colors' ? (
+                            <div className="space-y-6">
+                              <div className="text-lg font-bold text-slate-900">Color: <span className="italic">{selectedColor.name}</span></div>
+                              <div className="flex flex-wrap gap-4">
+                                {product.variants.colors.map((color, idx) => (
+                                  <button 
+                                    key={idx}
+                                    onClick={() => setSelectedColor(color)}
+                                    className={`relative w-16 h-16 rounded-xl overflow-hidden bg-slate-50 border-2 transition-all p-1 ${
+                                      selectedColor.name === color.name ? "border-black ring-4 ring-black/5" : "border-slate-100 hover:border-slate-300"
+                                    }`}
+                                  >
+                                    <img src={color.image} alt={color.name} className="w-full h-full object-cover mix-blend-multiply" />
+                                    {selectedColor.name === color.name && (
+                                      <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                                        <Check className="w-6 h-6 text-white bg-black rounded-full p-1" />
+                                      </div>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                              <button 
+                                onClick={() => setSelectedColor(product.variants.colors[0])}
+                                className="text-[#FF7348] text-xs font-black uppercase tracking-widest hover:underline"
+                              >
+                                Clear
+                              </button>
+                            </div>
+                          ) : acc.type === 'sizes' ? (
+                            <div className="grid grid-cols-5 gap-3">
+                              {product.variants.sizes.map((size) => (
+                                <button 
+                                  key={size}
+                                  onClick={() => setSelectedSize(size)}
+                                  className={`py-4 rounded-xl font-black transition-all ${
+                                    selectedSize === size 
+                                      ? "bg-black text-white shadow-xl scale-95" 
+                                      : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-black border border-slate-100"
+                                  }`}
+                                >
+                                  {size}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <ul className="space-y-3">
+                              {acc.content?.map((item, i) => (
+                                <li key={i} className="flex items-center gap-3 text-sm font-medium text-slate-600">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-[#FF7348]" />
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </div>
+
+            {/* Inventory Status (Image 1) */}
+            <div className="space-y-4 pt-4">
+              <div className="flex items-end gap-2 text-2xl font-black italic uppercase tracking-tighter text-[#FF7348]">
+                <span>{product.inventory}</span>
+                <span className="text-sm mb-1">Left</span>
+              </div>
+              <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden relative">
+                <div className="absolute inset-0 bg-linear-to-r from-red-500 via-blue-500 to-red-500 animate-rainbow opacity-80" />
+                <div className="absolute top-0 right-0 h-full bg-slate-100 transition-all duration-1000" style={{ width: `${100 - (product.inventory/20)*100}%` }} />
+                <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-red-600 rounded-full border-2 border-white shadow-lg z-10" style={{ left: `calc(${(product.inventory/20)*100}% - 8px)` }} />
+              </div>
+            </div>
+
+            {/* Pricing */}
+            <div className="space-y-2">
+              <div className="flex items-baseline gap-4">
+                <span className="text-5xl font-black italic tracking-tighter text-slate-900">${product.price}</span>
+                <span className="text-xl text-slate-300 font-bold line-through">${product.originalPrice}</span>
+                <Link href="#" className="ml-auto text-xs font-black uppercase tracking-[0.2em] text-[#FF7348] border-b-2 border-[#FF7348] hover:text-[#ff8f6d] hover:border-[#ff8f6d] transition-colors pb-1 italic">
+                  Sizes & Colors Guide
+                </Link>
+              </div>
+            </div>
+
+            {/* Quantity & Add to Cart */}
+            <div className="flex gap-4">
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2">
+                <button 
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="p-2 text-slate-400 hover:text-black transition-colors"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <div className="w-12 text-center font-black italic text-xl tabular-nums">
+                  {quantity.toString().padStart(2, '0')}
+                </div>
+                <button 
+                  onClick={() => setQuantity(quantity + 1)}
+                  className="p-2 text-slate-400 hover:text-black transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+              <button 
+                onClick={handleAddToCart}
+                className="relative flex-1 flex items-center justify-center gap-3 bg-[#141414] text-white rounded-2xl font-black uppercase italic tracking-tighter text-xl hover:bg-black transition-all shadow-xl active:scale-95"
+              >
+                <ShoppingBag className="w-6 h-6" />
+                <span>Add to Cart</span>
+              </button>
+            </div>
+
+            {/* Big Action Button */}
+            <button 
+              className="w-full bg-[#E5633D] text-white py-6 rounded-3xl font-black uppercase italic tracking-tighter text-2xl hover:bg-[#d45431] transition-all shadow-xl active:scale-95 hover:shadow-2xl flex items-center justify-center gap-4"
+            >
+              <span>Buy Now</span>
+              <ChevronRight className="w-8 h-8" />
+            </button>
+
+            {/* Trust Badges */}
+            <div className="grid grid-cols-2 gap-6 pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-slate-50 rounded-2xl">
+                  <Truck className="w-6 h-6 text-slate-600" />
+                </div>
+                <div>
+                  <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 leading-tight italic">Worldwide Shipping</h5>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">Free delivery on all orders</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-slate-50 rounded-2xl">
+                  <Headphones className="w-6 h-6 text-slate-600" />
+                </div>
+                <div>
+                  <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 leading-tight italic">24/7 Online Support</h5>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">Always ready to assist you</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-slate-50 rounded-2xl">
+                  <RotateCcw className="w-6 h-6 text-slate-600" />
+                </div>
+                <div>
+                  <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 leading-tight italic">Free 30 Days Return</h5>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">30 days return policy</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-slate-50 rounded-2xl">
+                  <ShieldCheck className="w-6 h-6 text-slate-600" />
+                </div>
+                <div>
+                  <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 leading-tight italic">Safe Checkout</h5>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">Ensuring your safety</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bundle Offer Section */}
+            <div className="pt-12 space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-900">Just for You one time offer</h3>
+                <div className="bg-black text-white px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest italic">35% OFF</div>
+              </div>
+              <div className="p-8 border-2 border-slate-200 rounded-[40px] relative">
+                <div className="flex items-start gap-4 sm:gap-6">
+                  <div className="flex-1 space-y-4">
+                    <div className="aspect-square bg-slate-50 rounded-2xl overflow-hidden p-2">
+                       <img src={product.image} alt={product.title} className="w-full h-full object-contain mix-blend-multiply" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-bold uppercase text-slate-400 line-clamp-2 leading-tight">{product.title}</p>
+                      <p className="text-xs font-black text-slate-900">$49.99</p>
+                    </div>
+                  </div>
+                  <div className="pt-10 text-2xl font-black text-slate-300">+</div>
+                  <div className="flex-1 space-y-4">
+                    <div className="aspect-square bg-slate-50 rounded-2xl overflow-hidden p-2">
+                       <img src="https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png" alt="bundel-item" className="w-full h-full object-contain mix-blend-multiply" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-bold uppercase text-slate-400 line-clamp-2 leading-tight">Athletic Force 1 Elite Socks Performance</p>
+                      <p className="text-xs font-black text-slate-900">$29.99</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-8 pt-8 border-t border-slate-100">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-400 line-through tracking-wider leading-none mb-1">$79.98</span>
+                    <span className="text-4xl font-black italic tracking-tighter text-slate-900 leading-none">$49.99</span>
+                  </div>
+                  <button className="flex items-center gap-3 bg-black text-white px-8 py-5 rounded-[20px] font-black uppercase italic tracking-tighter text-xl hover:scale-105 transition-all shadow-xl active:scale-95">
+                    <ShoppingBag className="w-6 h-6" />
+                    <span>Buy Now</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Agent Contact */}
+            <button className="w-full border-2 border-black py-6 rounded-2xl font-black uppercase italic tracking-tighter text-2xl hover:bg-black hover:text-white transition-all group flex items-center justify-center gap-4">
+              <span>Contact Our Agent</span>
+              <Zap className="w-6 h-6 group-hover:fill-current" />
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-10 space-y-8 lg:mt-14">
+          <VideoReviews />
+          <ProductReviews />
+        </div>
+      </div>
+
+      <ReviewModal 
+        isOpen={isReviewModalOpen} 
+        onClose={() => setIsReviewModalOpen(false)} 
+        productTitle={product.title} 
+      />
+      
+      {/* Dynamic styles for rainbow animation */}
+      <style>{`
+        @keyframes rainbow {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animate-rainbow {
+          background-size: 200% 200%;
+          animation: rainbow 5s ease infinite;
+        }
+      `}</style>
+
+      <AnimatePresence>
+        {flyingBox && (
+          <motion.div
+            key={flyingBox.id}
+            initial={{ left: flyingBox.startX, top: flyingBox.startY, scale: 1, opacity: 1, rotate: 0 }}
+            animate={{ left: flyingBox.endX, top: flyingBox.endY, scale: 0.25, opacity: 0.2, rotate: 24 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.35, ease: [0.2, 0.7, 0.2, 1] }}
+            className="pointer-events-none fixed z-200 -translate-x-1/2 -translate-y-1/2"
+          >
+            <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-2xl">
+              <ShoppingBag className="h-5 w-5 text-black" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default ProductSingleClient;

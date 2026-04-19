@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Sora, Inter } from "next/font/google";
-import "./globals.css";
-import { Header } from "../components/layout/Header";
-
+import "./globals.css"
+import "react-toastify/dist/ReactToastify.css";
+import { AppShell } from "../components/layout/AppShell";
+import { ToastProvider } from "../components/ui/ToastProvider";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -29,8 +30,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${sora.variable} ${inter.variable} antialiased`}>
-        <Header />
-        {children}
+        <AppShell>{children}</AppShell>
+        <ToastProvider />
       </body>
     </html>
   );

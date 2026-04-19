@@ -9,6 +9,7 @@ import { ArrowRight } from 'lucide-react';
 const MOCK_PRODUCTS: Product[] = [
   {
     id: '1',
+    slug: 'custom-half-sleeves-t-shirt-series-6050a',
     title: 'Elite Performance Tee Series 6050a',
     category: 'T-Shirts',
     price: 49.99,
@@ -20,6 +21,7 @@ const MOCK_PRODUCTS: Product[] = [
   },
   {
     id: '2',
+    slug: 'legacy-team-jersey',
     title: 'Legacy Team Jersey',
     category: 'Jerseys',
     price: 59.99,
@@ -30,6 +32,7 @@ const MOCK_PRODUCTS: Product[] = [
   },
   {
     id: '3',
+    slug: 'pro-performance-socks',
     title: 'Pro Performance Socks',
     category: 'Accessories',
     price: 14.99,
@@ -40,6 +43,7 @@ const MOCK_PRODUCTS: Product[] = [
   },
   {
     id: '4',
+    slug: 'stealth-snapback-cap',
     title: 'Stealth Snapback Cap',
     category: 'Accessories',
     price: 29.99,

@@ -1,5 +1,6 @@
 
 import React from 'react';
+import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
 
 interface CategoryCardProps {
@@ -9,13 +10,15 @@ interface CategoryCardProps {
 
 const CategoryCard: React.FC<CategoryCardProps> = ({ title, image }) => {
   return (
-    <div className="relative p-[3px] bg-gradient-to-tr from-accent via-red-500 to-orange-400 rounded-2xl sm:rounded-3xl lg:rounded-[32px] group cursor-pointer hover:scale-[1.02] transition-transform duration-300">
-      <div className="relative w-full aspect-[4/5] rounded-[calc(theme(borderRadius.2xl)-3px)] sm:rounded-[calc(theme(borderRadius.3xl)-3px)] lg:rounded-[29px] overflow-hidden">
+    <div className="relative p-0.75 bg-linear-to-tr from-accent via-red-500 to-orange-400 rounded-2xl sm:rounded-3xl lg:rounded-4xl group cursor-pointer hover:scale-[1.02] transition-transform duration-300">
+      <div className="relative w-full aspect-4/5 rounded-[calc(var(--radius-2xl)-3px)] sm:rounded-[calc(var(--radius-3xl)-3px)] lg:rounded-[29px] overflow-hidden">
         {/* Background Image */}
-        <img 
-          src={image} 
-          alt={title} 
-          className="w-full h-full object-cover brightness-90 group-hover:scale-110 transition-transform duration-700"
+        <Image
+          src={image}
+          alt={title}
+          fill
+          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+          className="object-cover brightness-90 group-hover:scale-110 transition-transform duration-700"
         />
         
         {/* Label Bar */}
