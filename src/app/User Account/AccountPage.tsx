@@ -19,7 +19,7 @@ export const AccountPage: React.FC = () => {
   const router = useRouter();
 
   const menuItems = [
-    { id: 'dashboard', label: 'Admin Dashboard', icon: Trophy },
+    { id: 'dashboard', label: 'Dashboard', icon: Trophy },
     { id: 'orders', label: 'My Orders', icon: Package },
     { id: 'profile', label: 'Personal Info', icon: User },
     { id: 'addresses', label: 'Addresses', icon: MapPin },
