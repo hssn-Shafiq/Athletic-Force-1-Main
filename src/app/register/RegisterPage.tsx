@@ -1,37 +1,45 @@
-
 "use client";
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowRight, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiErrorMessage } from '@/lib/api/errors';
 import { getGoogleAuthUrl } from '@/lib/api/auth';
 
-export const LoginPage: React.FC = () => {
+export const RegisterPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const router = useRouter();
-  const { login, isAuthenticated, isLoading, user } = useAuth();
+  const { register, isAuthenticated, isLoading, user } = useAuth();
+
   const googleAuthUrl = useMemo(() => getGoogleAuthUrl(), []);
   const showLoggedInState = !isLoading && isAuthenticated;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!acceptedTerms) {
+      setError('Please accept Terms of Service and Privacy Policy.');
+      return;
+    }
+
     setError(null);
     setIsSubmitting(true);
 
     try {
-      await login({ email: email.trim(), password });
+      await register({ name: name.trim(), email: email.trim(), password });
       router.push('/account');
     } catch (submitError) {
-      setError(getApiErrorMessage(submitError, 'Unable to sign in.'));
+      setError(getApiErrorMessage(submitError, 'Unable to create account.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -39,7 +47,6 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white flex flex-col lg:flex-row">
-      {/* Left Side: Brand/Visual */}
       <div className="lg:w-1/2 relative bg-black hidden lg:flex items-center justify-center p-12 overflow-hidden">
         <div className="absolute inset-0 opacity-40">
           <Image
@@ -51,26 +58,24 @@ export const LoginPage: React.FC = () => {
           />
         </div>
         <div className="absolute inset-0 bg-linear-to-tr from-orange-600/40 via-transparent to-transparent" />
-        
+
         <div className="relative z-10 max-w-lg space-y-8">
           <div className="inline-flex items-center justify-center bg-white text-black w-20 h-20 rounded-2xl rotate-[-5deg] shadow-2xl">
             <span className="text-5xl font-black italic tracking-tighter">A</span>
           </div>
           <div className="space-y-4">
             <h1 className="text-7xl font-black italic uppercase tracking-tighter text-white leading-none">
-              Level Up Your Game
+              Start Strong
             </h1>
             <p className="text-xl text-slate-300 font-medium italic">
-              Join thousands of elite athletes getting custom gear delivered to their doorstep.
+              Create your AF1 account and unlock faster checkout, order tracking, and team gear history.
             </p>
           </div>
         </div>
 
-        {/* Decorative element */}
         <div className="absolute -bottom-25 -left-25 w-100 h-100 bg-orange-600 rounded-full blur-[150px] opacity-20" />
       </div>
 
-      {/* Right Side: Form */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 lg:p-24 bg-white relative">
         <div className="w-full max-w-md space-y-10">
           {showLoggedInState ? (
@@ -90,16 +95,31 @@ export const LoginPage: React.FC = () => {
           {!showLoggedInState ? (
             <>
               <div className="text-center lg:text-left space-y-2">
-                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Welcome Back</h2>
+                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Create Account</h2>
                 <p className="text-slate-500 font-medium">
-                  Don&apos;t have an account?{' '}
-                  <Link href="/register" className="text-orange-600 font-bold hover:underline underline-offset-4">
-                    Join now
+                  Already have an account?{' '}
+                  <Link href="/login" className="text-orange-600 font-bold hover:underline underline-offset-4">
+                    Sign in
                   </Link>
                 </p>
               </div>
 
               <form className="space-y-6" onSubmit={handleSubmit}>
+                <div className="space-y-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Full Name</label>
+                  <div className="relative group">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-orange-600 transition-colors" />
+                    <input
+                      type="text"
+                      placeholder="Enter your name"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-orange-600 focus:bg-white transition-all font-medium text-slate-900"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-400">Email Address</label>
                   <div className="relative group">
@@ -116,30 +136,40 @@ export const LoginPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-400">Password</label>
-                    <Link href="/forgetPassword" className="text-xs font-bold text-slate-400 hover:text-black transition-colors">
-                      Forgot Password?
-                    </Link>
-                  </div>
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Password</label>
                   <div className="relative group">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-orange-600 transition-colors" />
                     <input
-                      type={showPassword ? "text" : "password"}
+                      type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-12 outline-none focus:border-orange-600 focus:bg-white transition-all font-medium text-slate-900"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      minLength={6}
                       required
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => setShowPassword((prev) => !prev)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5 border-slate-200 rounded accent-orange-600"
+                    id="terms"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  />
+                  <label htmlFor="terms" className="text-xs text-slate-500 font-medium">
+                    I agree to the <span className="text-black font-bold underline">Terms of Service</span> and{' '}
+                    <span className="text-black font-bold underline">Privacy Policy</span>
+                  </label>
                 </div>
 
                 {error ? <p className="text-sm text-red-600 font-semibold">{error}</p> : null}
@@ -149,7 +179,7 @@ export const LoginPage: React.FC = () => {
                   type="submit"
                   disabled={isSubmitting}
                 >
-                  <span>{isSubmitting ? 'Signing In...' : 'Sign In'}</span>
+                  <span>{isSubmitting ? 'Creating...' : 'Create Account'}</span>
                   <ArrowRight className="w-6 h-6" />
                 </button>
               </form>
@@ -162,7 +192,6 @@ export const LoginPage: React.FC = () => {
               </a>
             </>
           ) : null}
-
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, Package, MapPin, Heart, Settings, 
@@ -11,12 +11,49 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 type TabType = 'dashboard' | 'orders' | 'profile' | 'addresses' | 'wishlist' | 'settings';
 
 export const AccountPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const router = useRouter();
+  const { user, logout, isLoading, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab === 'dashboard' || tab === 'orders' || tab === 'profile' || tab === 'addresses' || tab === 'wishlist' || tab === 'settings') {
+      setActiveTab(tab);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  const initials = user?.name
+    ? user.name
+        .split(' ')
+        .map((part) => part[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : 'AF';
+
+  async function handleLogout() {
+    await logout();
+    router.push('/login');
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#FDFDFD] pt-24 pb-24 flex items-center justify-center">
+        <p className="text-slate-500 font-semibold">Loading your account...</p>
+      </div>
+    );
+  }
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Trophy },
@@ -48,11 +85,11 @@ export const AccountPage: React.FC = () => {
             <div className="bg-white rounded-[40px] p-4 lg:p-8 border border-slate-100 shadow-sm space-y-8 lg:sticky lg:top-32 overflow-hidden">
               <div className="hidden lg:flex items-center gap-4">
                 <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center -rotate-3 shadow-lg">
-                  <span className="text-white text-2xl font-black italic">JD</span>
+                  <span className="text-white text-2xl font-black italic">{initials}</span>
                 </div>
                 <div>
-                  <h3 className="font-black italic uppercase tracking-tighter text-slate-900 leading-none">John Doe</h3>
-                  <p className="text-slate-400 text-[10px] font-bold mt-1 uppercase tracking-widest italic">Elite Member</p>
+                  <h3 className="font-black italic uppercase tracking-tighter text-slate-900 leading-none">{user?.name ?? 'Athlete'}</h3>
+                  <p className="text-slate-400 text-[10px] font-bold mt-1 uppercase tracking-widest italic">{user?.email ?? 'member@athleticforce1.com'}</p>
                 </div>
               </div>
 
@@ -79,7 +116,7 @@ export const AccountPage: React.FC = () => {
                 })}
                 <div className="hidden lg:block pt-4 mt-4 border-t border-slate-50">
                   <button 
-                    onClick={() => router.push('/login')}
+                    onClick={handleLogout}
                     className="w-full flex items-center gap-4 p-4 rounded-2xl text-red-500 hover:bg-red-50 transition-all font-bold uppercase tracking-widest text-[11px] italic"
                   >
                     <LogOut className="w-5 h-5" />

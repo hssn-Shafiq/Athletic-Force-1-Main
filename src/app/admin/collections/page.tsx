@@ -1,5 +1,5 @@
-import { AdminCollections } from '../../../admin/CommonAdmin';
+import { CollectionCreateForm } from '../../../admin/CollectionCreateForm';
 
 export default function Page() {
-  return <AdminCollections />;
+  return <CollectionCreateForm />;
 }
