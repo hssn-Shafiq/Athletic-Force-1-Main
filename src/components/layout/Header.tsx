@@ -1,11 +1,13 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Search, ShoppingCart, Heart, User, Menu, ChevronDown, X } from 'lucide-react';
 import { MegaMenu } from './MegaMenu';
 import { CartSidebar } from './CartSidebar';
 import { motion, AnimatePresence } from 'motion/react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
   onHomeClick?: () => void;
@@ -14,6 +16,11 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const isAdminUser = Boolean(user?.roles?.some((role) => role === 'admin' || role === 'superadmin'));
   const [cartCount, setCartCount] = useState(() => {
     if (typeof window === 'undefined') return 2;
     const stored = window.localStorage.getItem('af1-cart-count');
@@ -39,6 +46,40 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
       window.removeEventListener('af1:add-to-cart', onCartAdd as EventListener);
     };
   }, []);
+
+  useEffect(() => {
+    const onClickOutside = (event: MouseEvent) => {
+      if (!profileMenuRef.current) return;
+      if (!profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', onClickOutside);
+    document.addEventListener('keydown', onEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+      document.removeEventListener('keydown', onEscape);
+    };
+  }, []);
+
+  const userInitial = user?.name?.trim()?.charAt(0)?.toUpperCase() ?? 'U';
+
+  async function handleLogout() {
+    try {
+      await logout();
+    } finally {
+      setIsProfileMenuOpen(false);
+      router.push('/login');
+    }
+  }
 
   return (
     <>
@@ -116,6 +157,14 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
 
           {/* Action Icons */}
           <div className="flex items-center space-x-4 md:space-x-10">
+            {!isLoading && isAuthenticated && isAdminUser ? (
+              <Link
+                href="/admin"
+                className="hidden md:inline-flex items-center px-4 py-2.5 rounded-full bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-orange-500 transition-colors"
+              >
+                Admin Dashboard
+              </Link>
+            ) : null}
             <button 
               id="af1-header-cart-trigger"
               onClick={() => setIsCartOpen(true)}
@@ -133,12 +182,66 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
               <Heart className="w-7 h-7 text-slate-900 group-hover:scale-110 transition-transform" />
               <span className="hidden md:block text-[10px] font-bold mt-1.5 uppercase tracking-widest text-slate-500 group-hover:text-black">Saved</span>
             </button>
-            <Link href="/login" className="flex flex-col items-center group">
-              <div className="hover:bg-slate-100 rounded-full p-1.5 transition-colors">
-                <User className="w-7 h-7 text-slate-900" />
-              </div>
-              <span className="hidden md:block text-[10px] font-bold mt-1.5 uppercase tracking-widest text-slate-500 group-hover:text-black">Profile</span>
-            </Link>
+            <div className="relative" ref={profileMenuRef}>
+              {isAuthenticated && !isLoading ? (
+                <button
+                  onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                  className="flex flex-col items-center group"
+                >
+                  <div className="hover:bg-slate-100 rounded-full p-1.5 transition-colors">
+                    <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center text-sm font-black">
+                      {userInitial}
+                    </div>
+                  </div>
+                  <span className="hidden md:block text-[10px] font-bold mt-1.5 uppercase tracking-widest text-slate-500 group-hover:text-black">Profile</span>
+                </button>
+              ) : (
+                <Link href="/login" className="flex flex-col items-center group">
+                  <div className="hover:bg-slate-100 rounded-full p-1.5 transition-colors">
+                    <User className="w-7 h-7 text-slate-900" />
+                  </div>
+                  <span className="hidden md:block text-[10px] font-bold mt-1.5 uppercase tracking-widest text-slate-500 group-hover:text-black">Profile</span>
+                </Link>
+              )}
+
+              <AnimatePresence>
+                {isProfileMenuOpen && isAuthenticated ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-3 w-64 rounded-2xl border border-slate-100 bg-white shadow-xl p-2 z-50"
+                  >
+                    <div className="px-3 py-2 border-b border-slate-100">
+                      <p className="text-sm font-bold text-slate-900 truncate">{user?.name || user?.email}</p>
+                      <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                    </div>
+
+                    <Link
+                      href="/account"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="block px-3 py-2 text-sm font-semibold text-slate-700 rounded-xl hover:bg-slate-50"
+                    >
+                      My Account
+                    </Link>
+                    <Link
+                      href="/account?tab=orders"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="block px-3 py-2 text-sm font-semibold text-slate-700 rounded-xl hover:bg-slate-50"
+                    >
+                      Check Orders
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="mt-1 w-full text-left px-3 py-2 text-sm font-semibold text-red-600 rounded-xl hover:bg-red-50"
+                    >
+                      Logout
+                    </button>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 

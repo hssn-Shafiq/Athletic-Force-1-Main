@@ -4,6 +4,7 @@ import "./globals.css"
 import "react-toastify/dist/ReactToastify.css";
 import { AppShell } from "../components/layout/AppShell";
 import { ToastProvider } from "../components/ui/ToastProvider";
+import { AppProviders } from "@/components/providers/AppProviders";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -30,7 +31,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${sora.variable} ${inter.variable} antialiased`}>
-        <AppShell>{children}</AppShell>
+        <AppProviders>
+          <AppShell>{children}</AppShell>
+        </AppProviders>
         <ToastProvider />
       </body>
     </html>

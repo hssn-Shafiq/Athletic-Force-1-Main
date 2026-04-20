@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BarChart3, 
@@ -19,6 +19,7 @@ import {
   ClipboardList,
   Warehouse
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarItemProps {
   icon: any;
@@ -86,6 +87,42 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, href, subI
 
 export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const isAdmin = Boolean(user?.roles?.some((role) => role === 'admin' || role === 'superadmin'));
+
+  React.useEffect(() => {
+    if (isLoading) return;
+
+    if (!isAuthenticated) {
+      router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
+    if (!isAdmin) {
+      router.replace('/account');
+    }
+  }, [isLoading, isAuthenticated, isAdmin, router, pathname]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center px-6">
+        <p className="text-lg font-black italic uppercase tracking-tighter text-slate-700">Checking Admin Access...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !isAdmin) {
+    return (
+      <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center px-6">
+        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-5 text-center max-w-lg">
+          <h1 className="text-3xl font-black italic uppercase tracking-tighter text-red-700">Access Denied</h1>
+          <p className="mt-2 text-sm font-semibold text-red-700">Admin dashboard is available only for users with admin role.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex">
