@@ -56,36 +56,34 @@ const TABS = ["ALL", "Merchandise", "Accessories", "Team Store"];
 
 const CategoryCard: React.FC<{ item: CategoryItem }> = ({ item }) => {
   return (
-    <div className="embla__slide flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_25%] px-3">
-      <div className="relative group cursor-pointer h-full">
-        {/* Hover Gradient Border Container */}
-        <div className="absolute -inset-[2px] rounded-[40px] bg-transparent group-hover:bg-gradient-to-br group-hover:from-orange-500 group-hover:via-red-500 group-hover:to-yellow-400 transition-all duration-300 -z-10" />
-        
-        <div className="relative h-full bg-[#F9F9F9] rounded-[38px] overflow-hidden flex flex-col p-6 border border-slate-100 group-hover:border-transparent transition-colors">
-          {/* Grid Background Pattern - Subtled down as requested */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-               style={{ 
-                 backgroundImage: `linear-gradient(#ff4d00 1px, transparent 1px), linear-gradient(90deg, #ff4d00 1px, transparent 1px)`,
-                 backgroundSize: '20px 20px'
-               }} 
+    <div className="relative group cursor-pointer h-full">
+      {/* Hover Gradient Border Container */}
+      <div className="absolute -inset-[2px] rounded-[30px] sm:rounded-[40px] bg-transparent group-hover:bg-gradient-to-br group-hover:from-orange-500 group-hover:via-red-500 group-hover:to-yellow-400 transition-all duration-300 -z-10" />
+
+      <div className="relative h-full bg-[#F9F9F9] rounded-[28px] sm:rounded-[38px] overflow-hidden flex flex-col p-4 sm:p-6 border border-slate-100 group-hover:border-transparent transition-colors">
+        {/* Grid Background Pattern - Subtled down as requested */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+             style={{
+               backgroundImage: `linear-gradient(#ff4d00 1px, transparent 1px), linear-gradient(90deg, #ff4d00 1px, transparent 1px)`,
+               backgroundSize: '20px 20px'
+             }}
+        />
+
+        {/* Product Image */}
+        <div className="relative flex-1 flex items-center justify-center py-5 sm:py-8">
+          <img
+            src={item.image}
+            alt={item.title}
+            className="w-full h-auto max-h-[200px] sm:max-h-[240px] object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-2xl"
+            referrerPolicy="no-referrer"
           />
-          
-          {/* Product Image */}
-          <div className="relative flex-1 flex items-center justify-center py-8">
-            <img 
-              src={item.image} 
-              alt={item.title} 
-              className="w-full h-auto max-h-[240px] object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-2xl"
-              referrerPolicy="no-referrer"
-            />
-          </div>
-          
-          {/* Label Bar */}
-          <div className="relative z-10 bg-white rounded-2xl py-3 px-5 flex items-center justify-between shadow-sm border border-slate-50">
-            <span className="font-black text-sm uppercase tracking-tight text-slate-900">{item.title}</span>
-            <div className="bg-orange-600 text-white rounded-lg p-1.5 group-hover:scale-110 transition-transform">
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </div>
+        </div>
+
+        {/* Label Bar */}
+        <div className="relative z-10 bg-white rounded-2xl py-2.5 sm:py-3 px-4 sm:px-5 flex items-center justify-between shadow-sm border border-slate-50">
+          <span className="font-black text-xs sm:text-sm uppercase tracking-tight text-slate-900">{item.title}</span>
+          <div className="bg-orange-600 text-white rounded-lg p-1.5 group-hover:scale-110 transition-transform">
+            <ArrowUpRight className="w-3.5 h-3.5" />
           </div>
         </div>
       </div>
@@ -126,10 +124,10 @@ export const CategoriesTabs: React.FC = () => {
   const scrollNext = useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi]);
 
   return (
-    <section className="w-full py-12 space-y-10">
+    <section className="w-full py-8 sm:py-12 space-y-8 sm:space-y-10">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-6">
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900">
             Categories
           </h2>
           
@@ -151,7 +149,7 @@ export const CategoriesTabs: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
           <button className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-orange-600 hover:opacity-70 transition-opacity">
             View All Products
             <MoveRight className="w-4 h-4" />
@@ -188,7 +186,7 @@ export const CategoriesTabs: React.FC = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.3 }}
-                  className="embla__slide flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_25%] px-3"
+                  className="embla__slide flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_25%] px-2 sm:px-3"
                 >
                   <CategoryCard item={item} />
                 </motion.div>

@@ -53,7 +53,7 @@ export default function CheckoutPageClient() {
             <button onClick={() => router.push("/cart")} className="lg:hidden p-2 bg-slate-100 rounded-full">
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-4xl font-black uppercase tracking-tighter italic">Checkout</h1>
+            <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter italic">Checkout</h1>
           </div>
 
           <AnimatePresence mode="wait">
@@ -94,7 +94,7 @@ export default function CheckoutPageClient() {
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-slate-100 flex justify-between items-center">
+                <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <button
                     onClick={() => router.push("/cart")}
                     className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-black flex items-center gap-2"

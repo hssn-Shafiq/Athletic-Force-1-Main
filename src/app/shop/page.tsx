@@ -139,7 +139,7 @@ export default function Shop() {
         {/* Main Layout */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-0 border border-gray-200 bg-[#f3f3f3]">
           {/* Left Sidebar */}
-          <aside className="md:col-span-1 p-4 md:p-5 border-r border-gray-200 bg-[#f3f3f3]">
+          <aside className="md:col-span-1 p-4 md:p-5 md:border-r border-gray-200 bg-[#f3f3f3]">
             <div className="space-y-6">
               {/* Search Box in Sidebar */}
               <div className="relative">
@@ -202,11 +202,11 @@ export default function Shop() {
           </aside>
 
           {/* Products Section */}
-          <div className="md:col-span-3 border-l border-gray-200">
+          <div className="md:col-span-3 md:border-l border-gray-200">
             {/* Controls Row */}
             <div className="px-4 md:px-5 py-4 border-b border-gray-200">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex flex-wrap gap-2 max-w-[75%]">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="flex flex-wrap gap-2 max-w-full sm:max-w-[75%]">
                   {categories.map((cat, idx) => (
                     <button
                       key={`${cat}-${idx}`}
@@ -233,7 +233,7 @@ export default function Shop() {
                   ))}
                 </div>
 
-                <button className="h-10 px-4 bg-black text-white rounded-lg font-semibold text-sm whitespace-nowrap flex items-center gap-2">
+                <button className="h-10 px-4 bg-black text-white rounded-lg font-semibold text-sm whitespace-nowrap flex items-center justify-center gap-2 w-full sm:w-auto">
                   <SlidersHorizontal className="w-4 h-4" />
                   Sort by Range
                 </button>

@@ -5,21 +5,21 @@ import { ArrowRight } from 'lucide-react';
 
 export const PromoBanner: React.FC = () => {
   return (
-    <div className="relative p-0.5 rounded-[40px] bg-linear-to-r from-orange-500 via-purple-600 to-green-500">
-      <div className="bg-black rounded-[38px] overflow-hidden relative min-h-100 flex items-center px-12 md:px-20">
+    <div className="relative p-0.5 rounded-[28px] sm:rounded-[40px] bg-linear-to-r from-orange-500 via-purple-600 to-green-500">
+      <div className="bg-black rounded-[26px] sm:rounded-[38px] overflow-hidden relative min-h-[300px] sm:min-h-[420px] lg:min-h-[520px] flex items-center px-5 sm:px-8 md:px-12 lg:px-20 py-8 sm:py-10">
         {/* Background Decorative Gradient */}
         <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_20%_50%,rgba(255,115,72,0.3),transparent_40%)]"></div>
         
         {/* Content */}
         <div className="relative z-10 max-w-xl">
           <div className="flex items-start gap-1 mb-2">
-            <span className="text-[120px] font-black leading-none text-[#FF7348] tracking-tighter">10%</span>
-            <span className="text-4xl font-black text-white mt-6 uppercase italic">Off</span>
+            <span className="text-[64px] sm:text-[90px] lg:text-[120px] font-black leading-none text-[#FF7348] tracking-tighter">10%</span>
+            <span className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mt-4 sm:mt-6 uppercase italic">Off</span>
           </div>
-          <h3 className="text-5xl font-black text-white mb-8 tracking-tight leading-tight">
+          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-6 sm:mb-8 tracking-tight leading-tight">
             On Custom Kit,<br />Make It Yours
           </h3>
-          <button className="bg-white text-black px-10 py-5 rounded-full font-black text-sm uppercase tracking-wider flex items-center gap-3 hover:bg-slate-100 transition-colors">
+          <button className="bg-white text-black px-6 sm:px-8 lg:px-10 py-3.5 sm:py-4 lg:py-5 rounded-full font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-3 hover:bg-slate-100 transition-colors w-full sm:w-fit">
             Customize Your Kit
             <ArrowRight className="w-5 h-5" />
           </button>

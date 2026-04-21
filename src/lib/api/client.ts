@@ -34,7 +34,7 @@ function shouldSkipRefresh(url?: string) {
 export const apiClient = axios.create({
   baseURL: env.apiBaseUrl,
   withCredentials: true,
-  timeout: 15000,
+  timeout: env.apiTimeoutMs,
 });
 
 apiClient.interceptors.response.use(

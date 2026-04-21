@@ -87,12 +87,12 @@ export const ExploreCategories: React.FC = () => {
   }));
 
   return (
-    <section className="w-full py-16">
-      <div className="flex items-end justify-between mb-12">
+    <section className="w-full py-10 sm:py-16">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 sm:mb-12">
         <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
           Explore Categories
         </h2>
-        <button className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-900 hover:opacity-70 transition-opacity pb-1 border-b border-transparent hover:border-slate-900">
+        <button className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-slate-900 hover:opacity-70 transition-opacity pb-1 border-b border-transparent hover:border-slate-900 w-fit">
           View All Sports
           <MoveRight className="w-3.5 h-3.5" />
         </button>
@@ -117,8 +117,8 @@ export const ExploreCategories: React.FC = () => {
         </div>
       )}
 
-      <div className="mt-20 flex justify-center">
-        <button className="group px-12 py-4 bg-[#F2F2F2] border border-slate-300 rounded-full flex items-center gap-3 font-bold uppercase tracking-widest text-xs text-slate-900 hover:bg-slate-200 transition-all shadow-sm">
+      <div className="mt-12 sm:mt-20 flex justify-center">
+        <button className="group px-6 sm:px-10 lg:px-12 py-3.5 sm:py-4 bg-[#F2F2F2] border border-slate-300 rounded-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[11px] sm:text-xs text-slate-900 hover:bg-slate-200 transition-all shadow-sm w-full sm:w-auto">
           Customize Your Kit
           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </button>
