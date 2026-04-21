@@ -28,7 +28,7 @@ import { ProductReviews } from '../_components/ProductReviews';
 import { Product } from '@/types';
 
 // Extended product type for this page
-interface DetailedProduct extends Product {
+interface DetailedProduct extends Omit<Product, 'variants' | 'inventory'> {
   sku: string;
   benefits: string[];
   variants: {

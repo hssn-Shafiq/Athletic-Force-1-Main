@@ -1,62 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ProductCard } from '@/components/layout/ProductCard';
 import { QuickViewModal } from '@/components/layout/QuickViewModal';
 import { Product } from '@/types';
 import { ArrowRight } from 'lucide-react';
+import { getExploreProductsApi } from '@/lib/api/publicProducts';
+import { mapPublicProductToCard } from '@/lib/products/mapPublicProductToCard';
 
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: '1',
-    slug: 'custom-half-sleeves-t-shirt-series-6050a',
-    title: 'Elite Performance Tee Series 6050a',
-    category: 'T-Shirts',
-    price: 49.99,
-    originalPrice: 67.49,
-    discount: '-26%',
-    rating: 4.9,
-    isNew: true,
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=400&auto=format&fit=crop'
-  },
-  {
-    id: '2',
-    slug: 'legacy-team-jersey',
-    title: 'Legacy Team Jersey',
-    category: 'Jerseys',
-    price: 59.99,
-    originalPrice: 80.99,
-    discount: '-26%',
-    rating: 4.9,
-    image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=400&auto=format&fit=crop'
-  },
-  {
-    id: '3',
-    slug: 'pro-performance-socks',
-    title: 'Pro Performance Socks',
-    category: 'Accessories',
-    price: 14.99,
-    originalPrice: 20.24,
-    discount: '-26%',
-    rating: 4.9,
-    image: 'https://images.unsplash.com/photo-1586350977771-b3b0abd50c82?q=80&w=400&auto=format&fit=crop'
-  },
-  {
-    id: '4',
-    slug: 'stealth-snapback-cap',
-    title: 'Stealth Snapback Cap',
-    category: 'Accessories',
-    price: 29.99,
-    originalPrice: 40.49,
-    discount: '-26%',
-    rating: 4.9,
-    image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?q=80&w=400&auto=format&fit=crop'
-  }
-];
+const PRODUCT_SKELETON_COUNT = 4;
+
+const ProductCardSkeleton: React.FC = () => (
+  <div className="group relative bg-white border border-transparent rounded-4xl p-4 animate-pulse">
+    <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-100 mb-4" />
+    <div className="px-2 space-y-2">
+      <div className="h-3 w-1/3 rounded bg-slate-100" />
+      <div className="h-5 w-11/12 rounded bg-slate-100" />
+      <div className="h-4 w-1/4 rounded bg-slate-100" />
+      <div className="h-6 w-1/3 rounded bg-slate-100" />
+    </div>
+  </div>
+);
 
 export const ProductCollection: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Best Sellers');
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleOpenQuickView = (product: Product) => {
     setQuickViewProduct(product);
@@ -66,7 +36,64 @@ export const ProductCollection: React.FC = () => {
     setQuickViewProduct(null);
   };
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProducts() {
+      setIsLoading(true);
+
+      try {
+        const response = await getExploreProductsApi({
+          page: 1,
+          pageSize: 40,
+        });
+
+        if (!isMounted) return;
+
+        const mapped = (response.items || []).map(mapPublicProductToCard);
+        setProducts(mapped);
+      } catch {
+        if (!isMounted) return;
+        setProducts([]);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadProducts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const tabs = ['All', 'Best Sellers', 'Merchandise', 'Accessories'];
+
+  const filteredProducts = useMemo(() => {
+    const merchandiseProducts = products.filter((product) =>
+      (product.collections || []).some(
+        (entry) => entry.slug?.toLowerCase() === 'merchandise' || entry.name?.toLowerCase() === 'merchandise'
+      )
+    );
+
+    if (activeTab === 'Merchandise') {
+      return merchandiseProducts;
+    }
+
+    if (activeTab === 'Accessories') {
+      return products.filter((product) => product.category?.toLowerCase().includes('accessories'));
+    }
+
+    if (activeTab === 'Best Sellers') {
+      return [...products]
+        .sort((a, b) => b.rating - a.rating)
+        .slice(0, 8);
+    }
+
+    return products;
+  }, [activeTab, products]);
 
   return (
     <>
@@ -97,18 +124,32 @@ export const ProductCollection: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
-          {MOCK_PRODUCTS.map(product => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onOpenQuickView={handleOpenQuickView}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+            {Array.from({ length: PRODUCT_SKELETON_COUNT }).map((_, idx) => (
+              <ProductCardSkeleton key={`product-skeleton-${idx}`} />
+            ))}
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-6 py-10 text-center">
+            <p className="text-base font-black uppercase tracking-wide text-slate-800">No Products Available</p>
+            <p className="mt-2 text-sm font-medium text-slate-500">Try selecting another tab or check back soon.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+            {filteredProducts.map(product => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onOpenQuickView={handleOpenQuickView}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <QuickViewModal
+        key={quickViewProduct?.id || 'quick-view-empty'}
         product={quickViewProduct}
         isOpen={quickViewProduct !== null}
         onClose={handleCloseQuickView}
