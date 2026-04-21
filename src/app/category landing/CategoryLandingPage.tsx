@@ -58,10 +58,10 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
             <div className="p-6 bg-white rounded-3xl shadow-2xl -rotate-3">
               {CATEGORY_ICONS[currentCategory]}
             </div>
-            <h1 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter text-white leading-[0.95] md:leading-[0.9]">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-black italic uppercase tracking-tighter text-white leading-[0.95] md:leading-[0.9]">
               {currentCategory}
             </h1>
-            <p className="text-xl text-white/90 font-medium max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-white/90 font-medium max-w-2xl mx-auto">
               {categoryData.description}
             </p>
           </motion.div>
@@ -77,7 +77,7 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.05 }}
-              className="group relative bg-white border border-slate-100 rounded-[40px] p-10 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden shadow-sm"
+              className="group relative bg-white border border-slate-100 rounded-[28px] sm:rounded-[40px] p-6 sm:p-10 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden shadow-sm"
             >
               {/* Background Accent */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-[100px] flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-500">
@@ -86,7 +86,7 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
               
               <div className="space-y-4">
                 <div className="text-xs font-black uppercase tracking-[0.2em] text-orange-600 italic">Sub-Collection</div>
-                <h3 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 group-hover:text-orange-600 transition-colors">
+                <h3 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-slate-900 group-hover:text-orange-600 transition-colors">
                   {sub}
                 </h3>
                 <p className="text-slate-400 text-sm font-medium leading-relaxed">
@@ -108,29 +108,29 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
       </section>
 
       {/* CTA Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-32">
-        <div className="bg-black rounded-[60px] p-12 lg:p-24 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-12 group">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 sm:mt-24 md:mt-32">
+        <div className="bg-black rounded-[28px] sm:rounded-[40px] lg:rounded-[60px] p-6 sm:p-10 lg:p-24 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8 sm:gap-12 group">
           {/* Animated Background Gradients */}
           <div className="absolute top-[-20%] right-[-10%] w-125 h-125 bg-orange-600/20 blur-[120px] rounded-full group-hover:scale-110 transition-transform duration-1000" />
           <div className="absolute bottom-[-20%] left-[-10%] w-125 h-125 bg-red-600/10 blur-[120px] rounded-full group-hover:scale-110 transition-transform duration-1000" />
           
           <div className="relative z-10 max-w-xl text-center lg:text-left space-y-6">
-            <h2 className="text-5xl md:text-6xl font-black italic uppercase tracking-tighter text-white leading-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-6xl font-black italic uppercase tracking-tighter text-white leading-tight">
               Ready to Gear Up Your Squad?
             </h2>
-            <p className="text-slate-400 text-lg font-medium italic">
+            <p className="text-slate-400 text-base sm:text-lg font-medium italic">
               Special bulk pricing and rapid turnaround for team orders. Let&apos;s make your vision a reality.
             </p>
           </div>
           
           <div className="relative z-10 flex flex-col sm:flex-row gap-6 w-full lg:w-auto">
-            <button className="flex-1 lg:flex-none flex items-center justify-center gap-4 bg-white text-black px-12 py-6 rounded-3xl font-black uppercase italic tracking-tighter text-xl hover:scale-105 transition-all shadow-xl">
+            <button className="flex-1 lg:flex-none flex items-center justify-center gap-3 sm:gap-4 bg-white text-black px-6 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl sm:rounded-3xl font-black uppercase italic tracking-tighter text-base sm:text-lg lg:text-xl hover:scale-105 transition-all shadow-xl">
               <span>Contact Agent</span>
-              <ArrowRight className="w-6 h-6" />
+              <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
-            <button className="flex-1 lg:flex-none flex items-center justify-center gap-4 border-2 border-white/20 text-white px-12 py-6 rounded-3xl font-black uppercase italic tracking-tighter text-xl hover:bg-white/10 transition-all">
+            <button className="flex-1 lg:flex-none flex items-center justify-center gap-3 sm:gap-4 border-2 border-white/20 text-white px-6 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl sm:rounded-3xl font-black uppercase italic tracking-tighter text-base sm:text-lg lg:text-xl hover:bg-white/10 transition-all">
               <span>Bulk Order</span>
-              <Target className="w-6 h-6" />
+              <Target className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
         </div>

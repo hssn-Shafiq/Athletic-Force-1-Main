@@ -188,7 +188,7 @@ const ProductSingleClient: React.FC = () => {
                     <button 
                       key={idx}
                       onClick={() => onThumbClick(idx)}
-                      className={`relative min-w-[calc((100vw-2.75rem-0.75rem)/3)] w-[calc((100vw-2.75rem-0.75rem)/3)] md:min-w-0 md:w-full aspect-square rounded-2xl overflow-hidden bg-slate-50 border-2 transition-all p-1 group shrink-0 ${
+                      className={`relative min-w-[92px] w-[29vw] max-w-[124px] md:min-w-0 md:w-full aspect-square rounded-2xl overflow-hidden bg-slate-50 border-2 transition-all p-1 group shrink-0 ${
                         selectedIndex === idx ? "border-black scale-95" : "border-transparent hover:border-slate-200"
                       }`}
                     >
@@ -457,37 +457,37 @@ const ProductSingleClient: React.FC = () => {
             </button>
 
             {/* Trust Badges */}
-            <div className="grid grid-cols-2 gap-6 pt-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-slate-50 rounded-2xl">
-                  <Truck className="w-6 h-6 text-slate-600" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2.5 sm:p-3 bg-slate-50 rounded-2xl">
+                  <Truck className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
                 </div>
                 <div>
                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 leading-tight italic">Worldwide Shipping</h5>
                   <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">Free delivery on all orders</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-slate-50 rounded-2xl">
-                  <Headphones className="w-6 h-6 text-slate-600" />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2.5 sm:p-3 bg-slate-50 rounded-2xl">
+                  <Headphones className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
                 </div>
                 <div>
                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 leading-tight italic">24/7 Online Support</h5>
                   <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">Always ready to assist you</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-slate-50 rounded-2xl">
-                  <RotateCcw className="w-6 h-6 text-slate-600" />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2.5 sm:p-3 bg-slate-50 rounded-2xl">
+                  <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
                 </div>
                 <div>
                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 leading-tight italic">Free 30 Days Return</h5>
                   <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">30 days return policy</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-slate-50 rounded-2xl">
-                  <ShieldCheck className="w-6 h-6 text-slate-600" />
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-2.5 sm:p-3 bg-slate-50 rounded-2xl">
+                  <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
                 </div>
                 <div>
                   <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 leading-tight italic">Safe Checkout</h5>

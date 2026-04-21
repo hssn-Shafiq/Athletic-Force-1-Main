@@ -85,22 +85,22 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
     <>
       <header className="w-full relative bg-white z-100">
         {/* Announcement Bar */}
-        <div className="bg-black text-white text-[10px] md:text-xs py-2 px-4 flex justify-between items-center font-medium">
-          <div className="flex-1">
+        <div className="bg-black text-white text-[10px] md:text-xs py-2 px-3 sm:px-4 flex items-center justify-between gap-2 font-medium">
+          <div className="min-w-0 flex-1">
             <span>Get <span className="text-orange-500 font-bold">20% Off</span> on Every Customized Uniform</span>
           </div>
-          <div className="flex items-center space-x-6">
-            <button className="flex items-center uppercase tracking-widest font-bold text-[10px]">
+          <div className="hidden sm:flex items-center space-x-4 md:space-x-6 shrink-0">
+            <button className="flex items-center uppercase tracking-widest font-bold text-[10px] whitespace-nowrap">
               USD <ChevronDown className="w-3 h-3 ml-1 text-slate-400" />
             </button>
-            <button className="flex items-center uppercase tracking-widest font-bold text-[10px]">
+            <button className="flex items-center uppercase tracking-widest font-bold text-[10px] whitespace-nowrap">
               ENG <ChevronDown className="w-3 h-3 ml-1 text-slate-400" />
             </button>
           </div>
         </div>
 
         {/* Main Header */}
-        <div className="max-w-360 mx-auto px-4 sm:px-6 lg:px-8 h-24 flex items-center justify-between gap-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-20 sm:h-24 flex items-center justify-between gap-3 sm:gap-6">
           {/* Logo - Refined to match image */}
           <Link
             href="/"
@@ -118,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
               width={280}
               height={92}
               priority
-              className="h-12 md:h-14 w-auto"
+              className="h-10 sm:h-12 md:h-14 w-auto"
             />
           </Link>
 
@@ -156,7 +156,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
           </div>
 
           {/* Action Icons */}
-          <div className="flex items-center space-x-4 md:space-x-10">
+          <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-10">
             {!isLoading && isAuthenticated && isAdminUser ? (
               <Link
                 href="/admin"
@@ -171,7 +171,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
               className="relative flex flex-col items-center group"
             >
               <div className="relative">
-                <ShoppingCart className="w-7 h-7 text-slate-900 group-hover:scale-110 transition-transform" />
+                <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7 text-slate-900 group-hover:scale-110 transition-transform" />
                 <span suppressHydrationWarning className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] min-w-5 h-5 px-1 rounded-full flex items-center justify-center font-black border-2 border-white shadow-sm animate-bounce">
                   {cartCount}
                 </span>
@@ -179,7 +179,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
               <span className="hidden md:block text-[10px] font-bold mt-1.5 uppercase tracking-widest text-slate-500 group-hover:text-black">Cart</span>
             </button>
             <button className="flex flex-col items-center group">
-              <Heart className="w-7 h-7 text-slate-900 group-hover:scale-110 transition-transform" />
+              <Heart className="w-6 h-6 sm:w-7 sm:h-7 text-slate-900 group-hover:scale-110 transition-transform" />
               <span className="hidden md:block text-[10px] font-bold mt-1.5 uppercase tracking-widest text-slate-500 group-hover:text-black">Saved</span>
             </button>
             <div className="relative" ref={profileMenuRef}>
@@ -198,7 +198,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
               ) : (
                 <Link href="/login" className="flex flex-col items-center group">
                   <div className="hover:bg-slate-100 rounded-full p-1.5 transition-colors">
-                    <User className="w-7 h-7 text-slate-900" />
+                    <User className="w-6 h-6 sm:w-7 sm:h-7 text-slate-900" />
                   </div>
                   <span className="hidden md:block text-[10px] font-bold mt-1.5 uppercase tracking-widest text-slate-500 group-hover:text-black">Profile</span>
                 </Link>
@@ -257,10 +257,15 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
       <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
       {/* Mobile Search - Only visible on small screens */}
-      <div className="md:hidden px-4 pb-6 bg-white border-b border-slate-100">
+      <div className="md:hidden px-3 sm:px-4 pb-4 bg-white border-b border-slate-100 space-y-3">
         <div className="flex items-center border border-slate-100 rounded-full px-5 py-3 bg-[#F9F9F9]">
           <Search className="w-4 h-4 text-slate-400 mr-2" />
           <input type="text" placeholder="Search for gear..." className="bg-transparent text-sm w-full outline-none font-medium" />
+        </div>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <Link href="/shop" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-700">Shop</Link>
+          <Link href="/blog" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-700">Blog</Link>
+          <Link href="/contact" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-700">Contact</Link>
         </div>
       </div>
     </>
