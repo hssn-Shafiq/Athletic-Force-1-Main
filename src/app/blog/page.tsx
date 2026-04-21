@@ -24,7 +24,7 @@ export default function BlogPage() {
         </section>
 
         <section className="mb-14">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
             <h2 className="text-2xl md:text-4xl font-black text-heading tracking-tight">Featured Story</h2>
             <Link href={`/blog/${featuredPost.slug}`} className="text-accent text-sm md:text-base font-semibold inline-flex items-center gap-2">
               Read Article
@@ -60,7 +60,7 @@ export default function BlogPage() {
         </section>
 
         <section>
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
             <h2 className="text-2xl md:text-4xl font-black text-heading tracking-tight">Latest Articles</h2>
             <div className="hidden md:flex items-center gap-2">
               {["All", "Team Strategy", "Performance", "Operations", "Planning"].map((tag) => (
