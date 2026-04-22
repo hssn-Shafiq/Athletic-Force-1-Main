@@ -1,111 +1,136 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Image from "next/image";
-import { Play } from "lucide-react";
+import { Play, X } from "lucide-react";
 
-type VideoItem = {
-  id: string;
-  title: string;
-  thumbnail: string;
+// ─── URL helpers ───────────────────────────────────────────────────────────────
+
+/**
+ * Converts any YouTube URL variant into an embeddable src:
+ *   https://youtu.be/ID
+ *   https://www.youtube.com/watch?v=ID
+ *   https://www.youtube.com/shorts/ID
+ *   https://youtube.com/embed/ID  (already embedded)
+ * Returns null if it's not a YouTube URL.
+ */
+function toYouTubeEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, '');
+
+    if (host === 'youtu.be') {
+      const id = u.pathname.slice(1).split('?')[0];
+      return id ? `https://www.youtube.com/embed/${id}?autoplay=1&rel=0` : null;
+    }
+
+    if (host === 'youtube.com') {
+      // /shorts/ID
+      const shortsMatch = u.pathname.match(/\/shorts\/([^/?#]+)/);
+      if (shortsMatch) {
+        return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1&rel=0`;
+      }
+      // /embed/ID
+      const embedMatch = u.pathname.match(/\/embed\/([^/?#]+)/);
+      if (embedMatch) {
+        return `${url.split('?')[0]}?autoplay=1&rel=0`;
+      }
+      // /watch?v=ID
+      const videoId = u.searchParams.get('v');
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+type VideoReviewItem = {
+  videoUrl: string;
+  thumbnailUrl: string | null;
 };
 
-const videoItems: VideoItem[] = [
-  {
-    id: "v1",
-    title: "Coach review",
-    thumbnail:
-      "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=600&auto=format&fit=crop",
-  },
-  {
-    id: "v2",
-    title: "Player review",
-    thumbnail:
-      "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?q=80&w=600&auto=format&fit=crop",
-  },
-  {
-    id: "v3",
-    title: "Youth review",
-    thumbnail:
-      "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=600&auto=format&fit=crop",
-  },
-  {
-    id: "v4",
-    title: "Team review",
-    thumbnail:
-      "https://images.unsplash.com/photo-1518604666860-9ed391f76460?q=80&w=600&auto=format&fit=crop",
-  },
-];
+type VideoReviewsProps = {
+  videoReviews: VideoReviewItem[];
+};
 
-export function VideoReviews() {
-  const [activeVideo, setActiveVideo] = useState(videoItems[0]);
+// ─── Component ─────────────────────────────────────────────────────────────────
+
+export function VideoReviews({ videoReviews }: VideoReviewsProps) {
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+
+  if (!videoReviews || videoReviews.length === 0) return null;
 
   return (
     <section className="rounded-2xl bg-[#efefef] p-5 sm:p-8">
-      <h2 className="text-lg font-black text-slate-900">Video Feedback on This Products</h2>
+      <h2 className="text-lg font-black text-slate-900">Video Feedback on This Product</h2>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {videoItems.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => setActiveVideo(item)}
-            className={`group relative overflow-hidden rounded-2xl border-2 transition ${
-              activeVideo.id === item.id ? "border-[#9f7bea]" : "border-transparent"
-            }`}
-            aria-label={`Play ${item.title}`}
-          >
-            <div className="relative aspect-4/5">
-              <Image
-                src={item.thumbnail}
-                alt={item.title}
-                fill
-                sizes="(max-width: 640px) 48vw, 180px"
-                className="object-cover transition duration-500 group-hover:scale-105"
-                unoptimized
-              />
-            </div>
-            <span className="absolute bottom-2 right-2 rounded-full bg-black/75 p-1.5 text-white">
-              <Play className="h-3.5 w-3.5" />
-            </span>
-          </button>
-        ))}
-      </div>
+      {/* Inline video cards */}
+      <div className="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {videoReviews.map((item, index) => {
+          const isPlaying = playingIndex === index;
+          const embedUrl = toYouTubeEmbedUrl(item.videoUrl);
 
-      <div className="mt-6 text-center">
-        <h3 className="text-2xl font-black tracking-tight text-slate-900">Description of Product</h3>
-        <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-700">
-          Choosing the right helmet matters for safety, comfort, and confidence. If youre comparing soft shell vs hard shell
-          football helmet options for your program, this guide explains the real-world differences, when to use each type,
-          and how to pick the best setup for practices, games, and 7v7.
-        </p>
-        <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-700">
-          Choosing the right helmet matters for safety, comfort, and confidence. If youre comparing soft shell vs hard shell
-          football helmet options for your program, this guide explains the real-world differences, when to use each type,
-          and how to pick the best setup for practices, games, and 7v7.
-        </p>
-      </div>
-
-      <div className="mt-6 rounded-3xl bg-black p-6 sm:p-8">
-        <div className="relative mx-auto aspect-video max-w-3xl overflow-hidden rounded-2xl bg-black">
-          <Image
-            src={activeVideo.thumbnail}
-            alt={`${activeVideo.title} preview`}
-            fill
-            sizes="(max-width: 1024px) 100vw, 960px"
-            className="object-cover opacity-45"
-            unoptimized
-          />
-          <div className="absolute inset-0 grid place-items-center">
-            <button
-              type="button"
-              className="grid h-16 w-16 place-items-center rounded-full border border-white/60 bg-black/55 text-white transition hover:scale-105"
-              aria-label="Play video"
+          return (
+            <div
+              key={index}
+              className="relative overflow-hidden rounded-2xl border-2 border-transparent bg-black aspect-[4/5] sm:aspect-auto sm:h-64"
             >
-              <Play className="h-8 w-8" />
-            </button>
-          </div>
-        </div>
+              {isPlaying && embedUrl ? (
+                <>
+                  <iframe
+                    src={embedUrl}
+                    title={`Video review ${index + 1}`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute inset-0 h-full w-full"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPlayingIndex(null)}
+                    className="absolute right-2 top-2 z-10 rounded-full bg-black/60 p-1.5 text-white hover:bg-black"
+                    aria-label="Close video"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setPlayingIndex(index)}
+                  className="group absolute inset-0 flex h-full w-full items-center justify-center"
+                  aria-label={`Play video review ${index + 1}`}
+                >
+                  {item.thumbnailUrl ? (
+                    <Image
+                      src={item.thumbnailUrl}
+                      alt={`Video review ${index + 1}`}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-cover transition duration-500 group-hover:scale-105 opacity-80 group-hover:opacity-100"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-slate-200 transition duration-500 group-hover:bg-slate-300">
+                      <Play className="h-10 w-10 text-slate-400" />
+                    </div>
+                  )}
+                  {/* Play icon overlay */}
+                  <div className="absolute inset-0 grid place-items-center">
+                    <div className="grid h-12 w-12 place-items-center rounded-full bg-black/55 border border-white/60 text-white transition group-hover:scale-110">
+                      <Play className="h-5 w-5" />
+                    </div>
+                  </div>
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );

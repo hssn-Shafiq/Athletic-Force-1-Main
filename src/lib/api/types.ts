@@ -162,6 +162,33 @@ export type ProductVideoReview = {
   thumbnailPublicId?: string;
 };
 
+export type ProductFaq = {
+  question: string;
+  answer: string;
+};
+
+export type ProductUpsellOption = {
+  id: string;
+  name: string;
+  slug: string;
+  status?: 'active' | 'draft' | 'archived';
+  mainImageUrl?: string;
+};
+
+export type ProductReview = {
+  id: string;
+  productId: string;
+  source: 'admin' | 'customer';
+  isPublished: boolean;
+  rating: number;
+  fullName: string;
+  email: string;
+  reviewText: string;
+  photos: ProductImageAsset[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type ProductImageAsset = {
   url: string;
   publicId: string;
@@ -172,6 +199,10 @@ export type AdminProduct = {
   name: string;
   slug: string;
   description?: string;
+  benefits?: string;
+  faqs?: ProductFaq[];
+  upsellProductIds?: string[];
+  upsellProducts?: ProductUpsellOption[];
   orderType: 'direct' | 'request';
   status: 'active' | 'draft' | 'archived';
   collectionIds: string[];
@@ -196,6 +227,7 @@ export type AdminProduct = {
   galleryImages?: ProductImageAsset[];
   variants: ProductVariant[];
   videoReviews?: ProductVideoReview[];
+  reviews?: ProductReview[];
   tags?: string[];
   inventory?: {
     trackQuantity: boolean;
@@ -244,6 +276,10 @@ export type PublicProduct = {
   name: string;
   slug: string;
   description?: string;
+  benefits?: string;
+  faqs?: ProductFaq[];
+  upsellProductIds?: string[];
+  upsellProducts?: ProductUpsellOption[];
   status: 'active' | 'draft' | 'archived';
   regularPrice?: number;
   salePrice?: number;
@@ -280,6 +316,11 @@ export type PublicProductsResponse = {
   };
 };
 
+export type PublicProductResponse = {
+  ok: boolean;
+  product: PublicProduct;
+};
+
 export type UpsertProductVariantRequest = {
   clientKey: string;
   parentValueId?: string;
@@ -310,6 +351,18 @@ export type UpsertProductVideoReviewRequest = {
   thumbnailFile?: File;
 };
 
+export type UpsertProductReviewRequest = {
+  clientKey: string;
+  source?: 'admin' | 'customer';
+  isPublished?: boolean;
+  rating: number;
+  fullName: string;
+  email: string;
+  reviewText: string;
+  photos?: ProductMediaAsset[];
+  photoFiles?: File[];
+};
+
 export type ProductMediaAsset = {
   url: string;
   publicId: string;
@@ -319,6 +372,9 @@ export type UpsertProductRequest = {
   name: string;
   slug?: string;
   description?: string;
+  benefits?: string;
+  faqs?: ProductFaq[];
+  upsellProductIds?: string[];
   orderType: 'direct' | 'request';
   collectionIds: string[];
   status: 'active' | 'draft' | 'archived';
@@ -350,6 +406,7 @@ export type UpsertProductRequest = {
   };
   variants: UpsertProductVariantRequest[];
   videoReviews: UpsertProductVideoReviewRequest[];
+  reviews?: UpsertProductReviewRequest[];
   mainVideo?: {
     videoUrl: string;
     thumbnailUrl?: string;
@@ -373,6 +430,11 @@ export type ProductResponse = {
   ok: boolean;
   message?: string;
   product: AdminProduct;
+};
+
+export type ProductOptionsResponse = {
+  ok: boolean;
+  items: ProductUpsellOption[];
 };
 
 export type DeleteProductResponse = {

@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { PublicProductsResponse } from './types';
+import { PublicProductResponse, PublicProductsResponse } from './types';
 
 export async function getExploreProductsApi(params?: {
   page?: number;
@@ -11,5 +11,10 @@ export async function getExploreProductsApi(params?: {
     params,
   });
 
+  return data;
+}
+
+export async function getExploreProductBySlugApi(slug: string) {
+  const { data } = await apiClient.get<PublicProductResponse>(`/api/products/explore/${encodeURIComponent(slug)}`);
   return data;
 }

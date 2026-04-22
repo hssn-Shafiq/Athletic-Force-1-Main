@@ -4,6 +4,7 @@ import {
   DeleteProductResponse,
   ProductCollectionsResponse,
   ProductListResponse,
+  ProductOptionsResponse,
   ProductResponse,
   UpdateProductRequest,
   UpsertProductRequest,
@@ -16,6 +17,9 @@ function buildProductFormData(payload: Partial<UpsertProductRequest> & { removeM
     ...(payload.name !== undefined ? { name: payload.name } : {}),
     ...(payload.slug !== undefined ? { slug: payload.slug } : {}),
     ...(payload.description !== undefined ? { description: payload.description } : {}),
+    ...(payload.benefits !== undefined ? { benefits: payload.benefits } : {}),
+    ...(payload.faqs !== undefined ? { faqs: payload.faqs } : {}),
+    ...(payload.upsellProductIds !== undefined ? { upsellProductIds: payload.upsellProductIds } : {}),
     ...(payload.orderType !== undefined ? { orderType: payload.orderType } : {}),
     ...(payload.collectionIds !== undefined ? { collectionIds: payload.collectionIds } : {}),
     ...(payload.status !== undefined ? { status: payload.status } : {}),
@@ -58,6 +62,20 @@ function buildProductFormData(payload: Partial<UpsertProductRequest> & { removeM
           })),
         }
       : {}),
+    ...(payload.reviews !== undefined
+      ? {
+          reviews: payload.reviews.map((review) => ({
+            clientKey: review.clientKey,
+            source: review.source,
+            isPublished: review.isPublished,
+            rating: review.rating,
+            fullName: review.fullName,
+            email: review.email,
+            reviewText: review.reviewText,
+            photos: review.photos || [],
+          })),
+        }
+      : {}),
     ...(payload.mainImageUrl !== undefined ? { mainImageUrl: payload.mainImageUrl } : {}),
     ...(payload.mainImagePublicId !== undefined ? { mainImagePublicId: payload.mainImagePublicId } : {}),
     ...(payload.mainVideo !== undefined ? { mainVideo: payload.mainVideo } : {}),
@@ -97,6 +115,15 @@ function buildProductFormData(payload: Partial<UpsertProductRequest> & { removeM
     });
   }
 
+  if (payload.reviews?.length) {
+    payload.reviews.forEach((review) => {
+      if (!review.photoFiles?.length || !review.clientKey) return;
+      review.photoFiles.forEach((file, index) => {
+        formData.append(`reviewPhoto:${review.clientKey}:${index}`, file);
+      });
+    });
+  }
+
   return formData;
 }
 
@@ -125,6 +152,13 @@ export async function getAdminProductsApi(params?: {
 
 export async function getAdminProductByIdApi(productId: string) {
   const { data } = await apiClient.get<ProductResponse>(`/api/admin/products/${productId}`);
+  return data;
+}
+
+export async function getAdminProductOptionsApi(params?: { q?: string; pageSize?: number; excludeProductId?: string }) {
+  const { data } = await apiClient.get<ProductOptionsResponse>('/api/admin/products/options', {
+    params,
+  });
   return data;
 }
 
