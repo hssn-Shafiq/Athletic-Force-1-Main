@@ -3,6 +3,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ShoppingBag, Trash2, Plus, Minus } from 'lucide-react';
 import Link from 'next/link';
+import { useCart } from '@/contexts/CartContext';
 
 interface CartSidebarProps {
   isOpen: boolean;
@@ -10,27 +11,7 @@ interface CartSidebarProps {
 }
 
 export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
-  // Mock cart items
-  const cartItems = [
-    {
-      id: '1',
-      name: "Elite Performance Hoodie",
-      price: 89.99,
-      quantity: 1,
-      image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png",
-      size: "XL"
-    },
-    {
-      id: '2',
-      name: "Pro-Focus Visor",
-      price: 34.99,
-      quantity: 1,
-      image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png",
-      size: "OS"
-    }
-  ];
-
-  const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const { items: cartItems, removeItem, updateQuantity, totalPrice } = useCart();
 
   return (
     <AnimatePresence>
@@ -75,10 +56,10 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {cartItems.length > 0 ? (
                 cartItems.map((item) => (
-                  <div key={item.id} className="flex gap-4 group">
+                  <div key={item.variantSku} className="flex gap-4 group">
                     <div className="w-24 h-24 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0 border border-slate-200">
                       <img 
-                        src={item.image} 
+                        src={item.imageUrl || '/placeholder.png'} 
                         alt={item.name} 
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         referrerPolicy="no-referrer"
@@ -88,22 +69,36 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => 
                       <div>
                         <div className="flex justify-between items-start">
                           <h3 className="font-bold text-sm text-slate-900 leading-tight pr-4">{item.name}</h3>
-                          <button className="text-slate-300 hover:text-red-500 transition-colors">
+                          <button 
+                            onClick={() => removeItem(item.variantSku)}
+                            className="text-slate-300 hover:text-red-500 transition-colors"
+                          >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                         <div className="text-xs text-slate-500 mt-1 uppercase tracking-wider font-semibold">
-                          Size: {item.size}
+                          {item.color && <span>{item.color} </span>}
+                          {item.size && <span>| Size: {item.size}</span>}
                         </div>
                       </div>
                       
                       <div className="flex justify-between items-center mt-2">
                         <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden scale-90 origin-left">
-                          <button className="p-1 px-2 hover:bg-slate-100 text-slate-400 hover:text-black"><Minus className="w-3 h-3" /></button>
+                          <button 
+                            onClick={() => updateQuantity(item.variantSku, item.quantity - 1)}
+                            className="p-1 px-2 hover:bg-slate-100 text-slate-400 hover:text-black"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
                           <span className="px-3 text-xs font-bold">{item.quantity}</span>
-                          <button className="p-1 px-2 hover:bg-slate-100 text-slate-400 hover:text-black"><Plus className="w-3 h-3" /></button>
+                          <button 
+                            onClick={() => updateQuantity(item.variantSku, item.quantity + 1)}
+                            className="p-1 px-2 hover:bg-slate-100 text-slate-400 hover:text-black"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
                         </div>
-                        <span className="font-black text-sm text-slate-900">${item.price}</span>
+                        <span className="font-black text-sm text-slate-900">${item.price.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -120,7 +115,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => 
             <div className="p-6 border-t border-slate-100 bg-slate-50/50 space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Subtotal</span>
-                <span className="text-2xl font-black text-slate-900">${subtotal.toFixed(2)}</span>
+                <span className="text-2xl font-black text-slate-900">${totalPrice.toFixed(2)}</span>
               </div>
               <p className="text-[10px] text-slate-400 text-center uppercase tracking-widest font-medium">
                 Shipping and taxes calculated at checkout

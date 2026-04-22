@@ -8,6 +8,7 @@ import { CartSidebar } from './CartSidebar';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWishlist } from '@/contexts/WishlistContext';
 
 interface HeaderProps {
   onHomeClick?: () => void;
@@ -20,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { items: wishlistItems } = useWishlist();
   const isAdminUser = Boolean(user?.roles?.some((role) => role === 'admin' || role === 'superadmin'));
   const [cartCount, setCartCount] = useState(() => {
     if (typeof window === 'undefined') return 2;
@@ -178,10 +180,17 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
               </div>
               <span className="hidden md:block text-[10px] font-bold mt-1.5 uppercase tracking-widest text-slate-500 group-hover:text-black">Cart</span>
             </button>
-            <button className="flex flex-col items-center group">
-              <Heart className="w-6 h-6 sm:w-7 sm:h-7 text-slate-900 group-hover:scale-110 transition-transform" />
+            <Link href="/account?tab=wishlist" className="flex flex-col items-center group relative">
+              <div className="relative">
+                <Heart className="w-6 h-6 sm:w-7 sm:h-7 text-slate-900 group-hover:scale-110 transition-transform" />
+                {wishlistItems.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#FF7348] text-white text-[8px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center font-black border-2 border-white shadow-sm">
+                    {wishlistItems.length}
+                  </span>
+                )}
+              </div>
               <span className="hidden md:block text-[10px] font-bold mt-1.5 uppercase tracking-widest text-slate-500 group-hover:text-black">Saved</span>
-            </button>
+            </Link>
             <div className="relative" ref={profileMenuRef}>
               {isAuthenticated && !isLoading ? (
                 <button

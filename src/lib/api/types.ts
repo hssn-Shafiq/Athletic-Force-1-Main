@@ -441,3 +441,77 @@ export type DeleteProductResponse = {
   ok: boolean;
   message?: string;
 };
+
+export type ApiCartItem = {
+  productId: string;
+  variantSku: string;
+  name: string;
+  imageUrl?: string;
+  price: number;
+  quantity: number;
+  color?: string;
+  size?: string;
+  addedAt?: string;
+};
+
+export type ApiCart = {
+  id?: string;
+  userId: string;
+  items: ApiCartItem[];
+};
+
+export type CartResponse = {
+  ok: boolean;
+  message?: string;
+  cart: ApiCart;
+};
+
+export type AddToCartRequest = {
+  productId: string;
+  variantSku: string;
+  name: string;
+  imageUrl?: string;
+  price: number;
+  quantity: number;
+  color?: string;
+  size?: string;
+};
+
+export type UpdateCartQuantityRequest = {
+  variantSku: string;
+  quantity: number;
+};
+
+export type SyncCartRequest = {
+  guestItems: ApiCartItem[];
+};
+
+export type ApiWishlistItem = {
+  productId: string;
+  name: string;
+  imageUrl?: string;
+  price: number;
+  addedAt?: string;
+};
+
+export type ApiWishlist = {
+  userId: string;
+  items: ApiWishlistItem[];
+};
+
+export type WishlistResponse = {
+  ok: boolean;
+  message?: string;
+  wishlist: ApiWishlist;
+};
+
+export type ToggleWishlistItemRequest = {
+  productId: string;
+  name: string;
+  imageUrl?: string;
+  price: number;
+};
+
+export type SyncWishlistRequest = {
+  guestItems: ApiWishlistItem[];
+};

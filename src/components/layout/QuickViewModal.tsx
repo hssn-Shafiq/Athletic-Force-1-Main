@@ -2,8 +2,10 @@
 /* eslint-disable @next/next/no-img-element */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Star, ShoppingBag, Heart, Minus, Plus } from 'lucide-react';
+import { Star, ShoppingBag, Heart, Minus, Plus, X } from 'lucide-react';
 import { Product } from '@/types';
+import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/contexts/WishlistContext';
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -48,7 +50,6 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
@@ -139,6 +140,44 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
     ? (displayOriginalPrice - displayPrice).toFixed(2)
     : null;
 
+  const { addItem } = useCart();
+  const { toggleItem, isInWishlist } = useWishlist();
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+  const isWishlisted = product ? isInWishlist(product.id) : false;
+
+  const handleWishlistToggle = () => {
+    if (!product) return;
+    toggleItem({
+      productId: product.id,
+      name: product.title,
+      imageUrl: product.image,
+      price: product.price
+    });
+  };
+
+  const handleAddToCart = async () => {
+    if (!product) return;
+    setIsAddingToCart(true);
+    
+    // We expect variant to have a SKU or fallback to productId.
+    const sku = (selectedVariant as any)?.sku || product.id || '';
+    
+    await addItem({
+      productId: product.id || '',
+      variantSku: sku,
+      name: product.title,
+      imageUrl: currentImage,
+      price: displayPrice,
+      quantity,
+      color: effectiveSelectedColor ?? undefined,
+      size: effectiveSelectedSize ?? undefined,
+    });
+    
+    setIsAddingToCart(false);
+    onClose();
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -191,7 +230,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
 
               {/* Wishlist */}
               <button
-                onClick={() => setIsWishlisted(!isWishlisted)}
+                onClick={handleWishlistToggle}
                 className="absolute top-4 right-4 z-10 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center transition-colors"
               >
                 <Heart
@@ -341,7 +380,13 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                   </button>
                   <span className="w-8 text-center font-bold text-slate-900 text-lg">{quantity}</span>
                   <button
-                    onClick={() => setQuantity((q) => q + 1)}
+                    onClick={() => {
+                      // fallback to extracting globalStock if inventory is an object, otherwise default to a high threshold.
+                      const inv = product.inventory as any;
+                      const baseStock = typeof inv === 'number' ? inv : inv?.globalStock;
+                      const maxStock = selectedVariant?.stock ?? baseStock ?? 99;
+                      setQuantity((q) => Math.min(maxStock, q + 1));
+                    }}
                     className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -352,15 +397,16 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
               {/* CTA Buttons */}
               <div className="flex flex-col gap-3">
                 <button
-                  disabled={!effectiveSelectedSize}
+                  disabled={!effectiveSelectedSize || isAddingToCart}
+                  onClick={handleAddToCart}
                   className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all duration-200 ${
-                    effectiveSelectedSize
+                    effectiveSelectedSize && !isAddingToCart
                       ? 'bg-black text-white hover:bg-[#FF7348] hover:scale-[1.02] shadow-lg'
                       : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                   }`}
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  Add to Cart — ${((selectedVariant?.price ?? product.price) * quantity).toFixed(2)}
+                  {isAddingToCart ? 'Adding...' : `Add to Cart — $${((selectedVariant?.price ?? product.price) * quantity).toFixed(2)}`}
                 </button>
                 <button
                   onClick={onClose}
