@@ -7,6 +7,8 @@ import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { toast } from 'react-toastify';
+import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/contexts/WishlistContext';
 import { 
   Star, 
   Heart, 
@@ -237,7 +239,6 @@ const ProductSingleClient: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [showWishlistBurst, setShowWishlistBurst] = useState(false);
   const [flyingBox, setFlyingBox] = useState<{ id: number; startX: number; startY: number; endX: number; endY: number } | null>(null);
 
@@ -395,7 +396,13 @@ const ProductSingleClient: React.FC = () => {
     { id: "Shipping", title: "Shipping Terms", content: ["Standard (3-5 days)", "Express (1-2 days)", "Free over $100"] }
   ];
 
-  const handleAddToCart = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const { addItem } = useCart();
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+  const handleAddToCart = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!product) return;
+    setIsAddingToCart(true);
+
     const buttonRect = event.currentTarget.getBoundingClientRect();
     const target = document.getElementById('af1-header-cart-trigger');
     const targetRect = target?.getBoundingClientRect();
@@ -414,28 +421,36 @@ const ProductSingleClient: React.FC = () => {
       }, 3000);
     }
 
-    window.dispatchEvent(new CustomEvent('af1:add-to-cart', { detail: { qty: quantity } }));
-
-    toast.success(`${quantity} item${quantity > 1 ? 's' : ''} added to cart`, {
-      icon: <ShoppingBag className="h-4 w-4" />,
+    await addItem({
+      productId: product.id,
+      variantSku: displaySku,
+      name: product.title,
+      imageUrl: thumbnails[0] || product.image,
+      price: displayPrice,
+      quantity,
+      color: selectedColor?.name,
+      size: selectedSize || undefined,
     });
+
+    setIsAddingToCart(false);
+
+    window.dispatchEvent(new CustomEvent('af1:add-to-cart', { detail: { qty: quantity } }));
   };
 
+  const { toggleItem, isInWishlist } = useWishlist();
+  const isWishlisted = product ? isInWishlist(product.id) : false;
+
   const handleWishlistToggle = () => {
-    const next = !isWishlisted;
-    setIsWishlisted(next);
+    if (!product) return;
+    
     setShowWishlistBurst(true);
     window.setTimeout(() => setShowWishlistBurst(false), 850);
 
-    if (next) {
-      toast.success('Added to wishlist', {
-        icon: <Heart className="h-4 w-4 fill-red-500 text-red-500" />,
-      });
-      return;
-    }
-
-    toast.info('Removed from wishlist', {
-      icon: <Heart className="h-4 w-4" />,
+    toggleItem({
+      productId: product.id,
+      name: product.title,
+      imageUrl: product.image,
+      price: product.price
     });
   };
 
@@ -753,7 +768,6 @@ const ProductSingleClient: React.FC = () => {
               </div>
             </div>
 
-            {/* Quantity & Add to Cart */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 w-full sm:w-auto justify-between sm:justify-start">
                 <button 
@@ -766,7 +780,12 @@ const ProductSingleClient: React.FC = () => {
                   {quantity.toString().padStart(2, '0')}
                 </div>
                 <button 
-                  onClick={() => setQuantity(quantity + 1)}
+                  onClick={() => {
+                    const inv = product?.inventory as any;
+                    const baseStock = typeof inv === 'number' ? inv : inv?.globalStock;
+                    const maxStock = selectedVariant?.stock ?? baseStock ?? 99;
+                    setQuantity(Math.min(maxStock, quantity + 1));
+                  }}
                   className="p-2 text-slate-400 hover:text-black transition-colors"
                 >
                   <Plus className="w-4 h-4" />

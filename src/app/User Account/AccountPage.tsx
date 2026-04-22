@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWishlist } from '@/contexts/WishlistContext';
 
 type TabType = 'dashboard' | 'orders' | 'profile' | 'addresses' | 'wishlist' | 'settings';
 
@@ -325,36 +326,86 @@ const AddressesView = () => (
   </div>
 );
 
-const WishlistView = () => (
-  <div className="space-y-8">
-    <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Wishlist</h2>
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-      {[1, 2, 3].map(i => (
-        <div key={i} className="bg-white rounded-[40px] border border-slate-100 p-6 shadow-sm hover:shadow-xl transition-all group relative">
-          <button className="absolute top-6 right-6 z-10 p-3 bg-red-50 rounded-2xl text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm">
-            <Heart className="w-5 h-5 fill-current" />
-          </button>
-          <div className="aspect-square rounded-3xl bg-slate-50 overflow-hidden mb-6 relative">
-            <img src="https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Product" />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-          </div>
-          <div className="space-y-4">
-            <div>
-              <p className="text-[#FF7348] text-[10px] font-black uppercase tracking-widest italic">Accessories</p>
-              <h4 className="text-xl font-black italic uppercase tracking-tighter text-slate-900 leading-none mt-1">Spirit Pack Pro-Elite</h4>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-2xl font-black italic tracking-tighter text-slate-900">$129.00</span>
-              <button className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center hover:bg-orange-600 transition-all rotate-[-5deg] hover:rotate-0">
-                <ArrowRight className="w-5 h-5" />
+const WishlistView = () => {
+  const { items, toggleItem, isLoading } = useWishlist();
+  const router = useRouter();
+
+  if (isLoading) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs animate-pulse">Loading wishlist...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Wishlist</h2>
+        <span className="text-slate-400 text-xs font-bold uppercase tracking-widest italic">{items.length} Saved Items</span>
+      </div>
+
+      {items.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+          {items.map((item) => (
+            <div key={item.productId} className="bg-white rounded-[40px] border border-slate-100 p-6 shadow-sm hover:shadow-xl transition-all group relative">
+              <button 
+                onClick={() => toggleItem({
+                  productId: item.productId,
+                  name: item.name,
+                  imageUrl: item.imageUrl,
+                  price: item.price
+                })}
+                className="absolute top-6 right-6 z-10 p-3 bg-red-50 rounded-2xl text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+              >
+                <Heart className="w-5 h-5 fill-current" />
               </button>
+              <div className="aspect-square rounded-3xl bg-slate-50 overflow-hidden mb-6 relative">
+                <img 
+                  src={item.imageUrl || 'https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png'} 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                  alt={item.name} 
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[#FF7348] text-[10px] font-black uppercase tracking-widest italic">Product</p>
+                  <h4 className="text-xl font-black italic uppercase tracking-tighter text-slate-900 leading-none mt-1 line-clamp-1">{item.name}</h4>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl font-black italic tracking-tighter text-slate-900">${item.price.toFixed(2)}</span>
+                  <button 
+                    onClick={() => router.push(`/products/${item.productId}`)} // Ideally we'd have slug, but for now fallback to ID
+                    className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center hover:bg-orange-600 transition-all rotate-[-5deg] hover:rotate-0"
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
-      ))}
+      ) : (
+        <div className="bg-white rounded-[40px] border border-slate-100 p-20 text-center space-y-6">
+          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
+            <Heart className="w-10 h-10" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-900">Your wishlist is empty</h3>
+            <p className="text-slate-400 font-medium italic text-sm">Start adding some items you love!</p>
+          </div>
+          <button 
+            onClick={() => router.push('/')}
+            className="bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-xs hover:scale-105 transition-all shadow-xl shadow-black/10"
+          >
+            Explore Gear
+          </button>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 const SettingsView = () => (
   <div className="max-w-2xl space-y-12">

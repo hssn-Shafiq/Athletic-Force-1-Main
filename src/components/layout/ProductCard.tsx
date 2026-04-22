@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { Star, Eye, ShoppingBag, Heart } from 'lucide-react';
 import { Product } from '@/types';
 
+import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/contexts/WishlistContext';
+
 interface ProductCardProps {
   product: Product;
   onOpenQuickView: (product: Product) => void;
@@ -20,13 +23,29 @@ const toSlug = (value: string) =>
     .replace(/-+/g, '-');
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickView }) => {
+  const { items } = useCart();
+  const { toggleItem, isInWishlist } = useWishlist();
   const productHref = `/products/${product.slug ?? `${product.id}-${toSlug(product.title)}`}`;
+  
+  // Assuming frontend mock `Product.id` maps to `productId` in cart
+  const isInCart = items.some(i => i.productId === product.id);
+  const isWishlisted = isInWishlist(product.id);
+
+  const handleWishlistToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleItem({
+      productId: product.id,
+      name: product.title,
+      imageUrl: product.image,
+      price: product.price
+    });
+  };
 
   return (
     <div className="group relative bg-white border border-transparent hover:border-slate-100 rounded-4xl p-4 transition-all duration-300 hover:shadow-xl">
       {/* Image Container */}
       <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-50 mb-4">
-        {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
           {product.isNew && (
             <span className="bg-black text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
@@ -38,11 +57,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
               {product.discount}
             </span>
           )}
+          {isInCart && (
+            <span className="bg-green-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md">
+              In Cart
+            </span>
+          )}
         </div>
 
         {/* Wishlist Button */}
-        <button className="absolute top-3 right-3 z-10 bg-white/80 backdrop-blur-sm p-2 rounded-full text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
-          <Heart className="w-4 h-4" />
+        <button 
+          onClick={handleWishlistToggle}
+          className={`absolute top-3 right-3 z-10 bg-white/80 backdrop-blur-sm p-2 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 shadow-sm border border-slate-100 ${
+            isWishlisted ? 'text-red-500 bg-white opacity-100' : 'text-slate-400 hover:text-red-500'
+          }`}
+        >
+          <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
         </button>
 
         {/* Main Image */}

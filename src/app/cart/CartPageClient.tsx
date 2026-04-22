@@ -7,65 +7,23 @@ import { Trash2, Plus, Minus, ArrowRight, ShieldCheck, Truck, RotateCcw } from "
 import { motion } from "motion/react";
 import { EmptyCart } from "./_components/EmptyCart";
 
-type CartItem = {
-  id: string;
-  title: string;
-  category: string;
-  price: number;
-  quantity: number;
-  image: string;
-  size?: string;
-};
-
-const initialItems: CartItem[] = [
-  {
-    id: "1",
-    title: "Elite Performance Hoodie",
-    category: "Training",
-    price: 89.99,
-    quantity: 1,
-    image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png",
-    size: "XL",
-  },
-  {
-    id: "2",
-    title: "Pro-Focus Visor",
-    category: "Accessories",
-    price: 34.99,
-    quantity: 1,
-    image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png",
-    size: "OS",
-  },
-];
+import { useCart } from "@/contexts/CartContext";
 
 export default function CartPageClient() {
   const router = useRouter();
-  const [items, setItems] = useState<CartItem[]>(initialItems);
+  const { items, isLoading, updateQuantity, removeItem, totalPrice } = useCart();
 
-  const subtotal = useMemo(
-    () => items.reduce((acc, item) => acc + item.price * item.quantity, 0),
-    [items],
-  );
   const shipping = 0;
-  const total = subtotal + shipping;
+  const total = totalPrice + shipping;
 
   const onUpdateQuantity = (id: string, delta: number) => {
-    setItems((prev) =>
-      prev
-        .map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                quantity: Math.max(0, item.quantity + delta),
-              }
-            : item,
-        )
-        .filter((item) => item.quantity > 0),
-    );
+    const item = items.find((i) => i.variantSku === id);
+    if (!item) return;
+    updateQuantity(id, item.quantity + delta);
   };
 
   const onRemoveItem = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+    removeItem(id);
   };
 
   if (items.length === 0) {
@@ -91,13 +49,13 @@ export default function CartPageClient() {
             {items.map((item) => (
               <motion.div
                 layout
-                key={item.id}
+                key={item.variantSku}
                 className="flex flex-col sm:flex-row gap-6 p-6 bg-slate-50/50 rounded-3xl border border-slate-100 group transition-all hover:bg-white hover:shadow-xl hover:border-slate-200"
               >
                 <div className="relative w-full sm:w-40 aspect-square bg-slate-100 rounded-2xl overflow-hidden shrink-0 border border-slate-200">
                   <Image
-                    src={item.image}
-                    alt={item.title}
+                    src={item.imageUrl || '/placeholder.png'}
+                    alt={item.name}
                     fill
                     sizes="(max-width: 640px) 100vw, 160px"
                     className="object-cover group-hover:scale-110 transition-transform duration-700"
@@ -109,13 +67,15 @@ export default function CartPageClient() {
                   <div>
                     <div className="flex justify-between items-start gap-4">
                       <div>
-                        <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1 block">
-                          {item.category}
-                        </span>
-                        <h3 className="text-xl font-black text-slate-900 leading-tight">{item.title}</h3>
+                        {item.color && (
+                          <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1 block">
+                            {item.color}
+                          </span>
+                        )}
+                        <h3 className="text-xl font-black text-slate-900 leading-tight">{item.name}</h3>
                       </div>
                       <button
-                        onClick={() => onRemoveItem(item.id)}
+                        onClick={() => onRemoveItem(item.variantSku)}
                         className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
                       >
                         <Trash2 className="w-5 h-5" />
@@ -123,15 +83,17 @@ export default function CartPageClient() {
                     </div>
 
                     <div className="flex items-center gap-6 mt-4">
-                      <div className="space-y-1">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Size</span>
-                        <span className="text-sm font-black text-slate-900 border border-slate-200 px-3 py-1 rounded-lg bg-white uppercase">
-                          {item.size || "OS"}
-                        </span>
-                      </div>
+                      {item.size && (
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Size</span>
+                          <span className="text-sm font-black text-slate-900 border border-slate-200 px-3 py-1 rounded-lg bg-white uppercase">
+                            {item.size}
+                          </span>
+                        </div>
+                      )}
                       <div className="space-y-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Price</span>
-                        <span className="text-sm font-black text-slate-900">${item.price}</span>
+                        <span className="text-sm font-black text-slate-900">${item.price.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -139,14 +101,14 @@ export default function CartPageClient() {
                   <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100">
                     <div className="flex items-center bg-white border border-slate-200 rounded-xl p-1 gap-4">
                       <button
-                        onClick={() => onUpdateQuantity(item.id, -1)}
+                        onClick={() => onUpdateQuantity(item.variantSku, -1)}
                         className="w-10 h-10 flex items-center justify-center hover:bg-slate-50 rounded-lg text-slate-400 hover:text-black transition-colors"
                       >
                         <Minus className="w-4 h-4" />
                       </button>
                       <span className="text-sm font-black w-4 text-center">{item.quantity}</span>
                       <button
-                        onClick={() => onUpdateQuantity(item.id, 1)}
+                        onClick={() => onUpdateQuantity(item.variantSku, 1)}
                         className="w-10 h-10 flex items-center justify-center hover:bg-slate-50 rounded-lg text-slate-400 hover:text-black transition-colors"
                       >
                         <Plus className="w-4 h-4" />
@@ -170,7 +132,7 @@ export default function CartPageClient() {
             <div className="space-y-4">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500 font-bold uppercase tracking-wider">Subtotal</span>
-                <span className="text-slate-900 font-black">${subtotal.toFixed(2)}</span>
+                <span className="text-slate-900 font-black">${totalPrice.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500 font-bold uppercase tracking-wider">Estimated Shipping</span>
