@@ -6,13 +6,17 @@ import {
   createAdminProductApi,
   getAdminProductByIdApi,
   getAdminProductCollectionsApi,
+  getAdminProductOptionsApi,
   updateAdminProductApi,
 } from '@/lib/api/products';
 import {
   CreateProductRequest,
+  ProductFaq,
   ProductMediaAsset,
   ProductCollectionOption,
+  ProductUpsellOption,
   UpdateProductRequest,
+  UpsertProductReviewRequest,
   UpsertProductVariantRequest,
   UpsertProductVideoReviewRequest,
 } from '@/lib/api/types';
@@ -74,6 +78,20 @@ export type ProductFormVideoReview = {
   thumbnailUrl: string;
   thumbnailPublicId?: string;
   thumbnailFile?: File;
+};
+
+export type ProductFormFaq = ProductFaq;
+
+export type ProductFormReview = {
+  id: string;
+  source: 'admin' | 'customer';
+  isPublished: boolean;
+  rating: number;
+  fullName: string;
+  email: string;
+  reviewText: string;
+  photos: ProductMediaAsset[];
+  photoFiles: File[];
 };
 
 export type ProductFormMainVideo = {
@@ -228,6 +246,11 @@ export function useProductForm(productId?: string) {
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [benefits, setBenefits] = useState('');
+  const [faqs, setFaqs] = useState<ProductFormFaq[]>([]);
+  const [upsellProductIds, setUpsellProductIds] = useState<string[]>([]);
+  const [upsellOptions, setUpsellOptions] = useState<ProductUpsellOption[]>([]);
+  const [upsellSearch, setUpsellSearch] = useState('');
   const [orderType, setOrderType] = useState<OrderType>('direct');
   const [status, setStatus] = useState<ProductStatus>('draft');
   const [basePrice, setBasePrice] = useState('0');
@@ -245,6 +268,7 @@ export function useProductForm(productId?: string) {
 
   const [variants, setVariants] = useState<ProductFormVariant[]>([]);
   const [videoReviews, setVideoReviews] = useState<ProductFormVideoReview[]>([]);
+  const [reviews, setReviews] = useState<ProductFormReview[]>([]);
   const [mainVideo, setMainVideo] = useState<ProductFormMainVideo>({
     url: '',
     thumbnailUrl: '',
@@ -348,6 +372,12 @@ export function useProductForm(productId?: string) {
     return collections.filter((entry) => entry.name.toLowerCase().includes(q) || entry.slug.toLowerCase().includes(q));
   }, [collectionSearch, collections]);
 
+  const filteredUpsellOptions = useMemo(() => {
+    const query = upsellSearch.trim().toLowerCase();
+    if (!query) return upsellOptions;
+    return upsellOptions.filter((entry) => entry.name.toLowerCase().includes(query) || entry.slug.toLowerCase().includes(query));
+  }, [upsellOptions, upsellSearch]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -372,6 +402,30 @@ export function useProductForm(productId?: string) {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadUpsellOptions() {
+      try {
+        const response = await getAdminProductOptionsApi({
+          pageSize: 200,
+          excludeProductId: productId,
+        });
+        if (!mounted) return;
+        setUpsellOptions(response.items || []);
+      } catch {
+        if (!mounted) return;
+        setUpsellOptions([]);
+      }
+    }
+
+    void loadUpsellOptions();
+
+    return () => {
+      mounted = false;
+    };
+  }, [productId]);
 
   const regenerateVariants = () => {
     const activeGroups = optionGroups.filter((entry) => entry.selectedValueIds.length > 0);
@@ -621,6 +675,9 @@ export function useProductForm(productId?: string) {
         const product = response.product;
         setName(product.name || '');
         setDescription(product.description || '');
+        setBenefits(product.benefits || '');
+        setFaqs((product.faqs || []).map((entry) => ({ question: entry.question || '', answer: entry.answer || '' })));
+        setUpsellProductIds(product.upsellProductIds || []);
         setOrderType(product.orderType || 'direct');
         setStatus(product.status || 'draft');
         setBasePrice(String(product.basePrice ?? 0));
@@ -823,6 +880,20 @@ export function useProductForm(productId?: string) {
             thumbnailPublicId: review.thumbnailPublicId,
           }))
         );
+
+        setReviews(
+          (product.reviews || []).map((review) => ({
+            id: review.id || makeId(),
+            source: review.source || 'admin',
+            isPublished: review.isPublished ?? true,
+            rating: Number(review.rating || 5),
+            fullName: review.fullName || '',
+            email: review.email || '',
+            reviewText: review.reviewText || '',
+            photos: review.photos || [],
+            photoFiles: [],
+          }))
+        );
       } catch (error) {
         toast.error(getApiErrorMessage(error, 'Unable to load product details.'));
       } finally {
@@ -986,6 +1057,89 @@ export function useProductForm(productId?: string) {
 
   const addVideoReview = () => {
     setVideoReviews((prev) => [...prev, { id: makeId(), url: '', thumbnailUrl: '' }]);
+  };
+
+  const addFaq = () => {
+    setFaqs((prev) => [...prev, { question: '', answer: '' }]);
+  };
+
+  const updateFaq = (index: number, patch: Partial<ProductFormFaq>) => {
+    setFaqs((prev) => prev.map((entry, currentIndex) => (currentIndex === index ? { ...entry, ...patch } : entry)));
+  };
+
+  const removeFaq = (index: number) => {
+    setFaqs((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
+  };
+
+  const toggleUpsellProduct = (productOptionId: string) => {
+    setUpsellProductIds((prev) => {
+      if (prev.includes(productOptionId)) {
+        return prev.filter((id) => id !== productOptionId);
+      }
+      return [...prev, productOptionId];
+    });
+  };
+
+  const addReview = () => {
+    setReviews((prev) => [
+      ...prev,
+      {
+        id: makeId(),
+        source: 'admin',
+        isPublished: true,
+        rating: 5,
+        fullName: '',
+        email: '',
+        reviewText: '',
+        photos: [],
+        photoFiles: [],
+      },
+    ]);
+  };
+
+  const updateReview = (id: string, patch: Partial<ProductFormReview>) => {
+    setReviews((prev) => prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)));
+  };
+
+  const removeReview = (id: string) => {
+    setReviews((prev) => prev.filter((entry) => entry.id !== id));
+  };
+
+  const setReviewPhotosFromMedia = (id: string, media: ProductMediaAsset[]) => {
+    setReviews((prev) =>
+      prev.map((entry) => {
+        if (entry.id !== id) return entry;
+        return {
+          ...entry,
+          photos: [...entry.photos, ...media],
+          photoFiles: [],
+        };
+      })
+    );
+  };
+
+  const setReviewPhotoFiles = (id: string, files: File[]) => {
+    setReviews((prev) =>
+      prev.map((entry) => {
+        if (entry.id !== id) return entry;
+        return {
+          ...entry,
+          photoFiles: files,
+        };
+      })
+    );
+  };
+
+  const removeReviewPhoto = (id: string, index: number) => {
+    setReviews((prev) =>
+      prev.map((entry) => {
+        if (entry.id !== id) return entry;
+        return {
+          ...entry,
+          photos: entry.photos.filter((_, photoIndex) => photoIndex !== index),
+        };
+      })
+    );
   };
 
   const removeVideoReview = (id: string) => {
@@ -1248,6 +1402,22 @@ export function useProductForm(productId?: string) {
       .filter((review) => Boolean(review.videoUrl));
   };
 
+  const toReviewPayload = () => {
+    return reviews
+      .map<UpsertProductReviewRequest>((review) => ({
+        clientKey: review.id,
+        source: 'admin',
+        isPublished: true,
+        rating: Number(review.rating || 5),
+        fullName: review.fullName.trim(),
+        email: review.email.trim(),
+        reviewText: review.reviewText.trim(),
+        photos: review.photos,
+        photoFiles: review.photoFiles,
+      }))
+      .filter((review) => Boolean(review.fullName) && Boolean(review.email) && Boolean(review.reviewText));
+  };
+
   const validateBeforeSubmit = () => {
     if (!name.trim()) {
       toast.error('Product name is required.');
@@ -1275,6 +1445,17 @@ export function useProductForm(productId?: string) {
       return false;
     }
 
+    const hasInvalidFaq = faqs.some((entry) => {
+      const hasQuestion = Boolean(entry.question.trim());
+      const hasAnswer = Boolean(entry.answer.trim());
+      return hasQuestion !== hasAnswer;
+    });
+
+    if (hasInvalidFaq) {
+      toast.error('Each FAQ row must have both question and answer.');
+      return false;
+    }
+
     return true;
   };
 
@@ -1287,6 +1468,11 @@ export function useProductForm(productId?: string) {
       const payload: CreateProductRequest = {
         name: name.trim(),
         description: description.trim() || undefined,
+        benefits: benefits.trim() || undefined,
+        faqs: faqs
+          .map((entry) => ({ question: entry.question.trim(), answer: entry.answer.trim() }))
+          .filter((entry) => entry.question && entry.answer),
+        upsellProductIds,
         orderType,
         collectionIds: selectedCollectionIds,
         status: statusOverride ?? status,
@@ -1302,6 +1488,7 @@ export function useProductForm(productId?: string) {
         },
         variants: toVariantPayload(),
         videoReviews: toVideoPayload(),
+        reviews: toReviewPayload(),
         mainVideo: mainVideo.url.trim()
           ? {
               videoUrl: mainVideo.url.trim(),
@@ -1344,6 +1531,11 @@ export function useProductForm(productId?: string) {
       const payload: UpdateProductRequest = {
         name: name.trim(),
         description: description.trim() || undefined,
+        benefits: benefits.trim() || undefined,
+        faqs: faqs
+          .map((entry) => ({ question: entry.question.trim(), answer: entry.answer.trim() }))
+          .filter((entry) => entry.question && entry.answer),
+        upsellProductIds,
         orderType,
         collectionIds: selectedCollectionIds,
         status: statusOverride ?? status,
@@ -1359,6 +1551,7 @@ export function useProductForm(productId?: string) {
         },
         variants: toVariantPayload(),
         videoReviews: toVideoPayload(),
+        reviews: toReviewPayload(),
         mainVideo: mainVideo.url.trim()
           ? {
               videoUrl: mainVideo.url.trim(),
@@ -1399,6 +1592,18 @@ export function useProductForm(productId?: string) {
     setName,
     description,
     setDescription,
+    benefits,
+    setBenefits,
+    faqs,
+    addFaq,
+    updateFaq,
+    removeFaq,
+    upsellProductIds,
+    toggleUpsellProduct,
+    upsellOptions,
+    upsellSearch,
+    setUpsellSearch,
+    filteredUpsellOptions,
     orderType,
     setOrderType,
     status,
@@ -1439,6 +1644,13 @@ export function useProductForm(productId?: string) {
     removeVideoReview,
     updateVideoReview,
     setVideoThumbnailFromMedia,
+    reviews,
+    addReview,
+    updateReview,
+    removeReview,
+    setReviewPhotosFromMedia,
+    setReviewPhotoFiles,
+    removeReviewPhoto,
     mainVideo,
     setMainVideoField,
     setMainVideoThumbnailFile,

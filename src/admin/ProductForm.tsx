@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Search, Trash2, Wand2, X } from 'lucide-react';
+import { ArrowLeft, Plus, Search, Star, Trash2, Wand2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useProductForm } from './hooks/useProductForm';
 import { listAdminMedia, signAdminMediaUpload, uploadImageWithSignature, type AdminMediaItem } from '@/lib/api/media';
+
+const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
 type ProductFormProps = {
   productId?: string;
@@ -25,6 +28,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
     setName,
     description,
     setDescription,
+    benefits,
+    setBenefits,
+    faqs,
+    addFaq,
+    updateFaq,
+    removeFaq,
+    upsellProductIds,
+    toggleUpsellProduct,
+    upsellSearch,
+    setUpsellSearch,
+    filteredUpsellOptions,
     orderType,
     setOrderType,
     status,
@@ -62,6 +76,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
     removeVideoReview,
     updateVideoReview,
     setVideoThumbnailFromMedia,
+    reviews,
+    addReview,
+    updateReview,
+    removeReview,
+    setReviewPhotosFromMedia,
+    setReviewPhotoFiles,
+    removeReviewPhoto,
     mainVideo,
     setMainVideoField,
     setMainVideoThumbnailFile,
@@ -123,6 +144,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
     | { type: 'variant'; variantId: string }
     | { type: 'main-video-thumb' }
     | { type: 'video'; reviewId: string }
+    | { type: 'review-photo'; reviewId: string }
   >({ type: 'main' });
   const mediaTargetRef = useRef(mediaTarget);
 
@@ -243,6 +265,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
       return;
     }
 
+    if (target.type === 'review-photo') {
+      setReviewPhotosFromMedia(target.reviewId, [asset]);
+      toast.success('Review photo added.');
+      setMediaModalOpen(false);
+      return;
+    }
+
     setVideoThumbnailFromMedia(target.reviewId, asset);
     toast.success('Video thumbnail selected.');
     setMediaModalOpen(false);
@@ -311,6 +340,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
       JSON.stringify({
         name: name.trim(),
         description: description.trim(),
+        benefits: benefits.trim(),
+        faqs,
+        upsellProductIds: [...upsellProductIds].sort(),
+        reviews: reviews.map((review) => ({
+          id: review.id,
+          rating: review.rating,
+          fullName: review.fullName,
+          email: review.email,
+          reviewText: review.reviewText,
+          photos: review.photos.map((photo) => photo.publicId),
+          photoFiles: review.photoFiles.length,
+        })),
         orderType,
         status,
         regularPrice,
@@ -339,7 +380,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
       }),
     [
       badgeName,
+      benefits,
       description,
+      faqs,
       galleryImageFiles.length,
       galleryImages.length,
       globalStock,
@@ -349,7 +392,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
       orderType,
       regularPrice,
       salePrice,
+      reviews,
       selectedCollectionIds,
+      upsellProductIds,
       status,
       useBasePriceForVariants,
       variants,
@@ -473,13 +518,117 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
 
           <div className="space-y-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={5}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none"
-              placeholder="Description"
-            />
+            <div className="rounded-xl border border-slate-200 overflow-hidden bg-white [&_.ql-toolbar]:border-0 [&_.ql-container]:border-0 [&_.ql-editor]:min-h-[180px]">
+              <ReactQuill
+                theme="snow"
+                value={description}
+                onChange={setDescription}
+                placeholder="Write rich product description"
+                modules={{
+                  toolbar: [
+                    [{ header: [1, 2, 3, false] }],
+                    ['bold', 'italic', 'underline'],
+                    [{ list: 'ordered' }, { list: 'bullet' }],
+                    ['link', 'clean'],
+                  ],
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Benefits (Optional)</label>
+            <div className="rounded-xl border border-slate-200 overflow-hidden bg-white [&_.ql-toolbar]:border-0 [&_.ql-container]:border-0 [&_.ql-editor]:min-h-[160px]">
+              <ReactQuill
+                theme="snow"
+                value={benefits}
+                onChange={setBenefits}
+                placeholder="Add product benefits"
+                modules={{
+                  toolbar: [
+                    [{ header: [2, 3, false] }],
+                    ['bold', 'italic', 'underline'],
+                    [{ list: 'ordered' }, { list: 'bullet' }],
+                    ['link', 'clean'],
+                  ],
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="border border-slate-200 rounded-2xl p-4 space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h3 className="font-black uppercase tracking-wider text-sm">FAQs</h3>
+              <button type="button" onClick={addFaq} className="px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold uppercase tracking-wide flex items-center gap-1">
+                <Plus className="w-4 h-4" />
+                Add FAQ
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {faqs.map((faq, index) => (
+                <div key={`${faq.question}-${index}`} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 rounded-xl border border-slate-200 p-3">
+                  <input
+                    value={faq.question}
+                    onChange={(e) => updateFaq(index, { question: e.target.value })}
+                    placeholder="FAQ question"
+                    className="rounded-lg border border-slate-200 px-3 py-2"
+                  />
+                  <textarea
+                    value={faq.answer}
+                    onChange={(e) => updateFaq(index, { answer: e.target.value })}
+                    rows={2}
+                    placeholder="FAQ answer"
+                    className="rounded-lg border border-slate-200 px-3 py-2"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFaq(index)}
+                    className="rounded-lg border border-red-200 text-red-600 px-3 py-2 flex items-center justify-center"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              {!faqs.length ? <p className="text-xs text-slate-500">No FAQs added yet.</p> : null}
+            </div>
+          </div>
+
+          <div className="border border-slate-200 rounded-2xl p-4 space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h3 className="font-black uppercase tracking-wider text-sm">Upsell Products</h3>
+              <span className="text-xs font-semibold text-slate-500">Selected: {upsellProductIds.length}</span>
+            </div>
+
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                value={upsellSearch}
+                onChange={(e) => setUpsellSearch(e.target.value)}
+                placeholder="Search product by name"
+                className="w-full rounded-xl border border-slate-200 pl-9 pr-3 py-2.5"
+              />
+            </div>
+
+            <div className="max-h-56 overflow-auto border border-slate-200 rounded-xl p-2 space-y-1">
+              {filteredUpsellOptions.length === 0 ? (
+                <p className="text-sm text-slate-500 px-2 py-2">No products found.</p>
+              ) : (
+                filteredUpsellOptions.map((entry) => {
+                  const checked = upsellProductIds.includes(entry.id);
+                  return (
+                    <label key={entry.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-2 hover:bg-slate-50 cursor-pointer">
+                      <span className="text-sm font-semibold text-slate-700 truncate">{entry.name}</span>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleUpsellProduct(entry.id)}
+                      />
+                    </label>
+                  );
+                })
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1174,6 +1323,118 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="border border-slate-200 rounded-2xl p-4 space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h3 className="font-black uppercase tracking-wider text-sm">Product Reviews</h3>
+              <button type="button" onClick={addReview} className="px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold uppercase tracking-wide flex items-center gap-1">
+                <Plus className="w-4 h-4" />
+                Add Review
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {reviews.map((review) => (
+                <div key={review.id} className="rounded-xl border border-slate-200 p-3 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Full Name</label>
+                      <input
+                        value={review.fullName}
+                        onChange={(e) => updateReview(review.id, { fullName: e.target.value, source: 'admin', isPublished: true })}
+                        placeholder="John Doe"
+                        className="rounded-lg border border-slate-200 px-3 py-2 w-full"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Email Address</label>
+                      <input
+                        type="email"
+                        value={review.email}
+                        onChange={(e) => updateReview(review.id, { email: e.target.value, source: 'admin', isPublished: true })}
+                        placeholder="john@example.com"
+                        className="rounded-lg border border-slate-200 px-3 py-2 w-full"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Rating</label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => updateReview(review.id, { rating: value, source: 'admin', isPublished: true })}
+                          className="p-1"
+                        >
+                          <Star className={`w-6 h-6 ${review.rating >= value ? 'fill-[#FF7348] text-[#FF7348]' : 'text-slate-300'}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Review Text</label>
+                    <textarea
+                      value={review.reviewText}
+                      onChange={(e) => updateReview(review.id, { reviewText: e.target.value, source: 'admin', isPublished: true })}
+                      rows={4}
+                      placeholder="Share experience..."
+                      className="rounded-lg border border-slate-200 px-3 py-2 w-full"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
+                      multiple
+                      onChange={(e) => setReviewPhotoFiles(review.id, Array.from(e.target.files || []))}
+                      className="rounded-lg border border-slate-200 px-3 py-2"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void openMediaModal({ type: 'review-photo', reviewId: review.id })}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold uppercase tracking-wide"
+                    >
+                      Select Media
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeReview(review.id)}
+                      className="rounded-lg border border-red-200 text-red-600 px-3 py-2 flex items-center justify-center"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {review.photos.length ? (
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                      {review.photos.map((photo, photoIndex) => (
+                        <div key={`${photo.publicId}-${photoIndex}`} className="relative border border-slate-200 rounded-lg overflow-hidden">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={photo.url} alt="Review media" className="h-20 w-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeReviewPhoto(review.id, photoIndex)}
+                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 border border-slate-200 text-xs"
+                          >
+                            <X className="w-3 h-3 mx-auto" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <div className="text-[11px] font-semibold text-slate-500 bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
+                    Source: Admin | Status: Published
+                  </div>
+                </div>
+              ))}
+              {!reviews.length ? <p className="text-xs text-slate-500">No reviews added yet.</p> : null}
             </div>
           </div>
         </section>
