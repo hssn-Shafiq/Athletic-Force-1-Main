@@ -22,6 +22,7 @@ import {
   Plus,
   Minus,
   Check,
+  Mail,
   ChevronRight,
   ArrowLeft,
   Play,
@@ -144,6 +145,7 @@ interface DetailedProduct extends Omit<Product, 'variants' | 'inventory' | 'main
   }[];
   mainVideo: MainVideoData | null;
   videoReviews: VideoReviewItem[];
+  orderType: 'direct' | 'request';
   variants: {
     colors: { name: string; image: string }[];
     sizes: string[];
@@ -222,6 +224,7 @@ function mapToDetailedProduct(raw: any): DetailedProduct {
     inventoryMax: Math.max(inventoryTotal, 20),
     description: raw.description || '',
     variantRows,
+    orderType: raw.orderType || 'direct',
     galleryImages: (raw.galleryImages || []).map((entry: any) => entry.url),
   };
 }
@@ -791,20 +794,34 @@ const ProductSingleClient: React.FC = () => {
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
-              <button 
+               <button 
                 onClick={handleAddToCart}
-                className="relative flex-1 flex items-center justify-center gap-2 sm:gap-3 bg-[#141414] text-white rounded-2xl font-black uppercase italic tracking-tighter text-lg sm:text-xl px-4 py-4 hover:bg-black transition-all shadow-xl active:scale-95 w-full"
+                className={`relative flex-1 flex items-center justify-center gap-2 sm:gap-3 rounded-2xl font-black uppercase italic tracking-tighter text-lg sm:text-xl px-4 py-4 transition-all shadow-xl active:scale-95 w-full ${
+                  product.orderType === 'request' ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-[#141414] hover:bg-black text-white'
+                }`}
               >
-                <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
-                <span>Add to Cart</span>
+                {product.orderType === 'request' ? (
+                  <>
+                    <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <span>Request Quote</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <span>Add to Cart</span>
+                  </>
+                )}
               </button>
             </div>
 
             {/* Big Action Button */}
             <button 
-              className="w-full bg-[#E5633D] text-white py-4 sm:py-6 rounded-3xl font-black uppercase italic tracking-tighter text-xl sm:text-2xl hover:bg-[#d45431] transition-all shadow-xl active:scale-95 hover:shadow-2xl flex items-center justify-center gap-3 sm:gap-4"
+              onClick={product.orderType === 'request' ? handleAddToCart : undefined}
+              className={`w-full text-white py-4 sm:py-6 rounded-3xl font-black uppercase italic tracking-tighter text-xl sm:text-2xl transition-all shadow-xl active:scale-95 hover:shadow-2xl flex items-center justify-center gap-3 sm:gap-4 ${
+                product.orderType === 'request' ? 'bg-black hover:bg-slate-900 border-2 border-orange-500' : 'bg-[#E5633D] hover:bg-[#d45431]'
+              }`}
             >
-              <span>Buy Now</span>
+              <span>{product.orderType === 'request' ? 'Submit Inquiry' : 'Buy Now'}</span>
               <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
             </button>
 

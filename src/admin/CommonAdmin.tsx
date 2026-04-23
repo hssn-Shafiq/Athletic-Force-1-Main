@@ -4,29 +4,10 @@
 import React from 'react';
 import { Users, Tag, Plus, ExternalLink } from 'lucide-react';
 
-export const AdminCustomers: React.FC = () => (
-  <div className="space-y-8">
-     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-      <div className="space-y-1">
-        <h1 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Intelligence Roster</h1>
-        <p className="text-slate-400 font-medium italic text-sm">Managing the database of active players and team coaches.</p>
-      </div>
-    </div>
-    <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden p-20 flex flex-col items-center text-center space-y-6">
-      <div className="w-24 h-24 bg-slate-50 rounded-3xl flex items-center justify-center rotate-[-10deg]">
-        <Users className="w-12 h-12 text-slate-300" />
-      </div>
-      <div className="space-y-2 max-w-sm">
-        <h3 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Elite Customer Access</h3>
-        <p className="text-slate-400 font-medium italic text-sm">Customer management module is currently stabilizing. Live data will populate here as the ecosystem expands.</p>
-      </div>
-      <button className="bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-sm flex items-center gap-2 hover:scale-105 transition-all shadow-xl">
-        <Plus className="w-5 h-5" />
-        Record Entry
-      </button>
-    </div>
-  </div>
-);
+import { AdminCustomers } from './Customers';
+import { EmailPreviews as AdminEmails } from './EmailPreviews';
+
+export { AdminCustomers, AdminEmails };
 
 export const AdminCollections: React.FC = () => (
   <div className="space-y-8">

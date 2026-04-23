@@ -6,12 +6,16 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, Package, MapPin, Heart, Settings, 
-  LogOut, ChevronRight,
+  LogOut, ChevronRight, CheckCircle2,
   Trophy, Shield, Clock, ArrowRight,
-  ExternalLink
+  ExternalLink,
+  Loader2,
+  Truck,
+  ChevronLeft
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiClient } from '@/lib/api/client';
 import { useWishlist } from '@/contexts/WishlistContext';
 
 type TabType = 'dashboard' | 'orders' | 'profile' | 'addresses' | 'wishlist' | 'settings';
@@ -206,60 +210,245 @@ const DashboardView = () => (
   </div>
 );
 
-const OrdersView = () => (
-  <div className="space-y-8">
-    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-      <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">My Orders</h2>
-      <div className="flex items-center gap-3">
-        {['All', 'Shipped', 'Pending', 'Cancelled'].map(filter => (
-          <button key={filter} className="px-5 py-2.5 bg-white border border-slate-100 rounded-full text-[10px] font-black uppercase tracking-widest italic hover:bg-black hover:text-white transition-all shadow-sm">
-            {filter}
+const OrdersView = () => {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState('All');
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const { data } = await apiClient.get('/api/orders/my-orders');
+        if (data.ok) setOrders(data.orders);
+      } catch (err) {
+        console.error('Failed to load orders', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'paid': return 'bg-green-100 text-green-700 border-green-200';
+      case 'processing': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'shipped': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'delivered': return 'bg-slate-900 text-white border-black';
+      case 'cancelled': case 'refunded': case 'failed': return 'bg-red-100 text-red-700 border-red-200';
+      case 'dev_bypass': return 'bg-orange-100 text-orange-700 border-orange-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
+  };
+
+  const filteredOrders = orders.filter(o => {
+    if (filter === 'All') return true;
+    if (filter === 'Shipped') return ['shipped', 'delivered'].includes(o.status);
+    if (filter === 'Pending') return ['pending', 'paid', 'processing', 'dev_bypass'].includes(o.status);
+    if (filter === 'Cancelled') return ['cancelled', 'failed', 'refunded'].includes(o.status);
+    return true;
+  });
+
+  return (
+    <div className="space-y-8">
+      {selectedOrder ? (
+        <div className="space-y-8">
+          <button onClick={() => setSelectedOrder(null)} className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-black flex items-center gap-2">
+            <ChevronLeft className="w-4 h-4" /> Back to Orders
           </button>
-        ))}
-      </div>
-    </div>
-    
-    <div className="space-y-6">
-      {[1026, 1025, 1024].map(id => (
-        <div key={id} className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm space-y-6 hover:shadow-xl transition-all group">
-          <div className="flex flex-col md:flex-row justify-between pb-6 border-b border-slate-50 gap-4">
-            <div className="flex gap-8">
-              <div>
-                <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Order ID</p>
-                <p className="font-black text-sm italic tracking-tighter">#AF-{id}</p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Date</p>
-                <p className="font-black text-sm italic tracking-tighter">Oct 12, 2024</p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Total</p>
-                <p className="font-black text-sm italic tracking-tighter text-orange-600">$249.00</p>
-              </div>
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+            <div>
+              <h2 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900">
+                Order #{selectedOrder.id.slice(-6).toUpperCase()}
+              </h2>
+              <p className="text-xs font-bold text-slate-500 mt-2">Placed on {new Date(selectedOrder.createdAt).toLocaleDateString()}</p>
             </div>
-            <div className="px-6 py-2 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest self-start italic">
-              Shipped
+            <div className={`px-5 py-2 border rounded-full text-[10px] font-black uppercase tracking-widest italic flex items-center justify-center ${getStatusColor(selectedOrder.status)}`}>
+              {selectedOrder.status.replace('_', ' ')}
             </div>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex -space-x-4">
-              {[1, 2, 3].map(item => (
-                <div key={item} className="w-16 h-16 rounded-2xl bg-slate-50 border-4 border-white overflow-hidden shadow-sm ring-1 ring-slate-100">
-                  <img src="https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png" className="w-full h-full object-cover" alt="Product" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              {/* Items List */}
+              <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm space-y-6">
+                <h3 className="text-xl font-black uppercase tracking-tighter italic text-slate-900 border-b border-slate-50 pb-4">Items Ordered</h3>
+                <div className="space-y-6">
+                  {selectedOrder.items.map((item: any, idx: number) => (
+                    <div key={idx} className="flex gap-4 border-b border-slate-50 pb-6 last:border-0 last:pb-0">
+                      <div className="w-20 h-20 bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden shrink-0">
+                        <img src={item.imageUrl || '/placeholder.png'} alt={item.name} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black text-slate-900 truncate">{item.name}</p>
+                        {(item.size || item.color) && (
+                          <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest">
+                            {[item.color, item.size].filter(Boolean).join(' / ')}
+                          </p>
+                        )}
+                        <p className="text-xs text-slate-400 font-bold mt-1">Qty: <span className="text-slate-900">{item.quantity}</span></p>
+                      </div>
+                      <p className="text-sm font-black text-slate-900">${(item.price * item.quantity).toFixed(2)}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              
+              {/* Tracking info if exists */}
+              {selectedOrder.trackingId && (
+                <div className="bg-orange-50 border border-orange-100 rounded-[32px] p-8 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Truck className="w-6 h-6 text-orange-600" />
+                    <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900">Tracking Information</h3>
+                  </div>
+                  <p className="text-sm font-bold text-slate-700">{selectedOrder.carrier || 'Carrier'}</p>
+                  <p className="text-xl font-black text-orange-600 mt-1">{selectedOrder.trackingId}</p>
+                  <button className="mt-4 flex items-center justify-center gap-2 bg-black text-white px-6 py-3 rounded-xl font-black uppercase italic tracking-widest text-xs hover:scale-105 transition-all">
+                    Track Package <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
-            <button className="flex items-center gap-3 bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-xs hover:scale-105 transition-all">
-              <span>Track Order</span>
-              <ExternalLink className="w-4 h-4" />
-            </button>
+
+            <div className="space-y-6">
+              {/* Order Summary */}
+              <div className="bg-slate-50 rounded-[32px] p-8 space-y-4">
+                <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900 border-b border-slate-200 pb-4">Payment Summary</h3>
+                <div className="space-y-3 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                  <div className="flex justify-between"><span>Subtotal</span><span className="text-slate-900">${selectedOrder.subtotal.toFixed(2)}</span></div>
+                  {selectedOrder.discountAmount > 0 && (
+                    <div className="flex justify-between text-green-600"><span>Discount</span><span>-${selectedOrder.discountAmount.toFixed(2)}</span></div>
+                  )}
+                  <div className="flex justify-between"><span>Shipping</span><span className="text-slate-900">${selectedOrder.shippingFee.toFixed(2)}</span></div>
+                  {selectedOrder.taxAmount > 0 && (
+                    <div className="flex justify-between"><span>Tax</span><span className="text-slate-900">${selectedOrder.taxAmount.toFixed(2)}</span></div>
+                  )}
+                  <div className="flex justify-between pt-4 border-t border-slate-200 items-center">
+                    <span className="text-base text-slate-900">Total</span>
+                    <span className="text-2xl font-black text-orange-600 italic">${selectedOrder.total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shipping Address */}
+              <div className="bg-white border text-left border-slate-100 rounded-[32px] p-8 space-y-2">
+                <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900 border-b border-slate-50 pb-4 mb-4">Shipping To</h3>
+                <p className="text-sm font-black text-slate-900">{selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</p>
+                <p className="text-xs text-slate-500 font-bold leading-relaxed">
+                  {selectedOrder.shippingAddress.address1} {selectedOrder.shippingAddress.address2}<br/>
+                  {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.postalCode}<br/>
+                  {selectedOrder.shippingAddress.country}
+                </p>
+                {selectedOrder.shippingAddress.phone && (
+                  <p className="text-xs text-slate-500 font-bold mt-2">Phone: {selectedOrder.shippingAddress.phone}</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      ))}
+      ) : (
+        <>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">My Orders</h2>
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          {['All', 'Pending', 'Shipped', 'Cancelled'].map(f => (
+            <button 
+              key={f} 
+              onClick={() => setFilter(f)}
+              className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest italic transition-all shrink-0 border border-slate-100 ${
+                filter === f ? 'bg-black text-white border-black' : 'bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      <div className="space-y-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20 bg-white rounded-[40px] border border-slate-100">
+            <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[40px] border border-slate-100 space-y-4">
+            <Package className="w-12 h-12 text-slate-200" />
+            <p className="text-sm font-black uppercase tracking-widest text-slate-400">No Orders Found</p>
+          </div>
+        ) : (
+          filteredOrders.map(order => (
+            <div key={order.id} className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm space-y-6 hover:shadow-xl transition-all group">
+              <div className="flex flex-col md:flex-row justify-between pb-6 border-b border-slate-50 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 w-full md:w-auto">
+                  <div>
+                    <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Order ID</p>
+                    <p className="font-black text-sm italic tracking-tighter mt-1">#{order.id.slice(-6).toUpperCase()}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Date</p>
+                    <p className="font-black text-sm italic tracking-tighter mt-1">{new Date(order.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Total</p>
+                    <p className="font-black text-sm italic tracking-tighter text-orange-600 mt-1">${order.total.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Items</p>
+                    <p className="font-black text-sm italic tracking-tighter mt-1">{order.items.reduce((acc: any, i: any) => acc + i.quantity, 0)}</p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 md:items-end">
+                  <div className={`px-4 py-1.5 border rounded-full text-[9px] font-black uppercase tracking-widest self-start md:self-auto italic ${getStatusColor(order.status)}`}>
+                    {order.status.replace('_', ' ')}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="flex -space-x-4">
+                  {order.items.slice(0, 4).map((item: any, idx: number) => (
+                    <div key={idx} className="w-16 h-16 rounded-2xl bg-slate-50 border-4 border-white overflow-hidden shadow-sm ring-1 ring-slate-100 shrink-0">
+                      <img src={item.imageUrl || '/placeholder.png'} className="w-full h-full object-cover" alt={item.name} />
+                    </div>
+                  ))}
+                  {order.items.length > 4 && (
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 border-4 border-white overflow-hidden shadow-sm ring-1 ring-slate-100 shrink-0 flex items-center justify-center">
+                      <span className="text-xs font-black text-slate-500">+{order.items.length - 4}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                  {order.trackingId && (
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-50 px-4 py-3 rounded-2xl w-full md:w-auto justify-center border border-slate-100">
+                      <Truck className="w-4 h-4 text-orange-500" />
+                      <span>{order.carrier || 'Carrier'}: <span className="text-slate-900">{order.trackingId}</span></span>
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => setSelectedOrder(order)}
+                    className="flex items-center justify-center w-full md:w-auto gap-2 border-2 border-slate-100 text-slate-700 px-6 py-3.5 rounded-2xl font-black uppercase italic tracking-widest text-[10px] hover:border-black hover:text-black transition-all"
+                  >
+                    View Details
+                  </button>
+                  {['shipped'].includes(order.status) && (
+                    <button className="flex items-center justify-center w-full md:w-auto gap-3 bg-black text-white px-8 py-3.5 rounded-2xl font-black uppercase italic tracking-tighter text-xs hover:scale-105 transition-all shadow-md">
+                      <span>Track Order</span>
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      </>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 const ProfileView = () => (
   <div className="max-w-2xl space-y-12">
