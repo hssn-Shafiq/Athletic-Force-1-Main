@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Product } from "@/types";
+import { Product } from "@/../types";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { ProductCard } from "@/components/layout/ProductCard";
 import { QuickViewModal } from "@/components/layout/QuickViewModal";
@@ -19,6 +19,7 @@ const mockProducts: Product[] = [
     discount: "-26%",
     rating: 4.9,
     isNew: true,
+    orderType: "direct",
     image:
       "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=400&auto=format&fit=crop",
   },
@@ -30,6 +31,7 @@ const mockProducts: Product[] = [
     originalPrice: 80.99,
     discount: "-26%",
     rating: 4.9,
+    orderType: "direct",
     image:
       "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?q=80&w=400&auto=format&fit=crop",
   },
@@ -41,6 +43,7 @@ const mockProducts: Product[] = [
     originalPrice: 20.24,
     discount: "-26%",
     rating: 4.9,
+    orderType: "direct",
     image:
       "https://images.unsplash.com/photo-1586350977771-b3b0abd50c82?q=80&w=400&auto=format&fit=crop",
   },
@@ -52,6 +55,7 @@ const mockProducts: Product[] = [
     originalPrice: 40.49,
     discount: "-26%",
     rating: 4.9,
+    orderType: "direct",
     image:
       "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?q=80&w=400&auto=format&fit=crop",
   },
@@ -64,6 +68,7 @@ const mockProducts: Product[] = [
     discount: "-26%",
     rating: 4.8,
     isNew: true,
+    orderType: "direct",
     image:
       "https://images.unsplash.com/photo-1516215495135-701d8042da0c?q=80&w=400&auto=format&fit=crop",
   },
@@ -75,6 +80,7 @@ const mockProducts: Product[] = [
     originalPrice: 60.99,
     discount: "-26%",
     rating: 4.7,
+    orderType: "direct",
     image:
       "https://images.unsplash.com/photo-1506629082632-401ba4f20038?q=80&w=400&auto=format&fit=crop",
   },
