@@ -5,7 +5,7 @@ import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowRight, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiErrorMessage } from '@/lib/api/errors';
 import { getGoogleAuthUrl } from '@/lib/api/auth';
@@ -21,6 +21,15 @@ export const LoginPage: React.FC = () => {
   const { login, isAuthenticated, isLoading, user } = useAuth();
   const googleAuthUrl = useMemo(() => getGoogleAuthUrl(), []);
   const showLoggedInState = !isLoading && isAuthenticated;
+
+  function handleBack() {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push('/');
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,8 +62,15 @@ export const LoginPage: React.FC = () => {
         <div className="absolute inset-0 bg-linear-to-tr from-orange-600/40 via-transparent to-transparent" />
         
         <div className="relative z-10 max-w-lg space-y-8">
-          <div className="inline-flex items-center justify-center bg-white text-black w-20 h-20 rounded-2xl rotate-[-5deg] shadow-2xl">
-            <span className="text-5xl font-black italic tracking-tighter">A</span>
+          <div className="inline-flex items-center rotate-[-4deg]">
+            <Image
+              src="/footer-logo.png"
+              alt="Athletic Force 1"
+              width={96}
+              height={32}
+              className="h-10 sm:h-12 w-auto drop-shadow-[0_12px_28px_rgba(0,0,0,0.45)]"
+              priority
+            />
           </div>
           <div className="space-y-4">
             <h1 className="text-7xl font-black italic uppercase tracking-tighter text-white leading-none">
@@ -73,6 +89,15 @@ export const LoginPage: React.FC = () => {
       {/* Right Side: Form */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 lg:p-24 bg-white relative">
         <div className="w-full max-w-md space-y-10">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-500 hover:text-slate-900 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+
           {showLoggedInState ? (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
               <h2 className="text-4xl font-black italic uppercase tracking-tighter text-emerald-900">

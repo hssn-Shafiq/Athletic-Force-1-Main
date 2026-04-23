@@ -58,6 +58,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsProfileMenuOpen(false);
+        setIsMegaMenuOpen(false);
       }
     };
 

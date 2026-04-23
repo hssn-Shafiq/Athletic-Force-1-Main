@@ -17,38 +17,38 @@ const CATEGORY_ITEMS: CategoryItem[] = [
   {
     id: '1',
     title: "Band",
-    image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png",
+    image: "/Categories/Band.png",
     category: "Merchandise"
   },
   {
     id: '2',
     title: "Helmet",
-    image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png",
+    image: "/Categories/Helmet.png",
     category: "Accessories"
   },
   {
     id: '3',
-    title: "Visor",
-    image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png",
-    category: "Accessories"
-  },
-  {
-    id: '4',
     title: "Shoes",
-    image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png",
+    image: "/Categories/Shoes.png",
     category: "Team Store"
   },
   {
-    id: '5',
-    title: "Jersey",
-    image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png",
+    id: '4',
+    title: "Band",
+    image: "/Categories/Band.png",
     category: "Merchandise"
   },
   {
-    id: '6',
-    title: "Gloves",
-    image: "https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png",
+    id: '5',
+    title: "Helmet",
+    image: "/Categories/Helmet.png",
     category: "Accessories"
+  },
+  {
+    id: '6',
+    title: "Shoes",
+    image: "/Categories/Shoes.png",
+    category: "Team Store"
   }
 ];
 
@@ -60,29 +60,21 @@ const CategoryCard: React.FC<{ item: CategoryItem }> = ({ item }) => {
       {/* Hover Gradient Border Container */}
       <div className="absolute -inset-[2px] rounded-[30px] sm:rounded-[40px] bg-transparent group-hover:bg-gradient-to-br group-hover:from-orange-500 group-hover:via-red-500 group-hover:to-yellow-400 transition-all duration-300 -z-10" />
 
-      <div className="relative h-full bg-[#F9F9F9] rounded-[28px] sm:rounded-[38px] overflow-hidden flex flex-col p-4 sm:p-6 border border-slate-100 group-hover:border-transparent transition-colors">
-        {/* Grid Background Pattern - Subtled down as requested */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-             style={{
-               backgroundImage: `linear-gradient(#ff4d00 1px, transparent 1px), linear-gradient(90deg, #ff4d00 1px, transparent 1px)`,
-               backgroundSize: '20px 20px'
-             }}
-        />
-
+      <div className="relative h-full bg-[#F3F3F3] rounded-[28px] sm:rounded-[38px] overflow-hidden flex flex-col border border-[#E5E7EB] group-hover:border-transparent transition-colors p-3 sm:p-4">
         {/* Product Image */}
-        <div className="relative flex-1 flex items-center justify-center py-5 sm:py-8">
+        <div className="relative flex-1 min-h-[240px] sm:min-h-[280px] rounded-[22px] sm:rounded-[30px] bg-[#ECECEC] overflow-hidden">
           <img
             src={item.image}
             alt={item.title}
-            className="w-full h-auto max-h-[200px] sm:max-h-[240px] object-contain group-hover:scale-110 transition-transform duration-500 drop-shadow-2xl"
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
             referrerPolicy="no-referrer"
           />
         </div>
 
         {/* Label Bar */}
-        <div className="relative z-10 bg-white rounded-2xl py-2.5 sm:py-3 px-4 sm:px-5 flex items-center justify-between shadow-sm border border-slate-50">
-          <span className="font-black text-xs sm:text-sm uppercase tracking-tight text-slate-900">{item.title}</span>
-          <div className="bg-orange-600 text-white rounded-lg p-1.5 group-hover:scale-110 transition-transform">
+        <div className="relative z-10 mt-3 sm:mt-4 bg-white rounded-2xl py-2.5 sm:py-3 pl-4 sm:pl-5 pr-14 sm:pr-16 flex items-center border border-[#E3E5E8] min-h-[52px] sm:min-h-[56px]">
+          <span className="font-black text-sm sm:text-base uppercase tracking-tight text-slate-900">{item.title}</span>
+          <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 bg-orange-600 text-white rounded-lg p-1.5 group-hover:scale-110 transition-transform">
             <ArrowUpRight className="w-3.5 h-3.5" />
           </div>
         </div>
@@ -124,7 +116,7 @@ export const CategoriesTabs: React.FC = () => {
   const scrollNext = useCallback(() => emblaApi && emblaApi.scrollNext(), [emblaApi]);
 
   return (
-    <section className="w-full py-8 sm:py-12 space-y-8 sm:space-y-10">
+    <section className="w-full space-y-8 sm:space-y-10">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-6">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900">
