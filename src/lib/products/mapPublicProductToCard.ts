@@ -49,5 +49,6 @@ export function mapPublicProductToCard(product: PublicProduct): Product {
     status: product.status,
     tags: product.tags,
     normalizedBadge: product.badgeName ? toTitleCase(product.badgeName) : undefined,
+    orderType: product.orderType || 'direct'
   };
 }

@@ -1,5 +1,10 @@
-import { AdminOrderList } from '../../../admin/OrderList';
+import { Metadata } from 'next';
+import OrdersListClient from './OrdersListClient';
 
-export default function Page() {
-  return <AdminOrderList />;
+export const metadata: Metadata = {
+  title: 'Order Management',
+};
+
+export default function AdminOrdersPage() {
+  return <OrdersListClient />;
 }

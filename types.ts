@@ -45,6 +45,7 @@ export interface Product {
   createdAt?: string;
   status?: 'active' | 'draft' | 'archived';
   tags?: string[];
+  orderType: 'direct' | 'request';
 }
 
 export interface CartItem extends Product {

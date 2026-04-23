@@ -17,9 +17,13 @@ import {
   User,
   Menu,
   ClipboardList,
-  Warehouse
+  Warehouse,
+  Truck,
+  Tag,
+  Mail
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiClient } from '@/lib/api/client';
 
 interface SidebarItemProps {
   icon: any;
@@ -92,6 +96,22 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   const { user, isAuthenticated, isLoading } = useAuth();
   const isAdmin = Boolean(user?.roles?.some((role) => role === 'admin' || role === 'superadmin'));
 
+  const [notifications, setNotifications] = useState<{count: number, recentOrders: any[]}>({ count: 0, recentOrders: [] });
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (!isAdmin) return;
+    const fetchNotifications = async () => {
+      try {
+        const { data } = await apiClient.get('/api/orders/admin/notifications');
+        if (data.ok) setNotifications({ count: data.pendingCount, recentOrders: data.recentOrders || [] });
+      } catch (e) {}
+    };
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
+
   React.useEffect(() => {
     if (isLoading) return;
 
@@ -163,6 +183,12 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           />
           <SidebarItem icon={Warehouse} label="Inventory" href="/admin/inventory" />
           <SidebarItem icon={Users} label="Customers" href="/admin/customers" />
+          <SidebarItem icon={Mail} label="Emails" href="/admin/emails" />
+          <div className="pt-4 mt-4 border-t border-slate-50 space-y-1">
+            <p className="px-3 pb-1 text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Commerce</p>
+            <SidebarItem icon={Truck} label="Shipping & Tax" href="/admin/settings/shipping-tax" />
+            <SidebarItem icon={Tag} label="Discounts" href="/admin/discounts" />
+          </div>
           <div className="pt-4 mt-4 border-t border-slate-50">
             <SidebarItem icon={Settings} label="Settings" href="/admin/settings" />
           </div>
@@ -205,10 +231,75 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="relative p-2 hover:bg-slate-50 rounded-xl transition-colors">
-              <Bell className="w-5 h-5 text-slate-400" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-orange-600 rounded-full border-2 border-white" />
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="relative p-2 hover:bg-slate-50 rounded-xl transition-colors inline-block pt-3"
+              >
+                <Bell className="w-5 h-5 text-slate-400" />
+                {notifications.count > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-orange-600 rounded-full border-2 border-white text-[9px] font-black text-white flex items-center justify-center px-1">
+                    {notifications.count > 99 ? '99+' : notifications.count}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {isDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-2 w-80 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden"
+                  >
+                    <div className="p-4 border-b border-slate-50 flex items-center justify-between">
+                      <h3 className="text-xs font-black uppercase tracking-widest italic text-slate-900">Notifications</h3>
+                      <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md">{notifications.count} New</span>
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {notifications.recentOrders.length === 0 ? (
+                        <div className="p-6 text-center">
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No new orders</p>
+                        </div>
+                      ) : (
+                        notifications.recentOrders.map((order) => (
+                          <Link 
+                            key={order.id}
+                            href={`/admin/orders/${order.id}`}
+                            onClick={() => {
+                              setIsDropdownOpen(false);
+                              setNotifications(prev => ({
+                                count: Math.max(0, prev.count - 1),
+                                recentOrders: prev.recentOrders.filter(o => o.id !== order.id)
+                              }));
+                            }}
+                            className="block p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0"
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Order #{order.id.slice(-6).toUpperCase()}
+                              </span>
+                              <span className="text-[9px] font-bold text-slate-400">
+                                {new Date(order.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <p className="text-sm font-black text-slate-900 truncate">
+                              {order.userId?.name || order.shippingAddress.firstName + ' ' + order.shippingAddress.lastName}
+                            </p>
+                            <p className="text-xs font-bold text-slate-500 mt-1">${order.total.toFixed(2)}</p>
+                          </Link>
+                        ))
+                      )}
+                    </div>
+                    <div className="p-3 bg-slate-50 text-center border-t border-slate-100">
+                      <Link href="/admin/orders" onClick={() => setIsDropdownOpen(false)} className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-black hover:underline italic">
+                        View All Orders
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <div className="h-8 w-[1px] bg-slate-100 mx-2" />
             <Link
               href="/"

@@ -57,7 +57,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
               {product.discount}
             </span>
           )}
-          {isInCart && (
+          {isInCart && product.orderType !== 'request' && (
             <span className="bg-green-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md">
               In Cart
             </span>
@@ -87,18 +87,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
         <div className="absolute inset-0 bg-black/5 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 gap-3">
           <button 
             onClick={() => onOpenQuickView(product)}
-            className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-2xl font-bold text-sm hover:bg-slate-100 transition-colors shadow-lg"
+            className={`flex items-center gap-2 bg-white text-black px-6 py-3 rounded-2xl font-bold text-sm hover:bg-slate-100 transition-colors shadow-lg ${product.orderType === 'request' ? 'w-3/4 justify-center' : ''}`}
           >
             <Eye className="w-4 h-4" />
-            <span>View</span>
+            <span>{product.orderType === 'request' ? 'View Details' : 'View'}</span>
           </button>
-          <button 
-            onClick={() => onOpenQuickView(product)}
-            className="flex items-center gap-2 bg-[#141414] text-white px-6 py-3 rounded-2xl font-bold text-sm hover:bg-black transition-colors shadow-lg"
-          >
-            <ShoppingBag className="w-4 h-4" />
-            <span>Add</span>
-          </button>
+          {product.orderType !== 'request' && (
+            <button 
+              onClick={() => onOpenQuickView(product)}
+              className="flex items-center gap-2 bg-[#141414] text-white px-6 py-3 rounded-2xl font-bold text-sm hover:bg-black transition-colors shadow-lg"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              <span>Add</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -116,10 +118,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
             {product.title}
           </h3>
         </Link>
-        <div className="flex flex-col">
-          <span className="text-slate-400 text-xs line-through font-medium">${product.originalPrice}</span>
-          <span className="text-[#FF7348] text-2xl font-black">${product.price}</span>
-        </div>
+        {product.orderType !== 'request' ? (
+          <div className="flex flex-col">
+            <span className="text-slate-400 text-xs line-through font-medium">${product.originalPrice}</span>
+            <span className="text-[#FF7348] text-2xl font-black">${product.price}</span>
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            <span className="text-[#FF7348] text-xs font-black uppercase italic tracking-widest">Custom Quote Required</span>
+          </div>
+        )}
       </div>
     </div>
   );

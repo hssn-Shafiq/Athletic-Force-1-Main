@@ -1434,7 +1434,7 @@ export function useProductForm(productId?: string) {
       return false;
     }
 
-    if (!variants.length) {
+    if (orderType === 'direct' && !variants.length) {
       toast.error('Select option values to generate variants.');
       return false;
     }
@@ -1483,8 +1483,8 @@ export function useProductForm(productId?: string) {
         useBasePriceForVariants,
         variantConfig: {
           mode: variantMode,
-          parentOptionKey,
-          childOptionKey,
+          parentOptionKey: parentOptionKey.trim() || undefined,
+          childOptionKey: childOptionKey.trim() || undefined,
         },
         variants: toVariantPayload(),
         videoReviews: toVideoPayload(),
@@ -1546,8 +1546,8 @@ export function useProductForm(productId?: string) {
         useBasePriceForVariants,
         variantConfig: {
           mode: variantMode,
-          parentOptionKey,
-          childOptionKey,
+          parentOptionKey: parentOptionKey.trim() || undefined,
+          childOptionKey: childOptionKey.trim() || undefined,
         },
         variants: toVariantPayload(),
         videoReviews: toVideoPayload(),

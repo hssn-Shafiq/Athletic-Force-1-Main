@@ -3,11 +3,22 @@ export type AuthUser = {
   id?: string;
   name: string;
   email: string;
+  phone?: string;
   avatarUrl?: string;
   roles: string[];
   provider?: 'local' | 'google';
   isEmailVerified?: boolean;
   lastLoginAt?: string;
+  savedAddresses?: Array<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    address1: string;
+    city: string;
+    state: string;
+    isDefault: boolean;
+  }>;
 };
 
 export type LoginRequest = {
@@ -19,6 +30,16 @@ export type RegisterRequest = {
   name: string;
   email: string;
   password: string;
+};
+
+export type UpdateProfileRequest = {
+  name: string;
+  phone?: string;
+};
+
+export type UpdatePasswordRequest = {
+  currentPassword: string;
+  newPassword: string;
 };
 
 export type AuthResponse = {
@@ -300,6 +321,7 @@ export type PublicProduct = {
   };
   tags?: string[];
   collections: ProductCollectionOption[];
+  orderType?: 'direct' | 'request';
   createdAt?: string;
   updatedAt?: string;
 };

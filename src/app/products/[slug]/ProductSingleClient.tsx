@@ -22,6 +22,7 @@ import {
   Plus,
   Minus,
   Check,
+  Mail,
   ChevronRight,
   ArrowLeft,
   Play,
@@ -144,6 +145,7 @@ interface DetailedProduct extends Omit<Product, 'variants' | 'inventory' | 'main
   }[];
   mainVideo: MainVideoData | null;
   videoReviews: VideoReviewItem[];
+  orderType: 'direct' | 'request';
   variants: {
     colors: { name: string; image: string }[];
     sizes: string[];
@@ -222,6 +224,7 @@ function mapToDetailedProduct(raw: any): DetailedProduct {
     inventoryMax: Math.max(inventoryTotal, 20),
     description: raw.description || '',
     variantRows,
+    orderType: raw.orderType || 'direct',
     galleryImages: (raw.galleryImages || []).map((entry: any) => entry.url),
   };
 }
@@ -745,68 +748,103 @@ const ProductSingleClient: React.FC = () => {
             </div>
 
             {/* Inventory Status (Image 1) */}
-            <div className="space-y-4 pt-4">
-              <div className="flex items-end gap-2 text-2xl font-black italic uppercase tracking-tighter text-[#FF7348]">
-                <span>{selectedStock}</span>
-                <span className="text-sm mb-1">Left</span>
+            {product.orderType !== 'request' && (
+              <div className="space-y-4 pt-4">
+                <div className="flex items-end gap-2 text-2xl font-black italic uppercase tracking-tighter text-[#FF7348]">
+                  <span>{selectedStock}</span>
+                  <span className="text-sm mb-1">Left</span>
+                </div>
+                <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden relative">
+                  <div className="absolute inset-0 bg-linear-to-r from-red-500 via-blue-500 to-red-500 animate-rainbow opacity-80" />
+                  <div className="absolute top-0 right-0 h-full bg-slate-100 transition-all duration-1000" style={{ width: `${100 - stockPercent}%` }} />
+                  <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-red-600 rounded-full border-2 border-white shadow-lg z-10" style={{ left: `calc(${stockPercent}% - 8px)` }} />
+                </div>
               </div>
-              <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden relative">
-                <div className="absolute inset-0 bg-linear-to-r from-red-500 via-blue-500 to-red-500 animate-rainbow opacity-80" />
-                <div className="absolute top-0 right-0 h-full bg-slate-100 transition-all duration-1000" style={{ width: `${100 - stockPercent}%` }} />
-                <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-red-600 rounded-full border-2 border-white shadow-lg z-10" style={{ left: `calc(${stockPercent}% - 8px)` }} />
-              </div>
-            </div>
+            )}
 
             {/* Pricing */}
             <div className="space-y-2">
-              <div className="flex flex-col sm:flex-row sm:items-baseline gap-3 sm:gap-4">
+              {product.orderType !== 'request' ? (
+                <div className="flex flex-col sm:flex-row sm:items-baseline gap-3 sm:gap-4">
                   <span className="text-4xl sm:text-5xl font-black italic tracking-tighter text-slate-900">${displayPrice.toFixed(2)}</span>
                   <span className="text-lg sm:text-xl text-slate-300 font-bold line-through">${product.originalPrice}</span>
                   <Link href="#" className="sm:ml-auto text-xs font-black uppercase tracking-[0.18em] text-[#FF7348] border-b-2 border-[#FF7348] hover:text-[#ff8f6d] hover:border-[#ff8f6d] transition-colors pb-1 italic w-fit">
-                  Sizes & Colors Guide
-                </Link>
-              </div>
+                    Sizes & Colors Guide
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-center gap-4 bg-orange-50 p-6 rounded-2xl border border-orange-100">
+                   <div className="text-center sm:text-left">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 leading-none mb-1">Deployment Phase</p>
+                      <h4 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Custom Quote Required</h4>
+                   </div>
+                   <ShieldCheck className="w-8 h-8 text-orange-600 sm:ml-auto" />
+                </div>
+              )}
             </div>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 w-full sm:w-auto justify-between sm:justify-start">
-                <button 
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="p-2 text-slate-400 hover:text-black transition-colors"
-                >
-                  <Minus className="w-4 h-4" />
-                </button>
-                <div className="w-12 text-center font-black italic text-lg sm:text-xl tabular-nums">
-                  {quantity.toString().padStart(2, '0')}
-                </div>
-                <button 
-                  onClick={() => {
-                    const inv = product?.inventory as any;
-                    const baseStock = typeof inv === 'number' ? inv : inv?.globalStock;
-                    const maxStock = selectedVariant?.stock ?? baseStock ?? 99;
-                    setQuantity(Math.min(maxStock, quantity + 1));
-                  }}
-                  className="p-2 text-slate-400 hover:text-black transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
+                {product.orderType !== 'request' && (
+                  <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 w-full sm:w-auto justify-between sm:justify-start">
+                    <button 
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="p-2 text-slate-400 hover:text-black transition-colors"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <div className="w-12 text-center font-black italic text-lg sm:text-xl tabular-nums">
+                      {quantity.toString().padStart(2, '0')}
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const inv = product?.inventory as any;
+                        const baseStock = typeof inv === 'number' ? inv : inv?.globalStock;
+                        const maxStock = selectedVariant?.stock ?? baseStock ?? 99;
+                        setQuantity(Math.min(maxStock, quantity + 1));
+                      }}
+                      className="p-2 text-slate-400 hover:text-black transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                {product.orderType === 'request' ? (
+                  <Link 
+                    href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(product.category)}&subcategory=${encodeURIComponent(product.collections?.[0]?.name || '')}`}
+                    className="flex-1 flex items-center justify-center gap-2 sm:gap-3 rounded-2xl font-black uppercase italic tracking-tighter text-lg sm:text-xl px-4 py-4 bg-orange-600 hover:bg-orange-700 text-white transition-all shadow-xl active:scale-95 w-full"
+                  >
+                    <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <span>Request Quote</span>
+                  </Link>
+                ) : (
+                  <button 
+                    onClick={handleAddToCart}
+                    className="relative flex-1 flex items-center justify-center gap-2 sm:gap-3 rounded-2xl font-black uppercase italic tracking-tighter text-lg sm:text-xl px-4 py-4 bg-[#141414] hover:bg-black text-white transition-all shadow-xl active:scale-95 w-full"
+                  >
+                    <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <span>Add to Cart</span>
+                  </button>
+                )}
               </div>
-              <button 
-                onClick={handleAddToCart}
-                className="relative flex-1 flex items-center justify-center gap-2 sm:gap-3 bg-[#141414] text-white rounded-2xl font-black uppercase italic tracking-tighter text-lg sm:text-xl px-4 py-4 hover:bg-black transition-all shadow-xl active:scale-95 w-full"
-              >
-                <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
-                <span>Add to Cart</span>
-              </button>
-            </div>
 
             {/* Big Action Button */}
-            <button 
-              className="w-full bg-[#E5633D] text-white py-4 sm:py-6 rounded-3xl font-black uppercase italic tracking-tighter text-xl sm:text-2xl hover:bg-[#d45431] transition-all shadow-xl active:scale-95 hover:shadow-2xl flex items-center justify-center gap-3 sm:gap-4"
-            >
-              <span>Buy Now</span>
-              <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
-            </button>
+            {product.orderType === 'request' ? (
+              <Link
+                href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(product.category)}&subcategory=${encodeURIComponent(product.collections?.[0]?.name || '')}`}
+                className="w-full text-white py-4 sm:py-6 rounded-3xl font-black uppercase italic tracking-tighter text-xl sm:text-2xl transition-all shadow-xl active:scale-95 bg-black hover:bg-slate-900 border-2 border-orange-500 hover:shadow-2xl flex items-center justify-center gap-3 sm:gap-4"
+              >
+                <span>Submit Inquiry</span>
+                <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
+              </Link>
+            ) : (
+              <button 
+                onClick={undefined}
+                className="w-full text-white py-4 sm:py-6 rounded-3xl font-black uppercase italic tracking-tighter text-xl sm:text-2xl transition-all shadow-xl active:scale-95 bg-[#E5633D] hover:bg-[#d45431] hover:shadow-2xl flex items-center justify-center gap-3 sm:gap-4"
+              >
+                <span>Buy Now</span>
+                <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
+              </button>
+            )}
 
             {/* Trust Badges */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-6">
@@ -885,8 +923,8 @@ const ProductSingleClient: React.FC = () => {
               ))}
             </div>
 
-            {/* Upsell / Bundle Section — only shown if upsell products exist */}
-            {product.upsellProducts.length > 0 && (
+            {/* Upsell / Bundle Section — only shown if upsell products exist and not a request product */}
+            {product.upsellProducts.length > 0 && product.orderType !== 'request' && (
               <div className="pt-10 md:pt-12 space-y-6">
                 <div className="flex justify-between items-center gap-3">
                   <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-900">Just for You — One Time Offer</h3>

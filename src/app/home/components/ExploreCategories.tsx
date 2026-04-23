@@ -87,7 +87,7 @@ export const ExploreCategories: React.FC = () => {
   }));
 
   return (
-    <section className="w-full py-10 sm:py-16">
+    <section className="w-full">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 sm:mb-12">
         <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
           Explore Categories
