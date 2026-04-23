@@ -5,6 +5,8 @@ import {
   LogoutResponse,
   RefreshResponse,
   RegisterRequest,
+  UpdateProfileRequest,
+  UpdatePasswordRequest,
 } from './types';
 import { env } from '../env';
 
@@ -20,6 +22,16 @@ export async function loginApi(payload: LoginRequest) {
 
 export async function meApi() {
   const { data } = await apiClient.get<AuthResponse>('/api/auth/me');
+  return data;
+}
+
+export async function updateProfileApi(payload: UpdateProfileRequest) {
+  const { data } = await apiClient.put<AuthResponse>('/api/auth/profile', payload);
+  return data;
+}
+
+export async function updatePasswordApi(payload: UpdatePasswordRequest) {
+  const { data } = await apiClient.put<{ ok: boolean }>('/api/auth/password', payload);
   return data;
 }
 

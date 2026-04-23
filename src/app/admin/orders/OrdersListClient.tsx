@@ -11,6 +11,7 @@ export default function OrdersListClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState<'direct' | 'request'>('direct');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -21,6 +22,7 @@ export default function OrdersListClient() {
         page: page.toString(),
         limit: '15',
         status: statusFilter,
+        type: typeFilter,
         search: search.trim()
       });
       const { data } = await apiClient.get(`/api/orders/admin/all?${query}`);
@@ -37,7 +39,7 @@ export default function OrdersListClient() {
 
   useEffect(() => {
     fetchOrders();
-  }, [page, statusFilter]);
+  }, [page, statusFilter, typeFilter]);
 
   // Debounced search
   useEffect(() => {
@@ -64,9 +66,31 @@ export default function OrdersListClient() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black uppercase italic tracking-tighter text-slate-900">Direct Orders</h1>
-          <p className="text-slate-500 font-bold text-sm mt-2">Manage customer orders, statuses, and tracking.</p>
+          <h1 className="text-4xl font-black uppercase italic tracking-tighter text-slate-900">
+            {typeFilter === 'direct' ? 'Direct Orders' : 'Custom Requests'}
+          </h1>
+          <p className="text-slate-500 font-bold text-sm mt-2">
+            {typeFilter === 'direct' 
+              ? 'Manage standardized inventory sales and shipping.' 
+              : 'Analyze tactical custom requirements and issue specialized quotes.'}
+          </p>
         </div>
+      </div>
+
+      {/* Type Tabs */}
+      <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl w-fit">
+        <button
+          onClick={() => { setTypeFilter('direct'); setPage(1); }}
+          className={`px-8 py-3 rounded-xl text-xs font-black uppercase italic tracking-widest transition-all ${typeFilter === 'direct' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          Direct Orders
+        </button>
+        <button
+          onClick={() => { setTypeFilter('request'); setPage(1); }}
+          className={`px-8 py-3 rounded-xl text-xs font-black uppercase italic tracking-widest transition-all ${typeFilter === 'request' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          Custom Requests
+        </button>
       </div>
 
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
@@ -153,7 +177,9 @@ export default function OrdersListClient() {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <span className="text-sm font-black italic text-orange-600">${order.total.toFixed(2)}</span>
+                      <span className="text-sm font-black italic text-orange-600">
+                        {order.type === 'request' ? 'QUOTE PENDING' : `$${order.total.toFixed(2)}`}
+                      </span>
                     </td>
                     <td className="py-4 px-6 text-center">
                       <Link 

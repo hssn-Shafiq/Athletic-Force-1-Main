@@ -22,7 +22,7 @@ const FeatureItem: React.FC<FeatureItemProps> = ({ icon: Icon, title, descriptio
 
 export const VideoSection: React.FC = () => {
   return (
-    <section className="w-full space-y-8 sm:space-y-12 py-8 sm:py-12">
+    <section className="w-full space-y-8 sm:space-y-12">
       {/* Video Banner */}
       <div className="relative w-full aspect-[16/10] sm:aspect-[21/9] rounded-[26px] sm:rounded-[40px] lg:rounded-[60px] overflow-hidden shadow-2xl group cursor-pointer">
         <img 

@@ -12,41 +12,28 @@ const CategoriesTabs = dynamic(
 const VideoSection = dynamic(
   () => import("./home/components/VideoSections").then((m) => m.VideoSection)
 );
+const SocialFeedSection = dynamic(
+  () => import("./home/components/SocialFeedSection").then((m) => m.SocialFeedSection)
+);
+const LockerRoomSection = dynamic(
+  () => import("./home/components/LockerRoomSection").then((m) => m.LockerRoomSection)
+);
 
 export default function Home() {
   return (
     <main className="font-sans">
-      {/* Hero takes full width */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <HeroSection />
-      </div>
-
-      {/* Categories with spacing */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 lg:py-16">
-        <TopCategories />
-      </div>
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 lg:py-16">
-        <ProductCollection />
-      </div>
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 lg:py-16">
-
-        <PromoBanner />
-
-      </div>
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 lg:py-16">
-
-        <ExploreCategories />
-
-      </div>
-       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 lg:py-16">
-
-        <CategoriesTabs />
-
-      </div>
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-12 lg:py-16">
-
-        <VideoSection />
-
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8 lg:pt-10 pb-12 sm:pb-16 lg:pb-20">
+        <div className="space-y-8 sm:space-y-12 lg:space-y-16">
+          <HeroSection />
+          <TopCategories />
+          <ProductCollection />
+          <PromoBanner />
+          <ExploreCategories />
+          <CategoriesTabs />
+          <VideoSection />
+          <SocialFeedSection />
+          <LockerRoomSection />
+        </div>
       </div>
     </main>
   );

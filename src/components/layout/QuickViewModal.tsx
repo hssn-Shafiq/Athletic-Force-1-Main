@@ -2,10 +2,11 @@
 /* eslint-disable @next/next/no-img-element */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, ShoppingBag, Heart, Minus, Plus, X } from 'lucide-react';
+import { Star, ShoppingBag, Heart, Minus, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product } from '@/types';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
+import Link from 'next/link';
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -136,7 +137,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
   const displayPrice = selectedVariant?.price ?? product.price;
   const displayOriginalPrice = product.originalPrice;
 
-  const savings = displayOriginalPrice
+  const savings = displayOriginalPrice && product.orderType !== 'request'
     ? (displayOriginalPrice - displayPrice).toFixed(2)
     : null;
 
@@ -182,7 +183,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -190,7 +191,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
 
       {/* Modal Panel */}
       <div
-        className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 pointer-events-none`}
+        className={`fixed inset-0 z-[210] flex items-center justify-center p-4 transition-all duration-300 pointer-events-none`}
       >
         <div
           className={`relative bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto pointer-events-auto transition-all duration-300 ${
@@ -201,14 +202,15 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors"
+            aria-label="Close quick view"
+            className="absolute top-3 right-3 z-10 w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
 
           <div className="grid grid-cols-1 sm:grid-cols-2">
             {/* Left — Product Image */}
-            <div className="relative bg-slate-50 rounded-tl-3xl rounded-bl-3xl rounded-tr-3xl sm:rounded-tr-none overflow-hidden aspect-square">
+            <div className="group relative bg-slate-50 rounded-tl-3xl rounded-bl-3xl rounded-tr-3xl sm:rounded-tr-none overflow-hidden aspect-square">
               {/* Badges */}
               <div className="absolute top-4 left-4 flex flex-col gap-1.5 z-10">
                 {product.isNew && (
@@ -250,6 +252,33 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
               />
 
               {allImages.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Previous image"
+                    onClick={() => {
+                      setImageLoaded(false);
+                      setSelectedImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+                    }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-slate-700 flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100 hover:bg-white"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next image"
+                    onClick={() => {
+                      setImageLoaded(false);
+                      setSelectedImageIndex((prev) => (prev + 1) % allImages.length);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-slate-700 flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100 hover:bg-white"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </>
+              ) : null}
+
+              {allImages.length > 1 ? (
                 <div className="absolute bottom-3 left-3 right-3 flex gap-2 overflow-x-auto">
                   {allImages.map((img, idx) => (
                     <button
@@ -271,7 +300,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
             </div>
 
             {/* Right — Product Details */}
-            <div className="p-6 sm:p-8 flex flex-col justify-center">
+            <div className="p-6 sm:p-8 pr-6 sm:pr-14 flex flex-col justify-center">
               {/* Category & Rating */}
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
@@ -289,20 +318,34 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                 {product.title}
               </h2>
 
+              {/* Description (Truncated) */}
+              {product.description && (
+                <div 
+                  className="text-xs text-slate-500 font-medium italic mb-5 line-clamp-4 leading-relaxed prose-sm"
+                  dangerouslySetInnerHTML={{ __html: product.description }}
+                />
+              )}
+
               {/* Pricing */}
-              <div className="flex items-end gap-3 mb-5">
-                <span className="text-3xl font-black text-[#FF7348]">${displayPrice.toFixed(2)}</span>
-                {displayOriginalPrice && (
-                  <span className="text-base text-slate-400 line-through font-medium mb-0.5">
-                    ${displayOriginalPrice.toFixed(2)}
-                  </span>
-                )}
-                {savings && (
-                  <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full mb-1">
-                    You save ${savings}
-                  </span>
-                )}
-              </div>
+              {product.orderType !== 'request' ? (
+                <div className="flex flex-wrap items-end gap-2 sm:gap-3 mb-5">
+                  <span className="text-3xl font-black text-[#FF7348]">${displayPrice.toFixed(2)}</span>
+                  {displayOriginalPrice && (
+                    <span className="text-base text-slate-400 line-through font-medium mb-0.5">
+                      ${displayOriginalPrice.toFixed(2)}
+                    </span>
+                  )}
+                  {savings && (
+                    <span className="w-full sm:w-auto text-xs font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full sm:mb-1 whitespace-nowrap">
+                      You save ${savings}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="mb-5">
+                   <span className="text-orange-600 text-xs font-black uppercase italic tracking-[0.2em] bg-orange-50 px-4 py-2 rounded-xl">Custom Quote Required</span>
+                </div>
+              )}
 
               {/* Divider */}
               <div className="border-t border-slate-100 mb-5" />
@@ -366,54 +409,72 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                 )}
               </div>
 
-              {/* Quantity Picker */}
-              <div className="mb-6">
-                <span className="text-xs font-bold uppercase tracking-widest text-slate-700 block mb-3">
-                  Quantity
-                </span>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="w-8 text-center font-bold text-slate-900 text-lg">{quantity}</span>
-                  <button
-                    onClick={() => {
-                      // fallback to extracting globalStock if inventory is an object, otherwise default to a high threshold.
-                      const inv = product.inventory as any;
-                      const baseStock = typeof inv === 'number' ? inv : inv?.globalStock;
-                      const maxStock = selectedVariant?.stock ?? baseStock ?? 99;
-                      setQuantity((q) => Math.min(maxStock, q + 1));
-                    }}
-                    className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+              {/* Quantity + Primary CTA */}
+              {product.orderType !== 'request' && (
+                <>
+                  <div className="mb-6">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-700 block mb-3">
+                      Quantity
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="w-8 text-center font-bold text-slate-900 text-lg">{quantity}</span>
+                      <button
+                        onClick={() => {
+                          const inv = product.inventory as any;
+                          const baseStock = typeof inv === 'number' ? inv : inv?.globalStock;
+                          const maxStock = selectedVariant?.stock ?? baseStock ?? 99;
+                          setQuantity((q) => Math.min(maxStock, q + 1));
+                        }}
+                        className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
 
-              {/* CTA Buttons */}
-              <div className="flex flex-col gap-3">
-                <button
-                  disabled={!effectiveSelectedSize || isAddingToCart}
-                  onClick={handleAddToCart}
-                  className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all duration-200 ${
-                    effectiveSelectedSize && !isAddingToCart
-                      ? 'bg-black text-white hover:bg-[#FF7348] hover:scale-[1.02] shadow-lg'
-                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                  }`}
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  {isAddingToCart ? 'Adding...' : `Add to Cart — $${((selectedVariant?.price ?? product.price) * quantity).toFixed(2)}`}
-                </button>
-                <button
+                  {/* CTA Buttons */}
+                  <div className="flex flex-col gap-3">
+                    <button
+                      disabled={!effectiveSelectedSize || isAddingToCart}
+                      onClick={handleAddToCart}
+                      className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all duration-200 ${
+                        effectiveSelectedSize && !isAddingToCart
+                          ? 'bg-black text-white hover:bg-[#FF7348] hover:scale-[1.02] shadow-lg'
+                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      {isAddingToCart ? 'Adding...' : `Add to Cart — $${((selectedVariant?.price ?? product.price) * quantity).toFixed(2)}`}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {product.orderType === 'request' && (
+                <div className="flex flex-col gap-4">
+                  <Link 
+                    href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(product.category)}&subcategory=${encodeURIComponent(product.collections?.[0]?.name || '')}`}
+                    className="w-full flex items-center justify-center gap-2 py-5 bg-[#141414] text-white rounded-2xl font-black uppercase italic tracking-widest text-xs hover:bg-black hover:scale-[1.02] transition-all shadow-xl shadow-black/10"
+                  >
+                    Request Custom Quote <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              )}
+
+              <div className="mt-4 flex flex-col gap-3">
+                <Link
+                  href={`/products/${product.slug}`}
                   onClick={onClose}
-                  className="w-full py-3.5 rounded-2xl border-2 border-slate-200 text-slate-700 font-bold text-sm hover:border-slate-400 transition-colors"
+                  className="w-full py-3.5 flex justify-center items-center rounded-2xl border-2 border-slate-200 text-slate-700 font-bold text-sm hover:border-slate-400 transition-colors"
                 >
                   View Full Details
-                </button>
+                </Link>
               </div>
             </div>
           </div>

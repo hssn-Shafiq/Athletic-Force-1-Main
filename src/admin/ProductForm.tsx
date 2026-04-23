@@ -763,7 +763,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Regular Price</label>
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Regular Price {orderType === 'request' && '(Optional)'}
+              </label>
               <input
                 type="number"
                 min="0"
@@ -814,7 +816,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
 
           <div className="border border-slate-200 rounded-2xl p-4 space-y-4">
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <h3 className="font-black uppercase tracking-wider text-sm">Variant Options</h3>
+              <h3 className="font-black uppercase tracking-wider text-sm">
+                Variant Options {orderType === 'request' && <span className="opacity-50 text-[10px] lowercase font-bold ml-2">(Optional)</span>}
+              </h3>
               <button
                 type="button"
                 onClick={regenerateVariantsFromOptions}
