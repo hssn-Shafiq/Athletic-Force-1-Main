@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Sora, Inter } from "next/font/google";
 import "./globals.css"
+import "react-quill-new/dist/quill.snow.css";
 // import "react-toastify/dist/ReactToastify.css";
 import { AppShell } from "../components/layout/AppShell";
 import { ToastProvider } from "../components/ui/ToastProvider";

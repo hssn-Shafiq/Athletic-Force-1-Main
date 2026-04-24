@@ -343,14 +343,14 @@ function RequestOrderFormContent() {
             <div className="absolute inset-0 opacity-10 flex items-center justify-center font-black italic text-[20vw] tracking-tighter leading-none pointer-events-none select-none">
                 CUSTOM
             </div>
-            <div className="max-w-4xl mx-auto relative z-10 space-y-4">
-                <Link href="/" className="flex items-center gap-2 text-orange-500 font-black uppercase italic text-xs mb-8 hover:text-orange-400 transition-colors">
+            <div className="max-w-4xl mx-auto relative z-10 space-y-4 text-center">
+                <Link href="/" className="inline-flex items-center gap-2 text-orange-500 font-black uppercase italic text-xs mb-8 hover:text-orange-400 transition-colors">
                     <ArrowLeft className="w-4 h-4" /> Exit to Storefront
                 </Link>
                 <h1 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.85] animate-in slide-in-from-bottom duration-700">
                     Tactical <br /> <span className="text-orange-500">Customization</span>
                 </h1>
-                <p className="text-slate-400 font-medium italic max-w-lg">
+                <p className="text-slate-400 font-medium italic max-w-lg mx-auto">
                     Fill in your deployment details below — our elite team will analyze your requirements and issue a tailored tactical quote.
                 </p>
             </div>

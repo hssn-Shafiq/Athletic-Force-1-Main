@@ -127,19 +127,21 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => 
               >
                 Secure Checkout
               </Link>
-              <Link
-                href="/cart"
-                onClick={onClose}
-                className="block w-full text-center text-xs font-bold uppercase tracking-widest text-slate-600 hover:text-black transition-colors"
-              >
-                View Cart Page
-              </Link>
-              <button 
-                onClick={onClose}
-                className="w-full text-center text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-black transition-colors"
-              >
-                Continue Shopping
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <Link
+                  href="/cart"
+                  onClick={onClose}
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white py-3 text-[11px] font-black uppercase tracking-widest text-slate-700 transition-colors hover:border-slate-900 hover:text-slate-900"
+                >
+                  View Cart Page
+                </Link>
+                <button
+                  onClick={onClose}
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-100 py-3 text-[11px] font-black uppercase tracking-widest text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-200 hover:text-slate-900"
+                >
+                  Continue Shopping
+                </button>
+              </div>
             </div>
           </motion.div>
         </>

@@ -101,12 +101,12 @@ export const ProductCollection: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div>
             <h2 className="text-3xl font-black text-slate-900 mb-6 tracking-tight">Shop The Collection</h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {tabs.map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${
+                  className={`shrink-0 whitespace-nowrap px-6 py-2 rounded-full text-xs font-bold transition-all ${
                     activeTab === tab
                       ? 'bg-black text-white'
                       : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
@@ -125,7 +125,7 @@ export const ProductCollection: React.FC = () => {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10">
             {Array.from({ length: PRODUCT_SKELETON_COUNT }).map((_, idx) => (
               <ProductCardSkeleton key={`product-skeleton-${idx}`} />
             ))}
@@ -136,7 +136,7 @@ export const ProductCollection: React.FC = () => {
             <p className="mt-2 text-sm font-medium text-slate-500">Try selecting another tab or check back soon.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10">
             {filteredProducts.map(product => (
               <ProductCard
                 key={product.id}

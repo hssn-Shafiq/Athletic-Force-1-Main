@@ -96,6 +96,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           currentItems.push({
             productId: payload.productId,
             variantSku: payload.variantSku,
+            slug: payload.slug,
             name: payload.name,
             imageUrl: payload.imageUrl,
             price: payload.price,

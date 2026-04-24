@@ -13,6 +13,11 @@ export function mapPublicProductToCard(product: PublicProduct): Product {
   const regular = product.regularPrice ?? product.basePrice;
   const sale = product.salePrice ?? regular;
   const discount = regular > sale ? Math.round(((regular - sale) / regular) * 100) : 0;
+  const reviews = Array.isArray(product.reviews) ? product.reviews : [];
+  const reviewCount = reviews.length;
+  const rating = reviewCount
+    ? Number((reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviewCount).toFixed(1))
+    : 0;
 
   const category =
     product.collections.find((entry) => entry.slug?.toLowerCase() === 'merchandise')?.name ||
@@ -27,7 +32,8 @@ export function mapPublicProductToCard(product: PublicProduct): Product {
     price: Number(sale.toFixed(2)),
     originalPrice: Number(regular.toFixed(2)),
     discount: discount > 0 ? `-${discount}%` : '',
-    rating: 4.8,
+    rating,
+    reviewCount,
     image: product.mainImageUrl,
     isNew: product.badgeName?.toLowerCase() === 'new',
     badgeName: product.badgeName,

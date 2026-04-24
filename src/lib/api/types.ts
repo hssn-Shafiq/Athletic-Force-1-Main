@@ -313,6 +313,7 @@ export type PublicProduct = {
     thumbnailPublicId?: string;
   };
   galleryImages?: ProductImageAsset[];
+  reviews?: ProductReview[];
   variants: ProductVariant[];
   inventory?: {
     trackQuantity: boolean;
@@ -467,6 +468,7 @@ export type DeleteProductResponse = {
 export type ApiCartItem = {
   productId: string;
   variantSku: string;
+  slug?: string;
   name: string;
   imageUrl?: string;
   price: number;
@@ -491,6 +493,7 @@ export type CartResponse = {
 export type AddToCartRequest = {
   productId: string;
   variantSku: string;
+  slug?: string;
   name: string;
   imageUrl?: string;
   price: number;
@@ -510,6 +513,7 @@ export type SyncCartRequest = {
 
 export type ApiWishlistItem = {
   productId: string;
+  slug?: string;
   name: string;
   imageUrl?: string;
   price: number;
@@ -529,6 +533,7 @@ export type WishlistResponse = {
 
 export type ToggleWishlistItemRequest = {
   productId: string;
+  slug?: string;
   name: string;
   imageUrl?: string;
   price: number;

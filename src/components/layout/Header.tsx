@@ -5,10 +5,12 @@ import Image from 'next/image';
 import { Search, ShoppingCart, Heart, User, Menu, ChevronDown, X } from 'lucide-react';
 import { MegaMenu } from './MegaMenu';
 import { CartSidebar } from './CartSidebar';
+import { MobileMenuSidebar } from './MobileMenuSidebar';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWishlist } from '@/contexts/WishlistContext';
+import { useCart } from '@/contexts/CartContext';
 
 interface HeaderProps {
   onHomeClick?: () => void;
@@ -17,37 +19,14 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { items: cartItems } = useCart();
   const { items: wishlistItems } = useWishlist();
   const isAdminUser = Boolean(user?.roles?.some((role) => role === 'admin' || role === 'superadmin'));
-  const [cartCount, setCartCount] = useState(() => {
-    if (typeof window === 'undefined') return 2;
-    const stored = window.localStorage.getItem('af1-cart-count');
-    const parsed = stored ? Number.parseInt(stored, 10) : 2;
-    return Number.isNaN(parsed) ? 2 : parsed;
-  });
-
-  useEffect(() => {
-    const onCartAdd = (event: Event) => {
-      const customEvent = event as CustomEvent<{ qty?: number }>;
-      const qty = Math.max(1, customEvent.detail?.qty ?? 1);
-
-      setCartCount((prev) => {
-        const next = prev + qty;
-        window.localStorage.setItem('af1-cart-count', String(next));
-        return next;
-      });
-    };
-
-    window.addEventListener('af1:add-to-cart', onCartAdd as EventListener);
-
-    return () => {
-      window.removeEventListener('af1:add-to-cart', onCartAdd as EventListener);
-    };
-  }, []);
 
   useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {
@@ -61,6 +40,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
       if (event.key === 'Escape') {
         setIsProfileMenuOpen(false);
         setIsMegaMenuOpen(false);
+        setIsMobileMenuOpen(false);
       }
     };
 
@@ -104,6 +84,15 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
 
         {/* Main Header */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-20 sm:h-24 flex items-center justify-between gap-3 sm:gap-6">
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="md:hidden inline-flex items-center justify-center h-11 w-11 rounded-xl border border-slate-200 text-slate-800"
+            aria-label="Open categories menu"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+
           {/* Logo - Refined to match image */}
           <Link
             href="/"
@@ -176,7 +165,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
               <div className="relative">
                 <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7 text-slate-900 group-hover:scale-110 transition-transform" />
                 <span suppressHydrationWarning className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] min-w-5 h-5 px-1 rounded-full flex items-center justify-center font-black border-2 border-white shadow-sm animate-bounce">
-                  {cartCount}
+                  {cartItems.length}
                 </span>
               </div>
               <span className="hidden md:block text-[10px] font-bold mt-1.5 uppercase tracking-widest text-slate-500 group-hover:text-black">Cart</span>
@@ -265,17 +254,13 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
 
       {/* Cart Sidebar Overlay */}
       <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      <MobileMenuSidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
 
       {/* Mobile Search - Only visible on small screens */}
       <div className="md:hidden px-3 sm:px-4 pb-4 bg-white border-b border-slate-100 space-y-3">
         <div className="flex items-center border border-slate-100 rounded-full px-5 py-3 bg-[#F9F9F9]">
           <Search className="w-4 h-4 text-slate-400 mr-2" />
           <input type="text" placeholder="Search for gear..." className="bg-transparent text-sm w-full outline-none font-medium" />
-        </div>
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <Link href="/shop" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-700">Shop</Link>
-          <Link href="/blog" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-700">Blog</Link>
-          <Link href="/contact" className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-700">Contact</Link>
         </div>
       </div>
     </>
