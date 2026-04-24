@@ -6,6 +6,9 @@ export async function getExploreProductsApi(params?: {
   pageSize?: number;
   collection?: string;
   search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: string;
 }) {
   const { data } = await apiClient.get<PublicProductsResponse>('/api/products/explore', {
     params,

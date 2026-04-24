@@ -147,6 +147,19 @@ export type ExploreCollection = {
 export type ExploreCollectionsResponse = {
   ok: boolean;
   collections: ExploreCollection[];
+  hierarchy?: CollectionHierarchy[];
+};
+
+export type CollectionHierarchy = {
+  id: string;
+  name: string;
+  slug: string;
+  subcategories: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    productCount: number;
+  }>;
 };
 
 export type ProductCollectionOption = {
