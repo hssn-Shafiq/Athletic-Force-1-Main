@@ -9,15 +9,15 @@ import useEmblaCarousel from 'embla-carousel-react';
 import { toast } from 'react-toastify';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
-import { 
-  Star, 
-  Heart, 
-  ChevronDown, 
-  ShoppingBag, 
-  Zap, 
-  Truck, 
-  Headphones, 
-  RotateCcw, 
+import {
+  Star,
+  Heart,
+  ChevronDown,
+  ShoppingBag,
+  Zap,
+  Truck,
+  Headphones,
+  RotateCcw,
   ShieldCheck,
   Plus,
   Minus,
@@ -28,6 +28,7 @@ import {
   Play,
   X
 } from 'lucide-react';
+import { ShopFeaturesFaqSection } from '@/app/shop/components/ShopFeaturesFaqSection';
 import { ReviewModal } from '../_components/ReviewModal';
 import { VideoReviews } from '../_components/VideoReviews';
 import { ProductReviews } from '../_components/ProductReviews';
@@ -196,6 +197,11 @@ function mapToDetailedProduct(raw: any): DetailedProduct {
   const regularPrice = Number(raw.regularPrice ?? raw.basePrice ?? 0);
   const salePrice = Number(raw.salePrice ?? regularPrice);
   const discount = regularPrice > salePrice ? Math.round(((regularPrice - salePrice) / regularPrice) * 100) : 0;
+  const reviews = Array.isArray(raw.reviews) ? raw.reviews : [];
+  const reviewCount = reviews.length;
+  const rating = reviewCount
+    ? Number((reviews.reduce((sum: number, review: any) => sum + Number(review.rating || 0), 0) / reviewCount).toFixed(1))
+    : 0;
 
   return {
     id: raw.id,
@@ -205,12 +211,13 @@ function mapToDetailedProduct(raw: any): DetailedProduct {
     price: salePrice,
     originalPrice: regularPrice,
     discount: discount > 0 ? `${discount}% OFF` : '',
-    rating: 4.5,
+    rating,
     image: raw.mainImageUrl,
     benefits: raw.benefits || '',
     faqs: raw.faqs || [],
     upsellProducts: raw.upsellProducts || [],
-    reviews: raw.reviews || [],
+    reviews,
+    reviewCount,
     mainVideo: raw.mainVideo?.videoUrl ? raw.mainVideo : null,
     videoReviews: (raw.videoReviews || []).filter((v: any) => v.videoUrl),
     variants: {
@@ -275,11 +282,11 @@ const ProductSingleClient: React.FC = () => {
 
         const initialSizes = initialColor
           ? unique(
-              mapped.variantRows
-                .filter((variant) => (variant.color || '').toLowerCase() === initialColor.name.toLowerCase())
-                .map((variant) => variant.size)
-                .filter((entry) => entry && entry !== 'Default')
-            )
+            mapped.variantRows
+              .filter((variant) => (variant.color || '').toLowerCase() === initialColor.name.toLowerCase())
+              .map((variant) => variant.size)
+              .filter((entry) => entry && entry !== 'Default')
+          )
           : mapped.variants.sizes;
 
         setSelectedSize(initialSizes[0] || null);
@@ -289,10 +296,10 @@ const ProductSingleClient: React.FC = () => {
         const hasFaqsNow = Boolean(mapped.faqs?.length);
         setActiveAccordion(
           hasColorsNow ? 'Colors'
-          : hasSizesNow ? 'Sizes'
-          : hasBenefitsNow ? 'Benefits'
-          : hasFaqsNow ? 'FAQs'
-          : null
+            : hasSizesNow ? 'Sizes'
+              : hasBenefitsNow ? 'Benefits'
+                : hasFaqsNow ? 'FAQs'
+                  : null
         );
       } catch {
         if (!mounted) return;
@@ -338,11 +345,11 @@ const ProductSingleClient: React.FC = () => {
 
   const availableSizes = selectedColor && product
     ? unique(
-        product.variantRows
-          .filter((variant) => variant.color.toLowerCase() === selectedColor.name.toLowerCase())
-          .map((variant) => variant.size)
-          .filter((entry) => entry && entry !== 'Default')
-      )
+      product.variantRows
+        .filter((variant) => variant.color.toLowerCase() === selectedColor.name.toLowerCase())
+        .map((variant) => variant.size)
+        .filter((entry) => entry && entry !== 'Default')
+    )
     : product?.variants.sizes || [];
 
   const selectedVariant = product?.variantRows.find((variant) => {
@@ -357,15 +364,15 @@ const ProductSingleClient: React.FC = () => {
 
   const thumbnails = product
     ? unique([
-        ...(selectedColor ? [selectedColor.image] : []),
-        ...product.variantRows
-          .filter((variant) =>
-            selectedColor ? variant.color.toLowerCase() === selectedColor.name.toLowerCase() : true
-          )
-          .map((variant) => variant.imageUrl || ''),
-        product.image,
-        ...(product.galleryImages || []),
-      ])
+      ...(selectedColor ? [selectedColor.image] : []),
+      ...product.variantRows
+        .filter((variant) =>
+          selectedColor ? variant.color.toLowerCase() === selectedColor.name.toLowerCase() : true
+        )
+        .map((variant) => variant.imageUrl || ''),
+      product.image,
+      ...(product.galleryImages || []),
+    ])
     : [];
 
   const displayPrice = Number(selectedVariant?.price ?? product?.price ?? 0);
@@ -391,7 +398,6 @@ const ProductSingleClient: React.FC = () => {
     ...(hasColorVariants ? [{ id: "Colors", title: "Colors", type: 'colors' as const }] : []),
     ...(hasSizeVariants ? [{ id: "Sizes", title: "Sizes", type: 'sizes' as const }] : []),
     ...(hasBenefits ? [{ id: "Benefits", title: "Benefits", type: 'benefits' as const }] : []),
-    ...(hasFaqs ? [{ id: "FAQs", title: "FAQs", type: 'faqs' as const }] : []),
   ];
 
   const termsAccordions = [
@@ -427,6 +433,7 @@ const ProductSingleClient: React.FC = () => {
     await addItem({
       productId: product.id,
       variantSku: displaySku,
+      slug: product.slug,
       name: product.title,
       imageUrl: thumbnails[0] || product.image,
       price: displayPrice,
@@ -445,7 +452,7 @@ const ProductSingleClient: React.FC = () => {
 
   const handleWishlistToggle = () => {
     if (!product) return;
-    
+
     setShowWishlistBurst(true);
     window.setTimeout(() => setShowWishlistBurst(false), 850);
 
@@ -511,12 +518,11 @@ const ProductSingleClient: React.FC = () => {
               <div className="w-full md:w-24 shrink-0 overflow-x-auto md:overflow-visible">
                 <div className="flex md:flex-col gap-3 md:gap-4 w-max md:w-full pr-1">
                   {thumbnails.map((thumb, idx) => (
-                    <button 
+                    <button
                       key={idx}
                       onClick={() => onThumbClick(idx)}
-                      className={`relative min-w-[92px] w-[29vw] max-w-[124px] md:min-w-0 md:w-full aspect-square rounded-2xl overflow-hidden bg-slate-50 border-2 transition-all p-1 group shrink-0 ${
-                        selectedIndex === idx ? "border-black scale-95" : "border-transparent hover:border-slate-200"
-                      }`}
+                      className={`relative min-w-[92px] w-[29vw] max-w-[124px] md:min-w-0 md:w-full aspect-square rounded-2xl overflow-hidden bg-slate-50 border-2 transition-all p-1 group shrink-0 ${selectedIndex === idx ? "border-black scale-95" : "border-transparent hover:border-slate-200"
+                        }`}
                     >
                       <img src={thumb} alt={`thumb-${idx}`} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform" />
                       {selectedIndex === idx && (
@@ -532,8 +538,8 @@ const ProductSingleClient: React.FC = () => {
                 <div className="flex h-full select-none cursor-grab active:cursor-grabbing">
                   {thumbnails.map((img, idx) => (
                     <div key={idx} className="flex-[0_0_100%] min-w-0 aspect-4/5 relative">
-                      <img 
-                        src={img} 
+                      <img
+                        src={img}
                         alt={`${product.title}-${idx}`}
                         className="w-full h-full object-contain mix-blend-multiply pointer-events-none"
                       />
@@ -583,31 +589,46 @@ const ProductSingleClient: React.FC = () => {
               const avgRating = reviewCount
                 ? (product.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount).toFixed(1)
                 : '—';
+              const reviewLabel = reviewCount > 0 ? `${reviewCount} REVIEWS` : 'NO REVIEWS';
               return (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-slate-200 rounded-4xl p-5 sm:p-8 shadow-sm">
+                <div className="bg-white border border-slate-500 rounded-none px-4 py-3 sm:px-6 sm:py-4 shadow-none">
                   <div className="flex items-center gap-4 sm:gap-6">
-                    <div className="text-center">
-                      <div className="text-5xl sm:text-6xl font-black italic tracking-tighter text-[#FF7348] leading-none">{avgRating}</div>
-                      <div className="text-xs font-black uppercase tracking-widest text-[#FF7348] mt-2 italic">Rating</div>
+                    <div className="text-center shrink-0 w-[112px] sm:w-[132px]">
+                      <div className="text-[4rem] sm:text-[4.5rem] font-black tracking-tighter text-[#E56437] leading-[0.9]">
+                        {avgRating}
+                      </div>
+                      <div className="text-[2rem] sm:text-[2.2rem] font-black uppercase tracking-[0.06em] text-[#E56437] mt-0 leading-none">
+                        Rating
+                      </div>
                     </div>
-                    <div className="h-16 w-px bg-slate-200" />
-                    <div>
-                       <div className="flex -space-x-3 mb-2">
-                         {[1,2,3,4].map(i => (
-                           <img key={i} src={`https://i.pravatar.cc/100?u=${i}`} className="w-10 h-10 rounded-full border-2 border-white" alt="reviewer" />
-                         ))}
-                       </div>
-                       <div className="text-sm font-black uppercase tracking-wider text-slate-900">
-                         {reviewCount > 0 ? `${reviewCount} Review${reviewCount !== 1 ? 's' : ''}` : 'No Reviews Yet'}
-                       </div>
+
+                    <div className="h-20 sm:h-24 w-px bg-slate-300 shrink-0" />
+
+                    <div className="flex-1 min-w-0 flex flex-col items-start gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex -space-x-2">
+                          {[1, 2, 3, 4].map((i) => (
+                            <img
+                              key={i}
+                              src={`https://i.pravatar.cc/100?u=${i}`}
+                              className="w-7 h-7 rounded-full border-2 border-white"
+                              alt="reviewer"
+                            />
+                          ))}
+                        </div>
+                        <div className="text-[2rem] sm:text-[2.1rem] font-black uppercase tracking-[0.04em] text-[#E56437] leading-none whitespace-nowrap">
+                          {reviewLabel}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setIsReviewModalOpen(true)}
+                        className="shrink-0 bg-[#0F1116] text-white px-8 sm:px-10 py-2.5 sm:py-3 rounded-2xl font-black uppercase tracking-tight italic text-[2rem] sm:text-[2.1rem] leading-none hover:bg-black transition-colors"
+                      >
+                        Write Review
+                      </button>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => setIsReviewModalOpen(true)}
-                    className="bg-[#141414] text-white px-6 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-base sm:text-lg hover:bg-black transition-all hover:scale-105 shadow-xl w-full sm:w-auto"
-                  >
-                    Write Review
-                  </button>
                 </div>
               );
             })()}
@@ -649,8 +670,8 @@ const ProductSingleClient: React.FC = () => {
                 <span className="text-slate-400 text-sm font-bold tracking-widest uppercase">SKU: {displaySku}</span>
                 <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full">
                   <div className="flex -space-x-2">
-                    {[1,2,3].map(i => (
-                      <img key={i} src={`https://i.pravatar.cc/100?u=${i+10}`} className="w-6 h-6 rounded-full border-2 border-white" alt="av" />
+                    {[1, 2, 3].map(i => (
+                      <img key={i} src={`https://i.pravatar.cc/100?u=${i + 10}`} className="w-6 h-6 rounded-full border-2 border-white" alt="av" />
                     ))}
                   </div>
                   <span className="text-xs font-black text-slate-900 leading-none">4.5 <span className="text-[#FF7348] uppercase italic">Rating</span></span>
@@ -662,7 +683,7 @@ const ProductSingleClient: React.FC = () => {
             <div className="space-y-4 pt-6 border-t border-slate-100">
               {accordions.map((acc) => (
                 <div key={acc.id} className="border-b border-slate-100 last:border-0 pb-4">
-                  <button 
+                  <button
                     onClick={() => setActiveAccordion(activeAccordion === acc.id ? null : acc.id)}
                     className="w-full flex justify-between items-center py-2 group"
                   >
@@ -685,12 +706,11 @@ const ProductSingleClient: React.FC = () => {
                               <div className="text-lg font-bold text-slate-900">Color: <span className="italic">{selectedColor?.name || 'N/A'}</span></div>
                               <div className="flex flex-wrap gap-4">
                                 {product.variants.colors.map((color, idx) => (
-                                  <button 
+                                  <button
                                     key={idx}
                                     onClick={() => setSelectedColor(color)}
-                                    className={`relative w-[52px] h-[52px] rounded-xl overflow-hidden bg-slate-50 border-2 transition-all p-1 ${
-                                      selectedColor?.name === color.name ? "border-black ring-4 ring-black/5" : "border-slate-100 hover:border-slate-300"
-                                    }`}
+                                    className={`relative w-[52px] h-[52px] rounded-xl overflow-hidden bg-slate-50 border-2 transition-all p-1 ${selectedColor?.name === color.name ? "border-black ring-4 ring-black/5" : "border-slate-100 hover:border-slate-300"
+                                      }`}
                                   >
                                     <img src={color.image} alt={color.name} className="w-full h-full object-cover mix-blend-multiply" />
                                     {selectedColor?.name === color.name && (
@@ -701,7 +721,7 @@ const ProductSingleClient: React.FC = () => {
                                   </button>
                                 ))}
                               </div>
-                              <button 
+                              <button
                                 onClick={() => setSelectedColor(product.variants.colors[0] || null)}
                                 className="text-[#FF7348] text-xs font-black uppercase tracking-widest hover:underline"
                               >
@@ -711,14 +731,13 @@ const ProductSingleClient: React.FC = () => {
                           ) : acc.type === 'sizes' ? (
                             <div className="grid grid-cols-5 gap-3">
                               {(availableSizes.length ? availableSizes : product.variants.sizes).map((size) => (
-                                <button 
+                                <button
                                   key={size}
                                   onClick={() => setSelectedSize(size)}
-                                  className={`py-4 rounded-xl font-black transition-all ${
-                                    selectedSize === size 
-                                      ? "bg-black text-white shadow-xl scale-95" 
-                                      : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-black border border-slate-100"
-                                  }`}
+                                  className={`py-4 rounded-xl font-black transition-all ${selectedSize === size
+                                    ? "bg-black text-white shadow-xl scale-95"
+                                    : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-black border border-slate-100"
+                                    }`}
                                 >
                                   {size}
                                 </button>
@@ -729,15 +748,6 @@ const ProductSingleClient: React.FC = () => {
                               className="prose prose-sm max-w-none text-slate-600 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:my-1 [&_strong]:font-black [&_strong]:text-slate-900"
                               dangerouslySetInnerHTML={{ __html: product.benefits }}
                             />
-                          ) : acc.type === 'faqs' ? (
-                            <div className="space-y-4">
-                              {product.faqs.map((faq, i) => (
-                                <div key={i} className="space-y-1">
-                                  <p className="text-sm font-black text-slate-900">{faq.question}</p>
-                                  <p className="text-sm text-slate-600 font-medium leading-relaxed">{faq.answer}</p>
-                                </div>
-                              ))}
-                            </div>
                           ) : null}
                         </div>
                       </motion.div>
@@ -774,58 +784,58 @@ const ProductSingleClient: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row items-center gap-4 bg-orange-50 p-6 rounded-2xl border border-orange-100">
-                   <div className="text-center sm:text-left">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 leading-none mb-1">Deployment Phase</p>
-                      <h4 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Custom Quote Required</h4>
-                   </div>
-                   <ShieldCheck className="w-8 h-8 text-orange-600 sm:ml-auto" />
+                  <div className="text-center sm:text-left">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 leading-none mb-1">Deployment Phase</p>
+                    <h4 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Custom Quote Required</h4>
+                  </div>
+                  <ShieldCheck className="w-8 h-8 text-orange-600 sm:ml-auto" />
                 </div>
               )}
             </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                {product.orderType !== 'request' && (
-                  <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 w-full sm:w-auto justify-between sm:justify-start">
-                    <button 
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="p-2 text-slate-400 hover:text-black transition-colors"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <div className="w-12 text-center font-black italic text-lg sm:text-xl tabular-nums">
-                      {quantity.toString().padStart(2, '0')}
-                    </div>
-                    <button 
-                      onClick={() => {
-                        const inv = product?.inventory as any;
-                        const baseStock = typeof inv === 'number' ? inv : inv?.globalStock;
-                        const maxStock = selectedVariant?.stock ?? baseStock ?? 99;
-                        setQuantity(Math.min(maxStock, quantity + 1));
-                      }}
-                      className="p-2 text-slate-400 hover:text-black transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-                {product.orderType === 'request' ? (
-                  <Link 
-                    href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(product.category)}&subcategory=${encodeURIComponent(product.collections?.[0]?.name || '')}`}
-                    className="flex-1 flex items-center justify-center gap-2 sm:gap-3 rounded-2xl font-black uppercase italic tracking-tighter text-lg sm:text-xl px-4 py-4 bg-orange-600 hover:bg-orange-700 text-white transition-all shadow-xl active:scale-95 w-full"
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              {product.orderType !== 'request' && (
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 w-full sm:w-auto justify-between sm:justify-start">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="p-2 text-slate-400 hover:text-black transition-colors"
                   >
-                    <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
-                    <span>Request Quote</span>
-                  </Link>
-                ) : (
-                  <button 
-                    onClick={handleAddToCart}
-                    className="relative flex-1 flex items-center justify-center gap-2 sm:gap-3 rounded-2xl font-black uppercase italic tracking-tighter text-lg sm:text-xl px-4 py-4 bg-[#141414] hover:bg-black text-white transition-all shadow-xl active:scale-95 w-full"
-                  >
-                    <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
-                    <span>Add to Cart</span>
+                    <Minus className="w-4 h-4" />
                   </button>
-                )}
-              </div>
+                  <div className="w-12 text-center font-black italic text-lg sm:text-xl tabular-nums">
+                    {quantity.toString().padStart(2, '0')}
+                  </div>
+                  <button
+                    onClick={() => {
+                      const inv = product?.inventory as any;
+                      const baseStock = typeof inv === 'number' ? inv : inv?.globalStock;
+                      const maxStock = selectedVariant?.stock ?? baseStock ?? 99;
+                      setQuantity(Math.min(maxStock, quantity + 1));
+                    }}
+                    className="p-2 text-slate-400 hover:text-black transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              {product.orderType === 'request' ? (
+                <Link
+                  href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(product.category)}&subcategory=${encodeURIComponent(product.collections?.[0]?.name || '')}`}
+                  className="flex-1 flex items-center justify-center gap-2 sm:gap-3 rounded-2xl font-black uppercase italic tracking-tighter text-lg sm:text-xl px-4 py-4 bg-orange-600 hover:bg-orange-700 text-white transition-all shadow-xl active:scale-95 w-full"
+                >
+                  <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <span>Request Quote</span>
+                </Link>
+              ) : (
+                <button
+                  onClick={handleAddToCart}
+                  className="relative flex-1 flex items-center justify-center gap-2 sm:gap-3 rounded-2xl font-black uppercase italic tracking-tighter text-lg sm:text-xl px-4 py-4 bg-[#141414] hover:bg-black text-white transition-all shadow-xl active:scale-95 w-full"
+                >
+                  <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <span>Add to Cart</span>
+                </button>
+              )}
+            </div>
 
             {/* Big Action Button */}
             {product.orderType === 'request' ? (
@@ -837,7 +847,7 @@ const ProductSingleClient: React.FC = () => {
                 <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8" />
               </Link>
             ) : (
-              <button 
+              <button
                 onClick={undefined}
                 className="w-full text-white py-4 sm:py-6 rounded-3xl font-black uppercase italic tracking-tighter text-xl sm:text-2xl transition-all shadow-xl active:scale-95 bg-[#E5633D] hover:bg-[#d45431] hover:shadow-2xl flex items-center justify-center gap-3 sm:gap-4"
               >
@@ -846,45 +856,7 @@ const ProductSingleClient: React.FC = () => {
               </button>
             )}
 
-            {/* Trust Badges */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-6">
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="p-2.5 sm:p-3 bg-slate-50 rounded-2xl">
-                  <Truck className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
-                </div>
-                <div>
-                  <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 leading-tight italic">Worldwide Shipping</h5>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">Free delivery on all orders</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="p-2.5 sm:p-3 bg-slate-50 rounded-2xl">
-                  <Headphones className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
-                </div>
-                <div>
-                  <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 leading-tight italic">24/7 Online Support</h5>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">Always ready to assist you</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="p-2.5 sm:p-3 bg-slate-50 rounded-2xl">
-                  <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
-                </div>
-                <div>
-                  <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 leading-tight italic">Free 30 Days Return</h5>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">30 days return policy</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="p-2.5 sm:p-3 bg-slate-50 rounded-2xl">
-                  <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
-                </div>
-                <div>
-                  <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 leading-tight italic">Safe Checkout</h5>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">Ensuring your safety</p>
-                </div>
-              </div>
-            </div>
+            {/* Trust Badges (Moved to bottom) */}
 
             {/* Payment & Shipping Terms (moved below trust badges) */}
             <div className="pt-8 border-t border-slate-100 space-y-4">
@@ -988,27 +960,30 @@ const ProductSingleClient: React.FC = () => {
 
         <div className="mt-10 space-y-8 lg:mt-14">
           {product.description && product.description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0 && (
-            <div className="text-center rounded-3xl p-6 sm:p-8 bg-[#efefef]">
-              <h3 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">Description of Product</h3>
-              <div 
-                className="mt-4 text-sm font-semibold leading-relaxed text-slate-700 prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:my-1 [&_strong]:font-black [&_strong]:text-slate-900 [&_p]:mb-3 mx-auto text-left sm:text-center"
+            <div className="rounded-3xl p-6 sm:p-8 bg-[#efefef] w-full overflow-hidden">
+              <h3 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 text-center">Description of Product</h3>
+              <div
+                className="mt-4 text-sm font-medium leading-relaxed text-slate-600 prose prose-sm max-w-none w-full overflow-hidden break-words [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:my-1 [&_strong]:font-medium [&_strong]:text-slate-900 [&_p]:mb-3 [&_p]:break-words [&_*]:font-medium [&_*]:max-w-full [&_img]:max-w-full [&_img]:h-auto [&_table]:w-full [&_table]:table-fixed [&_pre]:overflow-x-auto text-left"
                 dangerouslySetInnerHTML={{ __html: product.description }}
               />
             </div>
           )}
 
+          {/* FAQ section removed from here */}
+
           {product.mainVideo && <MainVideoSection mainVideo={product.mainVideo} />}
           {product.videoReviews.length > 0 && <VideoReviews videoReviews={product.videoReviews} />}
+          <ShopFeaturesFaqSection />
           <ProductReviews reviews={product.reviews} />
         </div>
       </div>
 
-      <ReviewModal 
-        isOpen={isReviewModalOpen} 
-        onClose={() => setIsReviewModalOpen(false)} 
-        productTitle={product.title} 
+      <ReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        productTitle={product.title}
       />
-      
+
       {/* Dynamic styles for rainbow animation */}
       <style>{`
         @keyframes rainbow {

@@ -142,6 +142,8 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
 
   const displayPrice = selectedVariant?.price ?? product.price;
   const displayOriginalPrice = product.originalPrice;
+  const reviewCount = product.reviewCount ?? 0;
+  const displayRating = reviewCount > 0 ? product.rating : 0;
 
   const savings = displayOriginalPrice && product.orderType !== 'request'
     ? (displayOriginalPrice - displayPrice).toFixed(2)
@@ -209,9 +211,9 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
           <button
             onClick={onClose}
             aria-label="Close quick view"
-            className="absolute top-3 right-3 z-10 w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors"
+            className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10 w-9 h-9 sm:w-8 sm:h-8 bg-white/95 border border-slate-200 hover:bg-slate-100 rounded-full flex items-center justify-center text-slate-700 hover:text-slate-900 shadow-md transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4.5 h-4.5 sm:w-4 sm:h-4" />
           </button>
 
           <div className="grid grid-cols-1 sm:grid-cols-2">
@@ -239,7 +241,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
               {/* Wishlist */}
               <button
                 onClick={handleWishlistToggle}
-                className="absolute top-4 right-4 z-10 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center transition-colors"
+                className="absolute top-14 right-3 sm:top-4 sm:right-4 z-10 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center transition-colors"
               >
                 <Heart
                   className={`w-4 h-4 transition-colors ${
@@ -306,7 +308,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
             </div>
 
             {/* Right — Product Details */}
-            <div className="p-6 sm:p-8 pr-6 sm:pr-14 flex flex-col justify-center">
+            <div className="min-w-0 p-6 sm:p-8 pr-6 sm:pr-14 flex flex-col justify-center">
               {/* Category & Rating */}
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
@@ -314,8 +316,8 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                 </span>
                 <div className="flex items-center gap-1.5">
                   <Star className="w-3.5 h-3.5 fill-[#FF7348] text-[#FF7348]" />
-                  <span className="text-xs font-bold text-slate-800">{product.rating}</span>
-                  <span className="text-xs text-slate-400">(124 reviews)</span>
+                  <span className="text-xs font-bold text-slate-800">{displayRating.toFixed(1)}</span>
+                  <span className="text-xs text-slate-400">({reviewCount} review{reviewCount === 1 ? '' : 's'})</span>
                 </div>
               </div>
 
@@ -327,7 +329,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
               {/* Description (Truncated) */}
               {product.description && (
                 <div 
-                  className="text-xs text-slate-500 font-medium italic mb-5 line-clamp-4 leading-relaxed prose-sm"
+                  className="text-xs text-slate-500 font-medium italic mb-5 line-clamp-4 leading-relaxed prose-sm max-w-full break-words [overflow-wrap:anywhere]"
                   dangerouslySetInnerHTML={{ __html: product.description }}
                 />
               )}
@@ -386,34 +388,36 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
               ) : null}
 
               {/* Size Selector */}
-              <div className="mb-5">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs font-bold uppercase tracking-widest text-slate-700">
-                    Select Size
-                  </span>
-                  <button className="text-xs text-[#FF7348] font-semibold underline underline-offset-2">
-                    Size Guide
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {displaySizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`w-11 h-11 rounded-xl text-xs font-bold transition-all duration-200 ${
-                        effectiveSelectedSize === size
-                          ? 'bg-black text-white scale-105 shadow-md'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      {size}
+              {product.orderType !== 'request' && (
+                <div className="mb-5">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xs font-bold uppercase tracking-widest text-slate-700">
+                      Select Size
+                    </span>
+                    <button className="text-xs text-[#FF7348] font-semibold underline underline-offset-2">
+                      Size Guide
                     </button>
-                  ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {displaySizes.map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => setSelectedSize(size)}
+                        className={`w-11 h-11 rounded-xl text-xs font-bold transition-all duration-200 ${
+                          effectiveSelectedSize === size
+                            ? 'bg-black text-white scale-105 shadow-md'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                  {!effectiveSelectedSize && (
+                    <p className="text-[11px] text-slate-400 mt-2">Please select a size</p>
+                  )}
                 </div>
-                {!effectiveSelectedSize && (
-                  <p className="text-[11px] text-slate-400 mt-2">Please select a size</p>
-                )}
-              </div>
+              )}
 
               {/* Quantity + Primary CTA */}
               {product.orderType !== 'request' && (

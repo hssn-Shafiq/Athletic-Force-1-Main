@@ -80,7 +80,7 @@ export default function Shop() {
   return (
     <main className="font-sans bg-[#f3f3f3] min-h-screen">
       {/* Hero Banner - Shop All */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 pt-3 pb-8">
         <div className="relative w-full h-[190px] md:h-[260px] rounded-[28px] mb-5 flex items-center justify-center bg-black overflow-hidden">
           <Image
             src="/shop-hero.png"
@@ -95,9 +95,9 @@ export default function Shop() {
         </div>
 
         {/* Main Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-0 border border-gray-200 bg-[#f3f3f3]">
-          {/* Left Sidebar */}
-          <aside className="md:col-span-1 p-4 md:p-5 md:border-r border-gray-200 bg-[#f3f3f3]">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-0 border border-gray-200 bg-[#f3f3f3] relative">
+          {/* Left Sidebar - Desktop View (Restored Original) */}
+          <aside className="hidden md:block md:col-span-1 p-4 md:p-5 md:border-r border-gray-200 bg-[#f3f3f3]">
             <div className="space-y-6">
               {/* Search Box in Sidebar */}
               <div className="relative">
@@ -276,6 +276,138 @@ export default function Shop() {
           onClose={handleCloseQuickView}
         />
       )}
+
+      {/* Mobile Filter Drawer */}
+      <AnimatePresence>
+        {isMobileFiltersOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileFiltersOpen(false)}
+              className="fixed inset-0 bg-black/60 z-[100] md:hidden backdrop-blur-sm"
+            />
+            {/* Drawer Content */}
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-[#f3f3f3] z-[101] md:hidden shadow-2xl flex flex-col"
+            >
+              <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-white">
+                <h2 className="text-xl font-black uppercase italic tracking-tighter">Filters</h2>
+                <button 
+                  onClick={() => setIsMobileFiltersOpen(false)}
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-5">
+                <div className="space-y-8">
+                  {/* Search removed from drawer as well to follow new UI */}
+
+                  {/* Price Range */}
+                  <div>
+                    <h3 className="text-xs font-black uppercase italic tracking-widest text-slate-900 mb-6 flex items-center gap-2">
+                      <div className="w-1 h-3 bg-black" />
+                      Price Range
+                    </h3>
+                    <div className="px-1">
+                      <input
+                        type="range"
+                        min="0"
+                        max="1400"
+                        value={priceRange[1]}
+                        onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-black mb-4"
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">$0</span>
+                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">${priceRange[1]}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Merchandise */}
+                  <div>
+                    <h3 className="text-xs font-black uppercase italic tracking-widest text-slate-900 mb-6 flex items-center gap-2">
+                      <div className="w-1 h-3 bg-black" />
+                      Merchandise
+                    </h3>
+                    <div className="space-y-4 bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                      {merchandise.map((item, idx) => (
+                        <label
+                          key={`${item}-${idx}`}
+                          className="flex items-center justify-between gap-3 cursor-pointer group"
+                        >
+                          <span className={`text-sm font-bold tracking-tight transition-colors ${selectedMerchandise.includes(item) ? 'text-black' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                            {item}
+                          </span>
+                          <div className="relative flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedMerchandise.includes(item)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedMerchandise([...selectedMerchandise, item]);
+                                } else {
+                                  setSelectedMerchandise(
+                                    selectedMerchandise.filter((m) => m !== item)
+                                  );
+                                }
+                              }}
+                              className="peer h-5 w-5 cursor-pointer accent-black opacity-0 absolute z-10"
+                            />
+                            <div className="h-5 w-5 rounded-lg border-2 border-slate-200 peer-checked:bg-black peer-checked:border-black transition-all flex items-center justify-center">
+                              <motion.div
+                                initial={false}
+                                animate={{ scale: selectedMerchandise.includes(item) ? 1 : 0 }}
+                              >
+                                <Check className="w-3.5 h-3.5 text-white stroke-[4]" />
+                              </motion.div>
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 border-t border-gray-200 bg-white">
+                <button 
+                  onClick={() => setIsMobileFiltersOpen(false)}
+                  className="w-full h-12 bg-black text-white rounded-xl font-bold uppercase tracking-widest text-sm active:scale-95 transition-all shadow-lg"
+                >
+                  Show {filteredProducts.length} Results
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </main>
   );
+}
+
+// CSS to hide scrollbar
+const style = `
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+`;
+
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = style;
+  document.head.appendChild(styleElement);
 }

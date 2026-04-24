@@ -124,12 +124,12 @@ export const CategoriesTabs: React.FC = () => {
           </h2>
           
           {/* Tabs */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 shadow-sm ${
+                className={`shrink-0 whitespace-nowrap px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 shadow-sm ${
                   activeTab === tab 
                     ? "bg-black text-white scale-105 shadow-lg" 
                     : "bg-white text-slate-500 border border-slate-200 hover:border-slate-400"
@@ -178,7 +178,7 @@ export const CategoriesTabs: React.FC = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.3 }}
-                  className="embla__slide flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_25%] px-2 sm:px-3"
+                  className="embla__slide flex-[0_0_50%] lg:flex-[0_0_25%] px-2 sm:px-3"
                 >
                   <CategoryCard item={item} />
                 </motion.div>

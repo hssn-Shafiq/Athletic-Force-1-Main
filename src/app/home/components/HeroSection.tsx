@@ -16,19 +16,14 @@ export const HeroSection: React.FC = () => {
 
   const slides: Slide[] = [
     {
-      image: "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?q=80&w=2000&auto=format&fit=crop",
+      image: "/Hero-Images/image-3-3.png",
       title: "ATHLETICFORCE1",
       subtitle: "Engineered For Victory"
     },
     {
-      image: "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=2000&auto=format&fit=crop",
-      title: "GAME READY",
-      subtitle: "Premium Custom Uniforms"
-    },
-    {
-      image: "https://images.unsplash.com/photo-1519861531473-9200262188bf?q=80&w=2000&auto=format&fit=crop",
-      title: "TEAM EXCELLENCE",
-      subtitle: "Built For Champions"
+      image: "/Hero-Images/Section.png",
+      title: "CUSTOM GEAR",
+      subtitle: "Designed For Your Team"
     }
   ];
 

@@ -3,7 +3,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Star, Eye, ShoppingBag, Heart } from 'lucide-react';
+import { Star, Eye, ShoppingBag, Heart, Plus } from 'lucide-react';
 import { Product } from '@/types';
 
 import { useCart } from '@/contexts/CartContext';
@@ -43,10 +43,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
   };
 
   return (
-    <div className="group relative bg-white border border-transparent hover:border-slate-100 rounded-4xl p-4 transition-all duration-300 hover:shadow-xl">
+    <div className="group relative bg-white border border-transparent hover:border-slate-100 rounded-2xl sm:rounded-[40px] p-2 sm:p-4 transition-all duration-300 hover:shadow-xl h-full flex flex-col">
       {/* Image Container */}
-      <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-50 mb-4">
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+      <div className="relative aspect-square rounded-xl sm:rounded-[32px] overflow-hidden bg-slate-50 mb-2 sm:mb-4">
+        <div className="absolute top-3 left-3 hidden sm:flex flex-col gap-1.5 z-10">
           {product.isNew && (
             <span className="bg-black text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
               New
@@ -106,26 +106,44 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
 
       {/* Info */}
       <div className="px-2">
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">{product.category}</span>
-          <div className="flex items-center gap-1">
-            <Star className="w-3 h-3 fill-[#FF7348] text-[#FF7348]" />
-            <span className="text-xs font-bold text-slate-900">{product.rating}</span>
+        <div className="flex justify-between items-center mb-0.5 sm:mb-1">
+          <span className="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wider">{product.category}</span>
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-[#FF7348] text-[#FF7348]" />
+            <span className="text-[10px] sm:text-xs font-bold text-slate-900">{product.rating}</span>
           </div>
         </div>
         <Link href={productHref} className="block">
-          <h3 className="font-bold text-slate-900 text-lg leading-tight mb-3 group-hover:text-[#FF7348] transition-colors line-clamp-1">
+          <h3 className="font-bold text-slate-900 text-[13px] sm:text-lg leading-tight mb-1 sm:mb-3 group-hover:text-[#FF7348] transition-colors line-clamp-2">
             {product.title}
           </h3>
         </Link>
         {product.orderType !== 'request' ? (
           <div className="flex flex-col">
-            <span className="text-slate-400 text-xs line-through font-medium">${product.originalPrice}</span>
-            <span className="text-[#FF7348] text-2xl font-black">${product.price}</span>
+            <span className="text-slate-400 text-[10px] sm:text-xs line-through font-medium">${product.originalPrice}</span>
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[#FF7348] text-lg sm:text-2xl font-black">${product.price}</span>
+              <button
+                type="button"
+                onClick={() => onOpenQuickView(product)}
+                aria-label={`Quick view ${product.title}`}
+                className="sm:hidden inline-flex items-center justify-center shrink-0 w-7 h-7 rounded-full bg-slate-50 border border-slate-200 text-slate-900 shadow-sm active:scale-95 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" strokeWidth={3} />
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="flex flex-col">
+          <div className="flex items-center justify-between gap-2">
             <span className="text-[#FF7348] text-xs font-black uppercase italic tracking-widest">Custom Quote Required</span>
+            <button
+              type="button"
+              onClick={() => onOpenQuickView(product)}
+              aria-label={`Quick view ${product.title}`}
+              className="sm:hidden inline-flex items-center justify-center shrink-0 w-7 h-7 rounded-full bg-slate-50 border border-slate-200 text-slate-900 shadow-sm active:scale-95 transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" strokeWidth={3} />
+            </button>
           </div>
         )}
       </div>

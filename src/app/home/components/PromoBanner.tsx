@@ -33,15 +33,15 @@ export const PromoBanner: React.FC = () => {
           <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_20%_50%,rgba(255,115,72,0.3),transparent_40%)]"></div>
 
           {/* Content */}
-          <div className="relative z-10 max-w-xl">
-            <div className="flex items-start gap-1 mb-2">
+          <div className="relative z-10 max-w-xl w-full text-center lg:text-left">
+            <div className="flex items-center justify-center lg:justify-start gap-1 mb-2">
               <span className="text-[64px] sm:text-[90px] lg:text-[120px] font-black leading-none text-[#FF7348] tracking-tighter">10%</span>
               <span className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mt-4 sm:mt-6 uppercase italic">Off</span>
             </div>
             <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-6 sm:mb-8 tracking-tight leading-tight">
               On Custom Kit,<br />Make It Yours
             </h3>
-            <button className="bg-white text-black px-6 sm:px-8 lg:px-10 py-3.5 sm:py-4 lg:py-5 rounded-full font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-3 hover:bg-slate-100 transition-colors w-full sm:w-fit">
+            <button className="bg-white text-black px-6 sm:px-8 lg:px-10 py-3.5 sm:py-4 lg:py-5 rounded-full font-black text-xs sm:text-sm uppercase tracking-wider inline-flex items-center justify-center gap-3 hover:bg-slate-100 transition-colors mx-auto lg:mx-0">
               Customize Your Kit
               <ArrowRight className="w-5 h-5" />
             </button>
