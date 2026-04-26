@@ -16,12 +16,12 @@ export const HeroSection: React.FC = () => {
 
   const slides: Slide[] = [
     {
-      image: "/Hero-Images/image-3-3.png",
+      image: "/Hero-Images/hero-1.webp",
       title: "ATHLETIC FORCE 1",
       subtitle: "Engineered For Victory"
     },
     {
-      image: "/Hero-Images/Section.png",
+      image: "/Hero-Images/hero-2.webp",
       title: "CUSTOM GEAR",
       subtitle: "Designed For Your Team"
     }

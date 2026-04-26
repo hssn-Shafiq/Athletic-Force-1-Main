@@ -23,31 +23,31 @@ const CATEGORY_ITEMS: CategoryItem[] = [
   {
     id: '2',
     title: "Helmet",
-    image: "/Categories/Helmet.png",
+    image: "/Categories/Helmet.webp",
     category: "Accessories"
   },
   {
     id: '3',
     title: "Shoes",
-    image: "/Categories/Shoes.png",
+    image: "/Categories/Shoes.webp",
     category: "Team Store"
   },
   {
     id: '4',
     title: "Band",
-    image: "/Categories/Band.png",
+    image: "/Categories/Band.webp",
     category: "Merchandise"
   },
   {
     id: '5',
     title: "Helmet",
-    image: "/Categories/Helmet.png",
+    image: "/Categories/Helmet.webp",
     category: "Accessories"
   },
   {
     id: '6',
     title: "Shoes",
-    image: "/Categories/Shoes.png",
+    image: "/Categories/Shoes.webp",
     category: "Team Store"
   }
 ];

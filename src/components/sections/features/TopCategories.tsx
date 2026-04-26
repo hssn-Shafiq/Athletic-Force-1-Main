@@ -41,19 +41,19 @@ export const TopCategories: React.FC = () => {
   const categories = [
     {
       title: "Custom Uniforms",
-      image: "/after-hero-categories/Custom-Uniform.png"
+      image: "/after-hero-categories/Custom-Uniform.webp"
     },
     {
       title: "Merchandise",
-      image: "/after-hero-categories/Marchandise.png"
+      image: "/after-hero-categories/Marchandise.webp"
     },
     {
       title: "Accessories",
-      image: "/after-hero-categories/Accessories.png"
+      image: "/after-hero-categories/Accessories.webp"
     },
     {
       title: "Team Store",
-      image: "/after-hero-categories/Team%20Store.png"
+      image: "/after-hero-categories/Team%20Store.webp"
     }
   ];
 
