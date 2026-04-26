@@ -27,3 +27,10 @@ body {
   width: 100%;
   overflow-x: hidden;
 }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+

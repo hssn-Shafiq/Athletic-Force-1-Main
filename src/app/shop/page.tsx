@@ -12,15 +12,16 @@ import { ShopRecentUpdatesSection } from "./components/ShopRecentUpdatesSection"
 import { useEffect } from "react";
 import { getExploreProductsApi } from "@/lib/api/publicProducts";
 import { mapPublicProductToCard } from "@/lib/products/mapPublicProductToCard";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ProductCardSkeleton = () => (
-  <div className="group relative bg-white border border-transparent rounded-2xl p-4 animate-pulse">
-    <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 mb-4" />
+  <div className="group relative bg-white border border-transparent rounded-2xl p-4">
+    <Skeleton className="relative aspect-square rounded-xl mb-4" />
     <div className="px-2 space-y-2">
-      <div className="h-3 w-1/3 rounded bg-slate-100" />
-      <div className="h-5 w-11/12 rounded bg-slate-100" />
-      <div className="h-4 w-1/4 rounded bg-slate-100" />
-      <div className="h-6 w-1/3 rounded bg-slate-100" />
+      <Skeleton className="h-3 w-1/3" />
+      <Skeleton className="h-5 w-11/12" />
+      <Skeleton className="h-4 w-1/4" />
+      <Skeleton className="h-6 w-1/3" />
     </div>
   </div>
 );
@@ -480,3 +481,4 @@ if (typeof document !== 'undefined') {
   styleElement.textContent = style;
   document.head.appendChild(styleElement);
 }
+

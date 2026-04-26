@@ -135,7 +135,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
           </div>
         ) : (
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[#FF7348] text-xs font-black uppercase italic tracking-widest">Custom Quote Required</span>
+            <span className="text-[#FF7348] text-[10px] sm:text-xs font-black uppercase italic tracking-widest line-clamp-2 leading-tight">Custom Quote Required</span>
             <button
               type="button"
               onClick={() => onOpenQuickView(product)}

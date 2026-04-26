@@ -13,6 +13,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'react-toastify';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface StoreSettings {
@@ -61,10 +62,7 @@ interface ShippingForm {
   saveAddress: boolean;
 }
 
-// ─── Skeleton Component ───────────────────────────────────────────────────────
-const Skeleton = ({ className = '' }: { className?: string }) => (
-  <div className={`animate-pulse bg-slate-100 rounded-xl ${className}`} />
-);
+// Global Skeleton component used from @/components/ui/skeleton
 
 // ─── Step Indicator ───────────────────────────────────────────────────────────
 const StepIndicator = ({ step }: { step: number }) => {
@@ -592,6 +590,27 @@ export default function CheckoutPageClient() {
       router.push('/cart');
     }
   }, [cartLoading, authLoading, items.length, step, router]);
+
+  if (cartLoading || authLoading) {
+    return (
+      <div className="min-h-screen bg-[#FDFDFD]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+          <div className="flex flex-col lg:flex-row gap-12">
+            <div className="flex-1 space-y-10">
+              <Skeleton className="h-20 w-1/2" />
+              <div className="space-y-6">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-96 w-full" />
+              </div>
+            </div>
+            <aside className="lg:w-[420px]">
+              <Skeleton className="h-[600px] w-full rounded-[40px]" />
+            </aside>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFDFD]">

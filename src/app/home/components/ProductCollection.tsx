@@ -7,17 +7,18 @@ import { Product } from '@/types';
 import { ArrowRight } from 'lucide-react';
 import { getExploreProductsApi } from '@/lib/api/publicProducts';
 import { mapPublicProductToCard } from '@/lib/products/mapPublicProductToCard';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const PRODUCT_SKELETON_COUNT = 4;
 
 const ProductCardSkeleton: React.FC = () => (
-  <div className="group relative bg-white border border-transparent rounded-4xl p-4 animate-pulse">
-    <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-100 mb-4" />
+  <div className="group relative bg-white border border-transparent rounded-4xl p-4">
+    <Skeleton className="relative aspect-square rounded-3xl mb-4" />
     <div className="px-2 space-y-2">
-      <div className="h-3 w-1/3 rounded bg-slate-100" />
-      <div className="h-5 w-11/12 rounded bg-slate-100" />
-      <div className="h-4 w-1/4 rounded bg-slate-100" />
-      <div className="h-6 w-1/3 rounded bg-slate-100" />
+      <Skeleton className="h-3 w-1/3" />
+      <Skeleton className="h-5 w-11/12" />
+      <Skeleton className="h-4 w-1/4" />
+      <Skeleton className="h-6 w-1/3" />
     </div>
   </div>
 );

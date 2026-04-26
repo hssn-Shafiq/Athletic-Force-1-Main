@@ -345,7 +345,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                 </div>
               ) : (
                 <div className="mb-5">
-                   <span className="text-orange-600 text-xs font-black uppercase italic tracking-[0.2em] bg-orange-50 px-4 py-2 rounded-xl">Custom Quote Required</span>
+                   <span className="text-orange-600 text-[10px] sm:text-xs font-black uppercase italic tracking-[0.2em] bg-orange-50 px-4 py-2 rounded-xl">Custom Quote Required</span>
                 </div>
               )}
 
@@ -397,7 +397,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                       <button
                         key={size}
                         onClick={() => setSelectedSize(size)}
-                        className={`w-11 h-11 rounded-xl text-xs font-bold transition-all duration-200 ${
+                        className={`w-9 h-9 rounded-xl text-[10px] font-bold transition-all duration-200 ${
                           effectiveSelectedSize === size
                             ? 'bg-black text-white scale-105 shadow-md'
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'

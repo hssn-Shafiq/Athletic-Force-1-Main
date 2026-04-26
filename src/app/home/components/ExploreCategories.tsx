@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, MoveRight } from 'lucide-react';
 import { getExploreCollectionsApi } from '@/lib/api/publicCollections';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ExploreCollection } from '@/lib/api/types';
 
 interface CategoryItemProps {
@@ -37,10 +38,10 @@ const CategoryItem: React.FC<CategoryItemProps> = ({ title, image }) => {
 
 const CategorySkeleton: React.FC = () => {
   return (
-    <div className="flex flex-col items-center animate-pulse">
-      <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden mb-4 bg-slate-200" />
-      <div className="h-4 w-3/4 rounded-md bg-slate-200 mb-3" />
-      <div className="h-3 w-1/2 rounded-md bg-slate-200" />
+    <div className="flex flex-col items-center">
+      <Skeleton className="relative w-full aspect-[4/5] rounded-2xl mb-4" />
+      <Skeleton className="h-4 w-3/4 mb-3" />
+      <Skeleton className="h-3 w-1/2" />
     </div>
   );
 };
