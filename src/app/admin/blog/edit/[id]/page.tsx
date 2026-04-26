@@ -259,7 +259,7 @@ export default function EditBlogPage({ params }: { params: Promise<{ id: string 
             disabled={isSubmitting}
             className="px-6 py-3 border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50"
           >
-            Update & Maintain {formData.status === 'published' ? 'Deployment' : 'Draft'}
+            Update & Maintain {(formData.status as string) === 'published' ? 'Deployment' : 'Draft'}
           </button>
           <button 
             onClick={() => handleSubmit('published')}
