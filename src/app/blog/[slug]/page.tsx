@@ -2,116 +2,149 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ArrowLeft, ArrowRight, Clock3, UserRound } from "lucide-react";
-import { blogPosts } from "../blog-data";
+import { getPublicBlogPostBySlugApi, getPublicBlogPostsApi } from "@/lib/api/blog";
 
 type BlogDetailProps = {
   params: Promise<{ slug: string }>;
 };
 
-export async function generateStaticParams() {
-  return blogPosts.map((post) => ({ slug: post.slug }));
-}
-
 export async function generateMetadata({ params }: BlogDetailProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = blogPosts.find((item) => item.slug === slug);
-
-  if (!post) {
+  try {
+    const res = await getPublicBlogPostBySlugApi(slug);
+    if (!res.ok || !res.post) {
+      return { title: "Article Not Found | Athletic Force 1" };
+    }
+    const post = res.post;
     return {
-      title: "Article Not Found | Athletic Force 1",
+      title: post.seo?.title || `${post.title} | AF1 Journal`,
+      description: post.seo?.description || post.excerpt,
+      openGraph: {
+        title: post.seo?.title || post.title,
+        description: post.seo?.description || post.excerpt,
+        images: [{ url: post.thumbnail }]
+      }
     };
+  } catch (err) {
+    return { title: "Athletic Force 1 Journal" };
   }
-
-  return {
-    title: `${post.title} | Athletic Force 1`,
-    description: post.excerpt,
-  };
 }
 
 export default async function BlogSinglePage({ params }: BlogDetailProps) {
   const { slug } = await params;
-  const post = blogPosts.find((item) => item.slug === slug);
 
-  if (!post) {
+  let post;
+  let relatedPosts = [];
+
+  try {
+    const [postRes, relatedRes] = await Promise.all([
+      getPublicBlogPostBySlugApi(slug),
+      getPublicBlogPostsApi({ limit: 4 })
+    ]);
+
+    if (!postRes.ok || !postRes.post) {
+      notFound();
+    }
+    post = postRes.post;
+    relatedPosts = relatedRes.posts.filter((p: any) => p.slug !== slug).slice(0, 3);
+  } catch (err) {
     notFound();
   }
 
-  const relatedPosts = blogPosts
-    .filter((item) => item.slug !== post.slug)
-    .slice(0, 3);
-
   return (
-    <main className="bg-[#f3f3f3] min-h-screen">
+    <main className="bg-[#f3f3f3] min-h-screen pb-20">
       <article className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
-        <Link href="/blog" className="inline-flex items-center gap-2 text-sm text-heading/70 hover:text-heading mb-6">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Blog
+        <Link href="/blog" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest italic text-slate-400 hover:text-black mb-8 transition-colors group">
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          Back to Journal
         </Link>
 
-        <div className="rounded-[28px] overflow-hidden border border-black/10 mb-8">
-          <img src={post.heroImage} alt={post.title} className="w-full h-[280px] md:h-[520px] object-cover" />
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 md:gap-10">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 md:gap-16">
           <div className="xl:col-span-8">
-            <p className="text-xs md:text-sm font-semibold uppercase tracking-wider text-accent">{post.category}</p>
-            <h1 className="mt-3 text-4xl md:text-6xl font-black leading-[0.95] tracking-tight text-heading">
-              {post.title}
-            </h1>
 
-            <div className="mt-5 flex flex-wrap items-center gap-5 text-sm text-black/70">
-              <span className="inline-flex items-center gap-1.5"><UserRound className="w-4 h-4" /> {post.author}</span>
-              <span>{post.publishedAt}</span>
-              <span className="inline-flex items-center gap-1.5"><Clock3 className="w-4 h-4" /> {post.readTime}</span>
+            {/* Main Thumbnail */}
+            <div className="rounded-[32px] overflow-hidden border border-black/5 mb-10 shadow-xl">
+              <img src={post.thumbnail} alt={post.title} className="w-full h-auto object-cover" />
             </div>
 
-            <div className="mt-8 space-y-8">
-              {post.sections.map((section) => (
-                <section key={section.heading}>
-                  <h2 className="text-2xl md:text-3xl font-black text-heading tracking-tight mb-3">{section.heading}</h2>
-                  <div className="space-y-4">
-                    {section.paragraphs.map((paragraph, index) => (
-                      <p key={`${section.heading}-${index}`} className="text-base md:text-lg text-black/75 leading-relaxed">
-                        {paragraph}
-                      </p>
-                    ))}
-                  </div>
-                </section>
-              ))}
+            {/* Title And Meta Info */}
+            <div className="mb-5">
+              <p className="text-orange-600 text-xs md:text-sm font-black uppercase tracking-[0.3em] mb-4 italic font-sora">
+                {post.category?.name || "Tactical Sector"}
+              </p>
+              <h1 className="text-4xl md:text-5xl font-black leading-[0.95] tracking-tight text-slate-900 italic uppercase font-sora">
+                {post.title}
+              </h1>
             </div>
 
-            <div className="mt-10 pt-6 border-t border-black/10 flex flex-wrap items-center gap-2">
-              {post.tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-white border border-black/15 px-4 py-1.5 text-xs font-semibold text-heading">
-                  {tag}
-                </span>
-              ))}
+
+            {/* Meta Info */}
+            <div className="flex flex-wrap items-center gap-6 mb-10 pb-8 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-black italic">
+                  {post.author.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase italic tracking-tight text-slate-900">{post.author.name}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{post.author.title}</p>
+                </div>
+              </div>
+              <div className="h-8 w-[1px] bg-slate-200 hidden sm:block" />
+              <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
+                <span className="flex items-center gap-1.5"><Clock3 className="w-4 h-4" /> {new Date(post.publishedAt || post.createdAt).toLocaleDateString()}</span>
+              </div>
             </div>
+
+            {/* Rich Text Content */}
+            <div
+              className="blog-content-vault max-w-none font-inter"
+              dangerouslySetInnerHTML={{ __html: post.content }}
+            />
+
+            {/* Tactical FAQs Section */}
+            {post.faqs?.length > 0 && (
+              <div className="mt-20 pt-12 border-t border-slate-200">
+                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 mb-10 font-sora">FAQs</h2>
+                <div className="space-y-10">
+                  {post.faqs.map((faq: any, index: number) => (
+                    <div key={index} className="space-y-2">
+                      <h3 className="text-lg font-black text-slate-900 leading-tight font-sora">{faq.question}</h3>
+                      <p className="text-base text-slate-600 font-medium leading-relaxed font-inter">{faq.answer}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tags Area */}
+            {post.tags?.length > 0 && (
+              <div className="mt-16 pt-8 border-t border-slate-200 flex flex-wrap items-center gap-2">
+                {post.tags.map((tag: string) => (
+                  <span key={tag} className="rounded-xl bg-white border border-slate-200 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
-          <aside className="xl:col-span-4 space-y-6">
-            <div className="rounded-[22px] bg-white border border-black/10 p-6">
-              <p className="text-xs uppercase tracking-wider text-black/60">Written By</p>
-              <h3 className="mt-1 text-2xl font-black text-heading">{post.author}</h3>
-              <p className="text-sm text-black/60">{post.authorRole}</p>
-              <p className="mt-4 text-sm text-black/70 leading-relaxed">
-                Athletic Force 1 contributor focused on helping teams build elite identity through smart uniform and gear decisions.
-              </p>
-            </div>
-
-            <div className="rounded-[22px] bg-white border border-black/10 p-6">
-              <h3 className="text-2xl font-black text-heading tracking-tight mb-4">Related Posts</h3>
-              <div className="space-y-4">
-                {relatedPosts.map((item) => (
-                  <Link key={item.slug} href={`/blog/${item.slug}`} className="group block rounded-xl border border-black/10 p-4 hover:bg-zinc-50 transition-colors">
-                    <p className="text-[11px] uppercase tracking-wider text-accent font-semibold">{item.category}</p>
-                    <p className="mt-1 text-sm font-bold text-heading leading-tight group-hover:text-accent transition-colors">
-                      {item.title}
-                    </p>
-                    <span className="mt-2 inline-flex items-center gap-1 text-xs text-black/60">
-                      Read Article
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
+          {/* Sidebar Area */}
+          <aside className="xl:col-span-4 space-y-8">
+            {/* Related Intelligence */}
+            <div className="rounded-[40px] bg-white border border-slate-100 p-8 shadow-sm">
+              <h3 className="text-xs font-black italic uppercase tracking-widest text-slate-900 mb-8">Related Intelligence</h3>
+              <div className="space-y-6">
+                {relatedPosts.map((item: any) => (
+                  <Link key={item.slug} href={`/blog/${item.slug}`} className="group block space-y-3">
+                    <div className="aspect-[16/9] rounded-2xl overflow-hidden bg-slate-100 border border-slate-50 shadow-sm">
+                      <img src={item.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    </div>
+                    <div>
+                      <p className="text-[9px] uppercase tracking-widest text-orange-600 font-black italic">{item.category?.name}</p>
+                      <p className="mt-1 text-sm font-black italic uppercase text-slate-900 group-hover:text-orange-600 transition-colors leading-tight">
+                        {item.title}
+                      </p>
+                    </div>
                   </Link>
                 ))}
               </div>
@@ -122,3 +155,4 @@ export default async function BlogSinglePage({ params }: BlogDetailProps) {
     </main>
   );
 }
+

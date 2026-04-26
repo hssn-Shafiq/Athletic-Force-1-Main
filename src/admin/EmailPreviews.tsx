@@ -1,31 +1,26 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import { 
   Mail, 
-  ShoppingBag, 
   UserPlus, 
   Truck, 
   CheckCircle, 
   AlertCircle, 
   RefreshCcw, 
   ShoppingCart,
-  Send,
   Eye,
   Instagram,
   Facebook,
   Twitter,
   Globe,
-  PackageCheck,
-  Star,
-  Zap,
-  Tag,
   Save,
-  Plus,
-  Trash2,
   FileText,
-  Type
+  Type,
+  XCircle,
+  Banknote,
+  ShoppingBag,
+  Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { apiClient } from '@/lib/api/client';
@@ -33,19 +28,13 @@ import { toast } from 'react-toastify';
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 type EmailType = 
-  | 'order_confirmation' 
   | 'welcome' 
-  | 'checkout_reminder'
-  | 'status_update' 
-  | 'order_delivered'
-  | 'stock_alert'
-  | 'marketing_new'
-  | 'follow_up';
-
-interface SocialLink {
-  platform: string;
-  url: string;
-}
+  | 'order_placed' 
+  | 'order_shipped'
+  | 'order_cancelled'
+  | 'order_refunded'
+  | 'low_stock_alert'
+  | 'abandoned_cart';
 
 interface EmailTemplateData {
   type: string;
@@ -53,141 +42,252 @@ interface EmailTemplateData {
   heading: string;
   body: string;
   buttonText: string;
-  footerText: string;
-  socials: SocialLink[];
 }
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const MOCK_ORDER = {
-  id: 'AF1-9842X',
-  date: 'April 23, 2026',
+  id: 'AF1-69EB6',
+  date: 'April 25, 2026',
   total: 129.99,
+  subtotal: 124.99,
+  shippingFee: 5.00,
   items: [
-    { name: 'Drift Performance Shirt', quantity: 1, price: 49.99, color: 'Shadow Black', size: 'XL', image: '/products/shirt.png' },
-    { name: 'Core Training Shorts', quantity: 1, price: 79.50, color: 'Safety Orange', size: 'L', image: '/products/shorts.png' }
+    { 
+        name: 'Tactical Drift Pro Shirt', 
+        quantity: 1, 
+        price: 89.99, 
+        color: 'Shadow Black', 
+        size: 'XL',
+        image: 'https://res.cloudinary.com/dv1xqw5um/image/upload/v1776781646/af1/products/ci8kjg6q3sb55eyvulsn.png'
+    },
+    { 
+        name: 'Elite Training Shorts', 
+        quantity: 1, 
+        price: 40.00, 
+        color: 'Safety Orange', 
+        size: 'L',
+        image: 'https://res.cloudinary.com/dv1xqw5um/image/upload/v1776781646/af1/products/ci8kjg6q3sb55eyvulsn.png'
+    }
   ],
   shipping: {
-    name: 'Hassan Shafiq',
-    address: ' Sunny Pull, IUB Road, Rahim Yar Khan, Punjab, Pakistan'
+    name: 'Alex Johnson',
+    address: '4807 Greenleaf Ct, Ste DModesto, CA 95356'
   }
 };
 
+const DossierSummary = ({ items, total, subtotal, shippingFee, isCancelled = false }: any) => (
+    <div className="space-y-6">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Your Dossier Items</p>
+        <div className="space-y-4">
+            {items.map((item: any, i: number) => (
+                <div key={i} className={`flex gap-4 items-center ${isCancelled ? 'opacity-40' : ''}`}>
+                    <div className="w-16 h-16 bg-slate-50 rounded-xl overflow-hidden border border-slate-100 flex-shrink-0">
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-grow">
+                        <p className={`text-xs font-black uppercase italic ${isCancelled ? 'line-through decoration-red-500' : ''}`}>{item.name}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase">{item.size} &middot; Qty: {item.quantity}</p>
+                    </div>
+                    <p className={`text-xs font-black ${isCancelled ? 'line-through opacity-50' : ''}`}>${item.price.toFixed(2)}</p>
+                </div>
+            ))}
+        </div>
+        <div className="pt-6 border-t border-slate-100 space-y-2">
+            <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                <span>Subtotal</span>
+                <span>${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-[10px] font-bold text-green-600 uppercase tracking-widest">
+                <span>Shipping</span>
+                <span>FREE</span>
+            </div>
+            <div className="flex justify-between items-center pt-4 border-t-2 border-slate-100">
+                <span className="text-sm font-black uppercase italic">Total Paid</span>
+                <span className="text-xl font-black text-black">${total.toFixed(2)}</span>
+            </div>
+        </div>
+    </div>
+);
+
 // ─── COMPONENTS ───────────────────────────────────────────────────────────────
 
-const EmailWrapper = ({ children, socials }: { children: React.ReactNode; socials: SocialLink[] }) => (
-  <div className="w-full max-w-2xl mx-auto bg-white shadow-2xl rounded-[40px] overflow-hidden border border-slate-100 my-10 animate-in fade-in zoom-in duration-500">
-    {/* Header */}
-    <div className="bg-[#141414] p-10 text-center relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-orange-600" />
-        <img src="/main-logo.png" alt="Athletic Force 1" className="h-12 mx-auto mb-4 invert" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-500 italic">Unleash Your Potential</p>
-    </div>
+const EmailWrapper = ({ children, hideHeader = false }: { children: React.ReactNode; hideHeader?: boolean }) => (
+  <div className="w-full max-w-2xl mx-auto bg-white shadow-2xl rounded-[30px] overflow-hidden border border-slate-100 my-4 animate-in fade-in zoom-in duration-500">
+    {!hideHeader && (
+      <div className="bg-[#1a1a1a] p-10 text-center relative">
+        <img src="https://res.cloudinary.com/dv1xqw5um/image/upload/v1777093836/logo-new-white_mwj1xw.png" alt="Athletic Force 1" className="h-10 mx-auto mb-4" />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#FF7348] italic">Elite Sports Uniforms and Accessoires</p>
+      </div>
+    )}
     
-    <div className="p-10 min-h-[400px]">
+    <div className="p-0">
       {children}
     </div>
 
     {/* Footer */}
-    <div className="bg-slate-50 p-10 text-center border-t border-slate-100">
-        <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 mb-6 italic">Stay in the Game</h4>
-        <div className="flex justify-center gap-6 mb-8">
-            {socials.map((s, i) => (
-                <a key={i} href={s.url} target="_blank" className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-transform">
-                    {s.platform === 'instagram' && <Instagram className="w-4 h-4 text-slate-400" />}
-                    {s.platform === 'facebook' && <Facebook className="w-4 h-4 text-slate-400" />}
-                    {s.platform === 'twitter' && <Twitter className="w-4 h-4 text-slate-400" />}
-                    {!['instagram', 'facebook', 'twitter'].includes(s.platform) && <Globe className="w-4 h-4 text-slate-400" />}
-                </a>
-            ))}
+    <div className="bg-[#F8FAFC] p-10 text-center border-t border-slate-100">
+        <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-widest leading-loose">
+            4807 Greenleaf Ct, Ste DModesto, CA 95356 <br />
+            Call us: 707-741-5737 | Email: info@athleticforce1.com <br />
+        </p>
+        <div className="flex justify-center gap-6 mt-6">
+            <Instagram className="w-4 h-4 text-[#64748B]" />
+            <Facebook className="w-4 h-4 text-[#64748B]" />
+            <Twitter className="w-4 h-4 text-[#64748B]" />
         </div>
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-loose">
-            © 2026 Athletic Force 1. All Rights Reserved. <br />
-            Rahim Yar Khan, Punjab, Pakistan <br />
-            <a href="https://athleticforce1.com" className="text-orange-600 mt-2 block hover:underline">athleticforce1.com</a>
+        <p className="text-[10px] font-bold text-[#94A3B8] mt-8 uppercase tracking-widest leading-loose">
+            © 2026 Athletic Force 1. All Rights Reserved.
         </p>
     </div>
   </div>
 );
 
-// ─── TEMPLATES ───────────────────────────────────────────────────────────────
-
 const DynamicTemplate = ({ type, data }: { type: EmailType; data: EmailTemplateData }) => {
     switch (type) {
-        case 'order_confirmation':
-            return (
-                <div className="space-y-8">
-                    <div className="text-center space-y-4">
-                        <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto">
-                            <CheckCircle className="w-8 h-8" />
-                        </div>
-                        <h2 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900">{data.heading}</h2>
-                        <p className="text-slate-500 font-medium whitespace-pre-wrap">{data.body}</p>
-                    </div>
-
-                    <div className="space-y-4 pt-6">
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 italic">Dossier Details</h3>
-                        <div className="divide-y divide-slate-100 border-t border-b border-slate-100">
-                            {MOCK_ORDER.items.map((item, i) => (
-                                <div key={i} className="py-4 flex justify-between items-center">
-                                    <div className="flex gap-4 items-center">
-                                        <div className="w-12 h-14 bg-slate-50 rounded-lg" />
-                                        <div>
-                                            <p className="text-sm font-black italic uppercase text-slate-900">{item.name}</p>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase">{item.size} × {item.quantity}</p>
-                                        </div>
-                                    </div>
-                                    <p className="text-sm font-black italic text-slate-900">${item.price}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <button className="w-full bg-[#141414] text-white py-4 rounded-2xl font-black uppercase italic tracking-tighter text-xl shadow-xl">
-                        {data.buttonText}
-                    </button>
-                </div>
-            );
         case 'welcome':
             return (
-                <div className="space-y-8 text-center">
-                    <div className="relative inline-block">
-                         <div className="w-24 h-24 bg-orange-600 rounded-[35px] rotate-[-5deg] absolute inset-0 opacity-20 animate-pulse" />
-                         <div className="w-24 h-24 bg-black text-orange-500 rounded-[35px] flex items-center justify-center relative z-10">
-                            <UserPlus className="w-10 h-10" />
-                         </div>
-                    </div>
-                    <div className="space-y-4">
-                        <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900 leading-none whitespace-pre-wrap">{data.heading}</h2>
-                        <p className="text-slate-500 font-medium whitespace-pre-wrap">{data.body}</p>
-                    </div>
-                    <button className="w-full bg-orange-600 text-white py-5 rounded-3xl font-black uppercase italic tracking-tighter text-2xl shadow-xl shadow-orange-600/20">
+                <div className="p-12 text-center space-y-8">
+                    <h1 className="text-4xl font-black italic uppercase tracking-tighter text-[#0F172A] leading-none whitespace-pre-wrap">{data.heading}</h1>
+                    <p className="text-[#64748B] text-lg font-medium whitespace-pre-wrap leading-relaxed">{data.body}</p>
+                    <button className="bg-black text-white px-10 py-5 rounded-lg font-black uppercase italic tracking-tighter text-xl shadow-xl">
                         {data.buttonText}
                     </button>
                 </div>
             );
-        case 'checkout_reminder':
+        case 'order_placed':
             return (
-                <div className="space-y-8 text-center">
-                    <div className="w-16 h-16 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto">
-                        <Zap className="w-8 h-8" />
+                <div className="bg-[#f4f1eb]">
+                    <div className="bg-black p-16 text-center">
+                        <div className="w-20 h-20 bg-white/10 border-2 border-white/20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">🛍️</div>
+                        <h1 className="text-3xl font-black italic uppercase text-white mb-2">{data.heading}</h1>
+                        <p className="text-slate-400 text-sm">We've received your order and we're already on it. 🎯</p>
                     </div>
-                    <h2 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">{data.heading}</h2>
-                    <p className="text-slate-500 font-medium italic text-lg">{data.subject}</p>
-                    <p className="text-slate-500 font-medium whitespace-pre-wrap">{data.body}</p>
-                    <button className="w-full bg-[#141414] text-white py-5 rounded-2xl font-black uppercase italic tracking-tighter text-xl shadow-xl">
-                        {data.buttonText}
-                    </button>
+                    <div className="bg-[#fff8e6] py-3 text-center border-b border-[#f5d98a]">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#7a5000]">✅ &nbsp; Order #AF1-2026 Placed Successfully</p>
+                    </div>
+                    <div className="p-12 space-y-10 text-left">
+                        <div>
+                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Hey,</p>
+                             <h2 className="text-2xl font-black italic uppercase text-black mb-4">Alex 👋</h2>
+                             <p className="text-[#475569] text-base leading-relaxed">{data.body}</p>
+                        </div>
+                        <div className="bg-[#fffbf0] border border-[#f5d98a] rounded-2xl p-8 grid grid-cols-2 gap-8">
+                            <div>
+                                <p className="text-[10px] font-black uppercase text-[#b8860b] mb-1">Order Number</p>
+                                <p className="text-sm font-black font-mono">#AF1-2026</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black uppercase text-[#b8860b] mb-1">Status</p>
+                                <p className="text-sm font-black text-[#FF7348]">⏳ PROCESSING</p>
+                            </div>
+                        </div>
+                        <DossierSummary {...MOCK_ORDER} />
+                        <div className="space-y-6">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">What Happens Next</p>
+                            <div className="flex gap-4 items-center">
+                                <div className="w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center font-black">1</div>
+                                <div>
+                                    <p className="text-xs font-black uppercase">Order Processing</p>
+                                    <p className="text-[10px] text-slate-500">Preparing your gear for deployment.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        case 'order_shipped':
+            return (
+                <div style={{ backgroundColor: '#f0f4f8' }}>
+                    <div style={{ background: 'linear-gradient(135deg,#000000,#1a1a1a,#2a2a2a)', padding: '54px 40px', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '84px', height: '84px', lineHeight: '84px', fontSize: '38px', marginBottom: '22px' }}>🚚</div>
+                        <h1 style={{ margin: '0 0 8px', color: '#ffffff', fontSize: '30px', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic' }}>{data.heading}</h1>
+                        <p style={{ margin: 0, color: '#94A3B8', fontSize: '15px' }}>Sit tight — your package is heading to you right now.</p>
+                    </div>
+                    <div className="p-12 text-left space-y-10">
+                        <div>
+                            <p className="text-[#94A3B8] text-[10px] font-black uppercase tracking-widest mb-2">Hello,</p>
+                            <h2 className="text-2xl font-black italic uppercase text-[#0F172A] mb-4">ALEX 👋</h2>
+                            <p className="text-[#475569] text-base leading-relaxed">{data.body}</p>
+                        </div>
+                        <div className="bg-[#eaf4fb] border-[1.5px] border-[#c5dff0] rounded-2xl p-8">
+                            <p className="text-[#7fa8bf] text-[10px] font-black uppercase tracking-widest mb-2">Tracking Number</p>
+                            <p className="text-xl font-black tracking-[0.2em] text-[#0f2027] mb-6 font-mono">TRK-AF1-9284-XKPL</p>
+                            <p className="text-[#7fa8bf] text-[10px] font-black uppercase tracking-widest mb-2">Carrier</p>
+                            <p className="text-lg text-[#1a2d3d] font-black uppercase italic">FedEx Tactical</p>
+                        </div>
+                        <DossierSummary {...MOCK_ORDER} />
+                        <button className="w-full bg-black text-white py-5 rounded-lg font-black uppercase italic tracking-tighter text-xl shadow-xl">
+                            {data.buttonText || 'Track My Package'}
+                        </button>
+                    </div>
+                </div>
+            );
+        case 'order_cancelled':
+            return (
+                <div className="bg-[#f7f2f2]">
+                    <div className="bg-gradient-to-br from-[#4a0010] to-[#a93252] p-16 text-center text-white">
+                        <div className="w-20 h-20 bg-white/10 border-2 border-white/20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">❌</div>
+                        <h1 className="text-3xl font-black italic uppercase mb-2">{data.heading}</h1>
+                        <p className="text-red-200 text-sm">We're sorry to see this happen. Here's the intel.</p>
+                    </div>
+                    <div className="bg-[#fde8ec] py-3 text-center border-b border-[#f5c2cc]">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#7b1a2e]">🚫 &nbsp; Order #AF1-2026 Status: CANCELLED</p>
+                    </div>
+                    <div className="p-12 space-y-10 text-left">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Hi there,</p>
+                            <h2 className="text-2xl font-black italic uppercase text-black mb-4">Alex 👋</h2>
+                            <p className="text-[#6b3040] text-base leading-relaxed">{data.body}</p>
+                        </div>
+                        <DossierSummary {...MOCK_ORDER} isCancelled />
+                        <div className="bg-gradient-to-br from-[#f0fdf4] to-[#f8fffb] border border-[#a8d5b5] rounded-2xl p-8">
+                             <p className="text-[10px] font-black uppercase text-[#4a9966] mb-2 tracking-widest">💳 Refund Information</p>
+                             <p className="text-sm font-black text-[#1a3d2b] mb-2">A full refund of <span className="text-green-700">${MOCK_ORDER.total.toFixed(2)}</span> is on its way!</p>
+                             <p className="text-xs text-[#4a7a5a]">Credited back to your payment method within 5–7 business days.</p>
+                        </div>
+                        <button className="w-full bg-black text-white py-5 rounded-lg font-black uppercase italic tracking-tighter text-xl">
+                            {data.buttonText || 'Shop Again'}
+                        </button>
+                    </div>
+                </div>
+            );
+        case 'abandoned_cart':
+            return (
+                <div className="bg-[#f0eef8]">
+                    <div className="bg-black p-16 text-center text-white">
+                        <div className="w-20 h-20 bg-white/10 border-2 border-white/20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">🛒</div>
+                        <h1 className="text-3xl font-black italic uppercase mb-2">{data.heading}</h1>
+                        <p className="text-slate-400 text-sm">Your cart is missing you. Come back and complete your order! 💜</p>
+                    </div>
+                    <div className="bg-[#fff0f0] py-3 text-center border-b border-[#ffb3b3]">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#c0392b]">⏰ &nbsp; Items in your cart are moving fast — secure yours now!</p>
+                    </div>
+                    <div className="p-12 space-y-10 text-left">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Hey,</p>
+                            <h2 className="text-2xl font-black italic uppercase text-black mb-4">Alex 👋</h2>
+                            <p className="text-[#475569] text-base leading-relaxed">{data.body}</p>
+                        </div>
+                        <DossierSummary {...MOCK_ORDER} />
+                        <div className="bg-black p-8 rounded-2xl text-center">
+                            <p className="text-[10px] font-black uppercase text-[#FF7348] mb-2 tracking-widest">🎁 &nbsp; Special Tactical Offer</p>
+                            <p className="text-xl font-black text-white italic uppercase mb-4">Get 10% OFF Your Order!</p>
+                            <div className="inline-block bg-white/10 border border-white/20 border-dashed rounded-xl px-10 py-4 mb-4">
+                                <p className="text-2xl font-black text-white tracking-[0.3em] font-mono">ELITE10</p>
+                            </div>
+                        </div>
+                        <button className="w-full bg-black text-white py-5 rounded-lg font-black uppercase italic tracking-tighter text-xl">
+                            {data.buttonText || 'Complete My Order'}
+                        </button>
+                    </div>
                 </div>
             );
         default:
             return (
-                <div className="space-y-8 text-center">
-                    <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto">
-                        <Mail className="w-8 h-8" />
-                    </div>
-                    <h2 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900">{data.heading}</h2>
-                    <p className="text-slate-500 font-medium whitespace-pre-wrap">{data.body}</p>
-                    <button className="w-full bg-black text-white py-4 rounded-2xl font-black uppercase italic tracking-tighter text-lg shadow-xl">
+                <div className="p-12 text-center space-y-8">
+                    <h1 className="text-4xl font-black italic uppercase tracking-tighter text-[#0F172A] leading-none">{data.heading}</h1>
+                    <p className="text-[#64748B] text-lg font-medium whitespace-pre-wrap leading-relaxed">{data.body}</p>
+                    <button className="bg-black text-white px-10 py-5 rounded-lg font-black uppercase italic tracking-tighter text-xl">
                         {data.buttonText}
                     </button>
                 </div>
@@ -198,19 +298,19 @@ const DynamicTemplate = ({ type, data }: { type: EmailType; data: EmailTemplateD
 // ─── PAGE ────────────────────────────────────────────────────────────────────
 
 export const EmailPreviews: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<EmailType>('order_confirmation');
+  const [activeTab, setActiveTab] = useState<EmailType>('welcome');
   const [formData, setFormData] = useState<EmailTemplateData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const tabs: { id: EmailType; label: string; icon: any }[] = [
-    { id: 'order_confirmation', label: 'Confirmation', icon: CheckCircle },
     { id: 'welcome', label: 'Welcome', icon: UserPlus },
-    { id: 'checkout_reminder', label: 'Unpaid Remit', icon: Zap },
-    { id: 'status_update', label: 'Gear Shipped', icon: Truck },
-    { id: 'order_delivered', label: 'Mission Finish', icon: PackageCheck },
-    { id: 'marketing_new', label: 'Tactical Drops', icon: Tag },
-    { id: 'follow_up', label: 'Satisfaction', icon: Star },
+    { id: 'order_placed', label: 'New Order', icon: ShoppingBag },
+    { id: 'order_shipped', label: 'Shipped', icon: Truck },
+    { id: 'order_cancelled', label: 'Cancelled', icon: XCircle },
+    { id: 'order_refunded', label: 'Refunded', icon: Banknote },
+    { id: 'abandoned_cart', label: 'Cart Reminder', icon: ShoppingCart },
+    { id: 'low_stock_alert', label: 'Stock Alert', icon: AlertCircle },
   ];
 
   const fetchTemplate = async (type: string) => {
@@ -222,7 +322,7 @@ export const EmailPreviews: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load template intel.");
+      toast.error("Failed to load tactical template.");
     } finally {
       setIsLoading(false);
     }
@@ -238,47 +338,26 @@ export const EmailPreviews: React.FC = () => {
     try {
       const res = await apiClient.put(`/api/admin/emails/templates/${activeTab}`, formData);
       if (res.data.ok) {
-        toast.success("Intelligence updated successfully!");
+        toast.success("Template intelligence updated!");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to persist modifications.");
+      toast.error("Failed to persist mission data.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const updateSocial = (index: number, field: string, value: string) => {
-    if (!formData) return;
-    const newSocials = [...formData.socials];
-    newSocials[index] = { ...newSocials[index], [field]: value };
-    setFormData({ ...formData, socials: newSocials });
-  };
-
-  const addSocial = () => {
-    if (!formData) return;
-    setFormData({ 
-        ...formData, 
-        socials: [...formData.socials, { platform: 'instagram', url: 'https://' }] 
-    });
-  };
-
-  const removeSocial = (index: number) => {
-    if (!formData) return;
-    setFormData({ 
-        ...formData, 
-        socials: formData.socials.filter((_, i) => i !== index) 
-    });
-  };
+  const isShippedType = activeTab === 'order_shipped' || activeTab === 'order_cancelled' || activeTab === 'order_refunded';
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] p-12">
-      <div className="max-w-7xl mx-auto space-y-12">
+    <div className="min-h-screen bg-[#FDFDFD] p-6 lg:p-12">
+      <div className="max-w-[1600px] mx-auto space-y-12">
         
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
             <div className="space-y-1">
                 <h1 className="text-5xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Template Commander</h1>
-                <p className="text-slate-400 font-medium italic text-sm text-[12px] uppercase tracking-widest leading-loose">Mission-level customization of all outgoing brand communications.</p>
+                <p className="text-slate-400 font-medium italic text-sm text-[12px] uppercase tracking-widest leading-loose">Mission-level customization of elite brand communications.</p>
             </div>
             
             <div className="flex bg-slate-100 p-2 rounded-[25px] overflow-x-auto no-scrollbar border border-slate-200/50">
@@ -290,7 +369,7 @@ export const EmailPreviews: React.FC = () => {
                             activeTab === t.id ? "bg-white text-black shadow-xl shadow-black/5 scale-[1.02]" : "text-slate-400 hover:text-black"
                         }`}
                     >
-                        <t.icon className={`w-4 h-4 ${activeTab === t.id ? 'text-orange-600' : 'text-slate-300'}`} />
+                        <t.icon className={`w-4 h-4 ${activeTab === t.id ? 'text-[#FF7348]' : 'text-slate-300'}`} />
                         {t.label}
                     </button>
                 ))}
@@ -299,7 +378,7 @@ export const EmailPreviews: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
             {/* EDITOR FORM */}
-            <div className="lg:col-span-5 space-y-8">
+            <div className="lg:col-span-4 space-y-8">
                 <div className="bg-white border border-slate-100 p-8 rounded-[40px] shadow-sm space-y-8">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -311,10 +390,10 @@ export const EmailPreviews: React.FC = () => {
                         <button 
                             onClick={handleSave}
                             disabled={isSaving}
-                            className={`flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-2xl text-[10px] font-black uppercase italic tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all ${isSaving ? 'opacity-50' : 'hover:bg-orange-700'}`}
+                            className={`flex items-center gap-2 px-6 py-3 bg-[#FF7348] text-white rounded-2xl text-[10px] font-black uppercase italic tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all ${isSaving ? 'opacity-50' : 'hover:bg-orange-600'}`}
                         >
                             {isSaving ? <RefreshCcw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                            Persist Changes
+                            Persist
                         </button>
                     </div>
 
@@ -356,9 +435,9 @@ export const EmailPreviews: React.FC = () => {
                                 </label>
                                 <textarea 
                                     value={formData.body}
-                                    rows={5}
+                                    rows={8}
                                     onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-                                    className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-xs font-bold outline-none focus:border-orange-500 focus:bg-white transition-all no-scrollbar"
+                                    className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-xs font-bold outline-none focus:border-orange-500 focus:bg-white transition-all no-scrollbar leading-relaxed"
                                 />
                             </div>
 
@@ -373,52 +452,17 @@ export const EmailPreviews: React.FC = () => {
                                     className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-xs font-bold outline-none focus:border-orange-500 focus:bg-white transition-all"
                                 />
                             </div>
-
-                            <div className="pt-6 border-t border-slate-50 space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="text-[10px] font-black uppercase italic text-slate-900 tracking-widest">Social Vectors</h4>
-                                    <button onClick={addSocial} className="p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-all">
-                                        <Plus className="w-4 h-4 text-slate-400" />
-                                    </button>
-                                </div>
-                                <div className="space-y-3">
-                                    {formData.socials.map((s, i) => (
-                                        <div key={i} className="flex gap-2 items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                                            <select 
-                                                value={s.platform}
-                                                onChange={(e) => updateSocial(i, 'platform', e.target.value)}
-                                                className="bg-white border border-slate-200 text-[10px] font-bold uppercase rounded-lg p-1 outline-none"
-                                            >
-                                                <option value="instagram">Instagram</option>
-                                                <option value="facebook">Facebook</option>
-                                                <option value="twitter">Twitter</option>
-                                                <option value="website">Website</option>
-                                            </select>
-                                            <input 
-                                                type="text" 
-                                                value={s.url}
-                                                onChange={(e) => updateSocial(i, 'url', e.target.value)}
-                                                className="flex-1 bg-white border border-slate-200 p-2 rounded-xl text-[10px] font-medium outline-none"
-                                                placeholder="https://..."
-                                            />
-                                            <button onClick={() => removeSocial(i)} className="p-2 hover:bg-red-50 text-slate-300 hover:text-red-500 transition-all">
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
                         </div>
                     )}
                 </div>
             </div>
 
             {/* LIVE PREVIEW */}
-            <div className="lg:col-span-7 bg-slate-50 rounded-[80px] p-8 lg:p-20 border border-slate-100 shadow-inner min-h-[900px] flex items-start justify-center relative sticky top-12 overflow-y-auto no-scrollbar max-h-[90vh]">
-                <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-2 bg-white rounded-full border border-slate-200 shadow-sm z-10">
+            <div className="lg:col-span-8 bg-slate-100 rounded-[60px] p-8 lg:p-16 border border-slate-100 shadow-inner flex items-start justify-center relative sticky top-12 overflow-y-auto no-scrollbar h-[calc(100vh-100px)]">
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-2 bg-white rounded-full border border-slate-200 shadow-sm z-10">
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Live Strategy Preview</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Tactical Preview</span>
                     </div>
                     <div className="w-px h-3 bg-slate-200" />
                     <Eye className="w-3.5 h-3.5 text-slate-400" />
@@ -427,11 +471,11 @@ export const EmailPreviews: React.FC = () => {
                 <div className="w-full mt-10">
                     {!formData ? (
                          <div className="flex flex-col items-center justify-center pt-40 gap-4 opacity-20">
-                            <RefreshCcw className="w-12 h-12 animate-spin-slow" />
-                            <p className="text-sm font-black uppercase italic">Fetching intelligence...</p>
+                            <RefreshCcw className="w-12 h-12 animate-spin" />
+                            <p className="text-sm font-black uppercase italic">Extracting Intel...</p>
                          </div>
                     ) : (
-                        <EmailWrapper socials={formData.socials}>
+                        <EmailWrapper hideHeader={isShippedType}>
                              <DynamicTemplate type={activeTab} data={formData} />
                         </EmailWrapper>
                     )}

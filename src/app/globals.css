@@ -27,3 +27,77 @@ body {
   width: 100%;
   overflow-x: hidden;
 }
+
+/* Tactical Blog Typography */
+.blog-content-vault {
+  line-height: 1.8;
+  color: #374151; /* slate-700 */
+}
+
+.blog-content-vault h2,
+.blog-content-vault h3 {
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+  font-family: var(--font-sora);
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  color: #0f172a; /* slate-900 */
+}
+
+.blog-content-vault p {
+  margin-bottom: 1.5rem;
+}
+
+.blog-content-vault ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.blog-content-vault li {
+  margin-bottom: 0.75rem;
+  padding-left: 0.5rem;
+}
+
+.blog-content-vault strong {
+  color: #000;
+  font-weight: 800;
+}
+
+.blog-content-vault a {
+  color: #f97316; /* orange-500 */
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+/* Tactical Data Tables */
+.blog-content-vault table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2rem;
+  border: 1px solid #e2e8f0; /* slate-200 */
+}
+
+.blog-content-vault th,
+.blog-content-vault td {
+  padding: 1rem;
+  border: 1px solid #e2e8f0; /* slate-200 */
+  text-align: left;
+  vertical-align: top;
+  font-size: 0.875rem; /* text-sm */
+}
+
+.blog-content-vault th {
+  background-color: #f8fafc; /* slate-50 */
+  font-weight: 900;
+  text-transform: uppercase;
+  font-family: var(--font-sora);
+  font-size: 0.75rem; /* text-xs */
+  letter-spacing: 0.05em;
+  color: #0f172a;
+}
+
+.blog-content-vault tr:nth-child(even) {
+  background-color: #fcfcfc;
+}

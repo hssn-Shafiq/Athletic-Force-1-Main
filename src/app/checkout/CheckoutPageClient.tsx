@@ -335,7 +335,7 @@ const OrderSummary = ({
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function CheckoutPageClient() {
   const router = useRouter();
-  const { items, totalPrice, isLoading: cartLoading } = useCart();
+  const { items, totalPrice, clearCart, isLoading: cartLoading } = useCart();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [step, setStep] = useState(1);
@@ -344,6 +344,7 @@ export default function CheckoutPageClient() {
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isOrderSuccessful, setIsOrderSuccessful] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
 
   const [shippingForm, setShippingForm] = useState<ShippingForm>({
@@ -561,6 +562,8 @@ export default function CheckoutPageClient() {
         const { data } = await apiClient.post('/api/orders/dev-bypass', orderPayload);
         if (data.ok) {
           trackStep('completed');
+          setIsOrderSuccessful(true); // Tactical Guard Active
+          await clearCart(); // Reset the tactical staging area
           router.push(`/thank-you?orderId=${data.order.id}`);
         }
       } else {
@@ -575,8 +578,10 @@ export default function CheckoutPageClient() {
           return;
         }
 
-        // For now: alert user to integrate @paypal/react-paypal-js if PAYPAL_ENABLED=true
-        // The paypalOrderId is ready — capture will happen via /api/orders/capture
+        // Note: For live PayPal, we would clear the cart AFTER capture success, 
+        // but for now, we reset state to keep the UI clean.
+        setIsOrderSuccessful(true);
+        await clearCart(); 
         toast.info(`PayPal Order created: ${createData.paypalOrderId}. Integrate PayPal JS SDK for browser approval flow.`);
       }
     } catch (err: any) {
@@ -586,12 +591,12 @@ export default function CheckoutPageClient() {
     }
   };
 
-  // Redirect if cart is empty and not loading
+  // Redirect if cart is empty and not loading (and not currently placing/finishing order)
   useEffect(() => {
-    if (!cartLoading && !authLoading && items.length === 0 && step < 3) {
+    if (!cartLoading && !authLoading && items.length === 0 && step < 3 && !isPlacingOrder && !isOrderSuccessful) {
       router.push('/cart');
     }
-  }, [cartLoading, authLoading, items.length, step, router]);
+  }, [cartLoading, authLoading, items.length, step, router, isPlacingOrder, isOrderSuccessful]);
 
   return (
     <div className="min-h-screen bg-[#FDFDFD]">

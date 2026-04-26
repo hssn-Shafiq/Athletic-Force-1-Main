@@ -90,16 +90,20 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
                     View All {category}
                   </Link>
                 </li>
-                {data.items.map((item) => (
-                  <li key={item}>
-                    <button 
-                      className="text-slate-500 hover:text-orange-600 font-medium transition-colors text-sm md:text-base text-left w-full"
-                      onClick={onClose}
-                    >
-                      {item}
-                    </button>
-                  </li>
-                ))}
+                {data.items.map((item) => {
+                  const itemSlug = item.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-').replace(/7v7/g, '7v7');
+                  return (
+                    <li key={item}>
+                      <Link
+                        href={`/collections/${data.categoryId}/${itemSlug}`}
+                        onClick={onClose}
+                        className="text-slate-500 hover:text-orange-600 font-medium transition-colors text-sm md:text-base text-left w-full block"
+                      >
+                        {item}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

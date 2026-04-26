@@ -2,7 +2,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, ShoppingCart, Heart, User, Menu, ChevronDown, X } from 'lucide-react';
+import { 
+  Search, 
+  ShoppingCart, 
+  Heart, 
+  User, 
+  Menu, 
+  ChevronDown, 
+  X,
+  LayoutDashboard 
+} from 'lucide-react';
 import { MegaMenu } from './MegaMenu';
 import { CartSidebar } from './CartSidebar';
 import { MobileMenuSidebar } from './MobileMenuSidebar';
@@ -26,7 +35,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { items: cartItems } = useCart();
   const { items: wishlistItems } = useWishlist();
-  const isAdminUser = Boolean(user?.roles?.some((role) => role === 'admin' || role === 'superadmin'));
+  const isAdminUser = Boolean(user?.roles?.some((role) => role !== 'customer'));
 
   useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {
@@ -83,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
         </div>
 
         {/* Main Header */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-20 sm:h-24 flex items-center justify-between gap-3 sm:gap-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-20 sm:h-24  flex items-center justify-between gap-3 sm:gap-6">
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(true)}
@@ -216,6 +225,17 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
                       <p className="text-sm font-bold text-slate-900 truncate">{user?.name || user?.email}</p>
                       <p className="text-xs text-slate-500 truncate">{user?.email}</p>
                     </div>
+
+                    {isAdminUser && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2.5 text-sm font-bold text-orange-600 rounded-xl hover:bg-orange-50 transition-colors"
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        Admin Dashboard
+                      </Link>
+                    )}
 
                     <Link
                       href="/account"

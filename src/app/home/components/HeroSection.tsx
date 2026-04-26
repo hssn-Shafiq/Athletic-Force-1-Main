@@ -17,7 +17,7 @@ export const HeroSection: React.FC = () => {
   const slides: Slide[] = [
     {
       image: "/Hero-Images/image-3-3.png",
-      title: "ATHLETICFORCE1",
+      title: "ATHLETIC FORCE 1",
       subtitle: "Engineered For Victory"
     },
     {
@@ -72,7 +72,7 @@ export const HeroSection: React.FC = () => {
             {/* Decorative Text Overlay */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
               <div className="text-center">
-                <h1 className="font-black text-white/40 text-[12vw] sm:text-[10vw] md:text-[8vw] lg:text-[120px] tracking-widest whitespace-nowrap select-none opacity-80 scale-110">
+                <h1 className="font-black text-white/70 text-[7vw] sm:text-[10vw] md:text-[8vw] lg:text-[90px] tracking-widest whitespace-nowrap select-none opacity-100 scale-110">
                   {slide.title}
                 </h1>
                 <p className="text-white/60 text-sm sm:text-base md:text-lg lg:text-xl font-semibold tracking-[0.3em] mt-2 uppercase">

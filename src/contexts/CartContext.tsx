@@ -24,6 +24,7 @@ type CartContextValue = {
   removeItem: (variantSku: string) => Promise<void>;
   itemCount: number;
   totalPrice: number;
+  clearCart: () => Promise<void>;
 };
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
@@ -47,6 +48,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const saveGuestCart = useCallback((newItems: ApiCartItem[]) => {
     localStorage.setItem(LOCAL_CART_KEY, JSON.stringify(newItems));
     setItems(newItems);
+  }, []);
+
+  const clearCart = useCallback(async () => {
+    // For authenticated users, the backend cart is typically cleared 
+    // when an order is created, but we need to update the UI state.
+    // For guests, we must manually clear local storage.
+    localStorage.removeItem(LOCAL_CART_KEY);
+    setItems([]);
   }, []);
 
   const loadCart = useCallback(async () => {
@@ -166,8 +175,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeItem,
       itemCount,
       totalPrice,
+      clearCart,
     }),
-    [items, isLoading, addItem, updateQuantity, removeItem, itemCount, totalPrice]
+    [items, isLoading, addItem, updateQuantity, removeItem, itemCount, totalPrice, clearCart]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
