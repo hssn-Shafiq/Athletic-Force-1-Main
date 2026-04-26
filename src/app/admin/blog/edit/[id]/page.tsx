@@ -259,15 +259,15 @@ export default function EditBlogPage({ params }: { params: Promise<{ id: string 
             disabled={isSubmitting}
             className="px-6 py-3 border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50"
           >
-            Update & Maintain {(formData.status as string) === 'published' ? 'Deployment' : 'Draft'}
+            Update Current {(formData.status as string) === 'published' ? 'Deployment' : 'Draft'}
           </button>
           <button 
             onClick={() => handleSubmit('published')}
-            disabled={isSubmitting || formData.status === 'published'}
+            disabled={isSubmitting}
             className="flex items-center gap-2 px-8 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10 disabled:opacity-50"
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {formData.status === 'published' ? 'Update Deployed Story' : 'Deploy Article'}
+            {(formData.status as string) === 'published' ? 'Sync Deployed Story' : 'Deploy Article'}
           </button>
         </div>
       </div>

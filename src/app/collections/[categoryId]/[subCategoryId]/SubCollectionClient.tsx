@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Product, CollectionHierarchy } from "@/lib/api/types";
+import { PublicProduct, CollectionHierarchy } from "@/lib/api/types";
 import { Search, ChevronDown, Home, ChevronRight } from "lucide-react";
 import { ProductCard } from "@/components/layout/ProductCard";
 import { QuickViewModal } from "@/components/layout/QuickViewModal";
@@ -19,13 +19,13 @@ export default function SubCollectionClient() {
   const subSlug = params.subCategoryId as string;
 
   // --- State Command Center ---
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<PublicProduct[]>([]);
   const [hierarchy, setHierarchy] = useState<CollectionHierarchy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [priceRange, setPriceRange] = useState<number>(1400);
-  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [quickViewProduct, setQuickViewProduct] = useState<PublicProduct | null>(null);
   const [expandedParents, setExpandedParents] = useState<string[]>([]);
 
   // --- Breadcrumb & Hero Intel ---
