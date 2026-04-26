@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -8,6 +9,7 @@ import { motion } from "motion/react";
 import { EmptyCart } from "./_components/EmptyCart";
 
 import { useCart } from "@/contexts/CartContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CartPageClient() {
   const router = useRouter();
@@ -26,6 +28,26 @@ export default function CartPageClient() {
     removeItem(id);
   };
 
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+        <div className="flex flex-col gap-12 lg:flex-row">
+          <div className="flex-1 space-y-8">
+            <Skeleton className="h-10 w-1/2" />
+            <div className="space-y-6">
+              {[1, 2].map((i) => (
+                <Skeleton key={i} className="h-48 w-full rounded-3xl" />
+              ))}
+            </div>
+          </div>
+          <aside className="lg:w-96">
+            <Skeleton className="h-[500px] w-full rounded-[40px]" />
+          </aside>
+        </div>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
@@ -34,25 +56,31 @@ export default function CartPageClient() {
     );
   }
 
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
       <div className="flex flex-col gap-12 lg:flex-row">
         <div className="flex-1 space-y-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-6 gap-2">
-            <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter italic">Shopping Bag</h1>
+            <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter italic text-slate-900">Shopping Bag</h1>
             <span className="text-slate-500 font-bold uppercase tracking-widest text-xs">
               {items.length} Items in bag
             </span>
           </div>
 
           <div className="space-y-6">
-            {items.map((item) => (
+            {items.map((item) => {
+              const productSlug = item.slug || item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');
+              return (
               <motion.div
                 layout
                 key={item.variantSku}
                 className="flex flex-col sm:flex-row gap-6 p-6 bg-slate-50/50 rounded-3xl border border-slate-100 group transition-all hover:bg-white hover:shadow-xl hover:border-slate-200"
               >
-                <div className="relative w-full sm:w-40 aspect-square bg-slate-100 rounded-2xl overflow-hidden shrink-0 border border-slate-200">
+                <Link
+                  href={`/products/${productSlug}`}
+                  className="relative w-full sm:w-40 aspect-square bg-slate-100 rounded-2xl overflow-hidden shrink-0 border border-slate-200 block"
+                >
                   <Image
                     src={item.imageUrl || '/placeholder.png'}
                     alt={item.name}
@@ -61,7 +89,7 @@ export default function CartPageClient() {
                     className="object-cover group-hover:scale-110 transition-transform duration-700"
                     unoptimized
                   />
-                </div>
+                </Link>
 
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
@@ -72,7 +100,9 @@ export default function CartPageClient() {
                             {item.color}
                           </span>
                         )}
-                        <h3 className="text-xl font-black text-slate-900 leading-tight">{item.name}</h3>
+                        <Link href={`/products/${productSlug}`}>
+                          <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-tight hover:text-orange-600 transition-colors cursor-pointer">{item.name}</h3>
+                        </Link>
                       </div>
                       <button
                         onClick={() => onRemoveItem(item.variantSku)}
@@ -121,13 +151,14 @@ export default function CartPageClient() {
                   </div>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         <aside className="lg:w-96 space-y-6">
           <div className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-xl space-y-8 sticky top-32">
-            <h2 className="text-2xl font-black uppercase tracking-tighter italic">Order Summary</h2>
+            <h2 className="text-2xl font-black uppercase tracking-tighter italic text-slate-900">Order Summary</h2>
 
             <div className="space-y-4">
               <div className="flex justify-between text-sm">
@@ -143,7 +174,7 @@ export default function CartPageClient() {
                 <span className="text-slate-900 font-black">$0.00</span>
               </div>
               <div className="pt-6 border-t border-slate-100 flex justify-between items-center">
-                <span className="text-lg font-black uppercase tracking-tighter italic">Total</span>
+                <span className="text-lg font-black uppercase tracking-tighter italic text-slate-900">Total</span>
                 <span className="text-3xl font-black text-slate-900">${total.toFixed(2)}</span>
               </div>
             </div>

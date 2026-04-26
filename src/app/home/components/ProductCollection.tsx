@@ -7,17 +7,18 @@ import { Product } from '@/types';
 import { ArrowRight } from 'lucide-react';
 import { getExploreProductsApi } from '@/lib/api/publicProducts';
 import { mapPublicProductToCard } from '@/lib/products/mapPublicProductToCard';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const PRODUCT_SKELETON_COUNT = 4;
 
 const ProductCardSkeleton: React.FC = () => (
-  <div className="group relative bg-white border border-transparent rounded-4xl p-4 animate-pulse">
-    <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-100 mb-4" />
+  <div className="group relative bg-white border border-transparent rounded-4xl p-4">
+    <Skeleton className="relative aspect-square rounded-3xl mb-4" />
     <div className="px-2 space-y-2">
-      <div className="h-3 w-1/3 rounded bg-slate-100" />
-      <div className="h-5 w-11/12 rounded bg-slate-100" />
-      <div className="h-4 w-1/4 rounded bg-slate-100" />
-      <div className="h-6 w-1/3 rounded bg-slate-100" />
+      <Skeleton className="h-3 w-1/3" />
+      <Skeleton className="h-5 w-11/12" />
+      <Skeleton className="h-4 w-1/4" />
+      <Skeleton className="h-6 w-1/3" />
     </div>
   </div>
 );
@@ -101,12 +102,12 @@ export const ProductCollection: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div>
             <h2 className="text-3xl font-black text-slate-900 mb-6 tracking-tight">Shop The Collection</h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {tabs.map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${
+                  className={`shrink-0 whitespace-nowrap px-6 py-2 rounded-full text-xs font-bold transition-all ${
                     activeTab === tab
                       ? 'bg-black text-white'
                       : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
@@ -125,7 +126,7 @@ export const ProductCollection: React.FC = () => {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10">
             {Array.from({ length: PRODUCT_SKELETON_COUNT }).map((_, idx) => (
               <ProductCardSkeleton key={`product-skeleton-${idx}`} />
             ))}
@@ -136,7 +137,7 @@ export const ProductCollection: React.FC = () => {
             <p className="mt-2 text-sm font-medium text-slate-500">Try selecting another tab or check back soon.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10">
             {filteredProducts.map(product => (
               <ProductCard
                 key={product.id}

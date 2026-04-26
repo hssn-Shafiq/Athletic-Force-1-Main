@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Sora, Inter } from "next/font/google";
 import "./globals.css"
+import "react-quill-new/dist/quill.snow.css";
 // import "react-toastify/dist/ReactToastify.css";
 import { AppShell } from "../components/layout/AppShell";
 import { ToastProvider } from "../components/ui/ToastProvider";
@@ -12,6 +13,7 @@ const sora = Sora({
   weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",

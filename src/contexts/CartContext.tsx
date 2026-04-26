@@ -19,11 +19,14 @@ import { toast } from 'react-toastify';
 type CartContextValue = {
   items: ApiCartItem[];
   isLoading: boolean;
+  isCartOpen: boolean;
+  setIsCartOpen: (isOpen: boolean) => void;
   addItem: (payload: AddToCartRequest) => Promise<void>;
   updateQuantity: (variantSku: string, quantity: number) => Promise<void>;
   removeItem: (variantSku: string) => Promise<void>;
   itemCount: number;
   totalPrice: number;
+  clearCart: () => Promise<void>;
 };
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
@@ -33,6 +36,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [items, setItems] = useState<ApiCartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Read guest cart from local storage
   const getGuestCart = useCallback((): ApiCartItem[] => {
@@ -47,6 +51,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const saveGuestCart = useCallback((newItems: ApiCartItem[]) => {
     localStorage.setItem(LOCAL_CART_KEY, JSON.stringify(newItems));
     setItems(newItems);
+  }, []);
+
+  const clearCart = useCallback(async () => {
+    // For authenticated users, the backend cart is typically cleared 
+    // when an order is created, but we need to update the UI state.
+    // For guests, we must manually clear local storage.
+    localStorage.removeItem(LOCAL_CART_KEY);
+    setItems([]);
   }, []);
 
   const loadCart = useCallback(async () => {
@@ -96,6 +108,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           currentItems.push({
             productId: payload.productId,
             variantSku: payload.variantSku,
+            slug: payload.slug,
             name: payload.name,
             imageUrl: payload.imageUrl,
             price: payload.price,
@@ -107,6 +120,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
         saveGuestCart(currentItems);
       }
+      setIsCartOpen(true);
       toast.success('Added to cart!');
     } catch (error) {
       console.error('Failed to add item', error);
@@ -160,13 +174,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     () => ({
       items,
       isLoading,
+      isCartOpen,
+      setIsCartOpen,
       addItem,
       updateQuantity,
       removeItem,
       itemCount,
       totalPrice,
+      clearCart,
     }),
-    [items, isLoading, addItem, updateQuantity, removeItem, itemCount, totalPrice]
+    [items, isLoading, addItem, updateQuantity, removeItem, itemCount, totalPrice, clearCart]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

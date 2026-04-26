@@ -71,7 +71,7 @@ export function VideoReviews({ videoReviews }: VideoReviewsProps) {
       <h2 className="text-lg font-black text-slate-900">Video Feedback on This Product</h2>
 
       {/* Inline video cards */}
-      <div className="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
         {videoReviews.map((item, index) => {
           const isPlaying = playingIndex === index;
           const embedUrl = toYouTubeEmbedUrl(item.videoUrl);
@@ -79,7 +79,7 @@ export function VideoReviews({ videoReviews }: VideoReviewsProps) {
           return (
             <div
               key={index}
-              className="relative overflow-hidden rounded-2xl border-2 border-transparent bg-black aspect-[4/5] sm:aspect-auto sm:h-64"
+              className="relative overflow-hidden rounded-2xl border-2 border-transparent bg-black aspect-[3/4] sm:aspect-auto sm:h-64"
             >
               {isPlaying && embedUrl ? (
                 <>

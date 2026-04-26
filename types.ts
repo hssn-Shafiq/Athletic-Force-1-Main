@@ -8,6 +8,7 @@ export interface Product {
   originalPrice: number;
   discount: string;
   rating: number;
+  reviewCount?: number;
   image: string;
   isNew?: boolean;
   badgeName?: string;

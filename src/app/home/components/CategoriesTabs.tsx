@@ -62,7 +62,7 @@ const CategoryCard: React.FC<{ item: CategoryItem }> = ({ item }) => {
 
       <div className="relative h-full bg-[#F3F3F3] rounded-[28px] sm:rounded-[38px] overflow-hidden flex flex-col border border-[#E5E7EB] group-hover:border-transparent transition-colors p-3 sm:p-4">
         {/* Product Image */}
-        <div className="relative flex-1 min-h-[240px] sm:min-h-[280px] rounded-[22px] sm:rounded-[30px] bg-[#ECECEC] overflow-hidden">
+        <div className="relative flex-1 min-h-[160px] sm:min-h-[280px] rounded-[22px] sm:rounded-[30px] bg-[#ECECEC] overflow-hidden">
           <img
             src={item.image}
             alt={item.title}
@@ -72,7 +72,7 @@ const CategoryCard: React.FC<{ item: CategoryItem }> = ({ item }) => {
         </div>
 
         {/* Label Bar */}
-        <div className="relative z-10 mt-3 sm:mt-4 bg-white rounded-2xl py-2.5 sm:py-3 pl-4 sm:pl-5 pr-14 sm:pr-16 flex items-center border border-[#E3E5E8] min-h-[52px] sm:min-h-[56px]">
+        <div className="relative z-10 mt-3 sm:mt-4 bg-white rounded-2xl py-2.5 sm:py-3 pl-4 sm:pl-5 pr-14 sm:pr-16 flex items-center border border-[#E3E5E8] min-h-[44px] sm:min-h-[56px]">
           <span className="font-black text-sm sm:text-base uppercase tracking-tight text-slate-900">{item.title}</span>
           <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 bg-orange-600 text-white rounded-lg p-1.5 group-hover:scale-110 transition-transform">
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -124,12 +124,12 @@ export const CategoriesTabs: React.FC = () => {
           </h2>
           
           {/* Tabs */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 shadow-sm ${
+                className={`shrink-0 whitespace-nowrap px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 shadow-sm ${
                   activeTab === tab 
                     ? "bg-black text-white scale-105 shadow-lg" 
                     : "bg-white text-slate-500 border border-slate-200 hover:border-slate-400"
@@ -178,7 +178,7 @@ export const CategoriesTabs: React.FC = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.3 }}
-                  className="embla__slide flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_25%] px-2 sm:px-3"
+                  className="embla__slide flex-[0_0_50%] lg:flex-[0_0_25%] px-2 sm:px-3"
                 >
                   <CategoryCard item={item} />
                 </motion.div>

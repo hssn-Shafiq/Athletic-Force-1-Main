@@ -13,6 +13,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'react-toastify';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface StoreSettings {
@@ -61,10 +62,7 @@ interface ShippingForm {
   saveAddress: boolean;
 }
 
-// ─── Skeleton Component ───────────────────────────────────────────────────────
-const Skeleton = ({ className = '' }: { className?: string }) => (
-  <div className={`animate-pulse bg-slate-100 rounded-xl ${className}`} />
-);
+// Global Skeleton component used from @/components/ui/skeleton
 
 // ─── Step Indicator ───────────────────────────────────────────────────────────
 const StepIndicator = ({ step }: { step: number }) => {
@@ -216,7 +214,7 @@ const OrderSummary = ({
   return (
     <aside className="lg:w-[420px] shrink-0">
       <div className="bg-slate-50 p-8 rounded-[40px] border border-slate-100 space-y-6 sticky top-32 transition-all hover:bg-white hover:shadow-xl hover:border-slate-200">
-        <h3 className="text-xl font-black uppercase tracking-tighter italic pb-4 border-b border-slate-200 flex items-center gap-2">
+        <h3 className="text-xl font-black uppercase tracking-tighter italic pb-4 border-b border-slate-200 flex items-center gap-2 text-slate-900">
           <Package className="w-5 h-5 text-orange-600" /> Your Bag
         </h3>
 
@@ -316,7 +314,7 @@ const OrderSummary = ({
                 </div>
               )}
               <div className="flex justify-between items-center pt-3 border-t border-slate-200">
-                <span className="text-lg font-black uppercase tracking-tighter italic">Total</span>
+                <span className="text-lg font-black uppercase tracking-tighter italic text-slate-900">Total</span>
                 <span className="text-2xl font-black text-slate-900">${orderTotal.toFixed(2)}</span>
               </div>
             </>
@@ -335,7 +333,7 @@ const OrderSummary = ({
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function CheckoutPageClient() {
   const router = useRouter();
-  const { items, totalPrice, isLoading: cartLoading } = useCart();
+  const { items, totalPrice, clearCart, isLoading: cartLoading } = useCart();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [step, setStep] = useState(1);
@@ -344,6 +342,7 @@ export default function CheckoutPageClient() {
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isOrderSuccessful, setIsOrderSuccessful] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
 
   const [shippingForm, setShippingForm] = useState<ShippingForm>({
@@ -560,10 +559,10 @@ export default function CheckoutPageClient() {
         // --- DEV BYPASS: place order without payment ---
         const { data } = await apiClient.post('/api/orders/dev-bypass', orderPayload);
         if (data.ok) {
-          setOrderId(data.order.id);
-          setStep(3);
           trackStep('completed');
-          toast.success('Order placed (Dev Mode — no payment processed)!');
+          setIsOrderSuccessful(true); // Tactical Guard Active
+          await clearCart(); // Reset the tactical staging area
+          router.push(`/thank-you?orderId=${data.order.id}`);
         }
       } else {
         // --- LIVE PAYPAL: create order server-side ---
@@ -577,8 +576,10 @@ export default function CheckoutPageClient() {
           return;
         }
 
-        // For now: alert user to integrate @paypal/react-paypal-js if PAYPAL_ENABLED=true
-        // The paypalOrderId is ready — capture will happen via /api/orders/capture
+        // Note: For live PayPal, we would clear the cart AFTER capture success, 
+        // but for now, we reset state to keep the UI clean.
+        setIsOrderSuccessful(true);
+        await clearCart(); 
         toast.info(`PayPal Order created: ${createData.paypalOrderId}. Integrate PayPal JS SDK for browser approval flow.`);
       }
     } catch (err: any) {
@@ -588,12 +589,33 @@ export default function CheckoutPageClient() {
     }
   };
 
-  // Redirect if cart is empty and not loading
+  // Redirect if cart is empty and not loading (and not currently placing/finishing order)
   useEffect(() => {
-    if (!cartLoading && !authLoading && items.length === 0 && step < 3) {
+    if (!cartLoading && !authLoading && items.length === 0 && step < 3 && !isPlacingOrder && !isOrderSuccessful) {
       router.push('/cart');
     }
-  }, [cartLoading, authLoading, items.length, step, router]);
+  }, [cartLoading, authLoading, items.length, step, router, isPlacingOrder, isOrderSuccessful]);
+
+  if (cartLoading || authLoading) {
+    return (
+      <div className="min-h-screen bg-[#FDFDFD]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+          <div className="flex flex-col lg:flex-row gap-12">
+            <div className="flex-1 space-y-10">
+              <Skeleton className="h-20 w-1/2" />
+              <div className="space-y-6">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-96 w-full" />
+              </div>
+            </div>
+            <aside className="lg:w-[420px]">
+              <Skeleton className="h-[600px] w-full rounded-[40px]" />
+            </aside>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFDFD]">
@@ -613,7 +635,7 @@ export default function CheckoutPageClient() {
                 </Link>
               )}
               <div>
-                <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter italic">Checkout</h1>
+                <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter italic text-slate-900">Checkout</h1>
                 <div className="mt-2">
                   <StepIndicator step={step} />
                 </div>
@@ -631,7 +653,7 @@ export default function CheckoutPageClient() {
                   className="space-y-8"
                 >
                   <div className="space-y-5">
-                    <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+                    <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900">
                       <Truck className="w-5 h-5 text-orange-600" /> Shipping Information
                     </h2>
 
@@ -747,7 +769,7 @@ export default function CheckoutPageClient() {
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-8"
                 >
-                  <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-3">
+                  <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-3 text-slate-900">
                     <CreditCard className="w-5 h-5 text-blue-600" /> Payment Method
                   </h2>
 
@@ -805,53 +827,7 @@ export default function CheckoutPageClient() {
                 </motion.div>
               )}
 
-              {/* ─── STEP 3: CONFIRMATION ─── */}
-              {step === 3 && (
-                <motion.div
-                  key="step3"
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="space-y-8 text-center py-8"
-                >
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-10 h-10 text-green-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Order Placed!</h2>
-                    <p className="text-slate-500 font-medium mt-2">
-                      Thank you, {shippingForm.firstName}! We&apos;re preparing your gear.
-                    </p>
-                    {orderId && (
-                      <p className="text-xs font-black uppercase tracking-widest text-slate-400 mt-3">
-                        Order ID: <span className="text-orange-600">{orderId}</span>
-                      </p>
-                    )}
-                  </div>
 
-                  <div className="bg-slate-50 rounded-[32px] p-6 space-y-3 border border-slate-100 text-left max-w-sm mx-auto">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Shipping To</p>
-                    <p className="text-sm font-bold text-center text-slate-900">{shippingForm.firstName} {shippingForm.lastName}</p>
-                    <p className="text-xs text-center text-slate-500 font-medium">{shippingForm.address1}, {shippingForm.city} {shippingForm.postalCode}</p>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    {isAuthenticated && (
-                      <Link
-                        href="/account?tab=orders"
-                        className="px-8 py-4 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-orange-600 transition-all shadow-xl"
-                      >
-                        View Orders
-                      </Link>
-                    )}
-                    <Link
-                      href="/"
-                      className="px-8 py-4 border-2 border-slate-200 text-slate-700 rounded-2xl font-black uppercase tracking-widest text-xs hover:border-black hover:text-black transition-all"
-                    >
-                      Continue Shopping
-                    </Link>
-                  </div>
-                </motion.div>
-              )}
             </AnimatePresence>
           </div>
 

@@ -16,19 +16,14 @@ export const HeroSection: React.FC = () => {
 
   const slides: Slide[] = [
     {
-      image: "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?q=80&w=2000&auto=format&fit=crop",
-      title: "ATHLETICFORCE1",
+      image: "/Hero-Images/image-3-3.png",
+      title: "ATHLETIC FORCE 1",
       subtitle: "Engineered For Victory"
     },
     {
-      image: "https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=2000&auto=format&fit=crop",
-      title: "GAME READY",
-      subtitle: "Premium Custom Uniforms"
-    },
-    {
-      image: "https://images.unsplash.com/photo-1519861531473-9200262188bf?q=80&w=2000&auto=format&fit=crop",
-      title: "TEAM EXCELLENCE",
-      subtitle: "Built For Champions"
+      image: "/Hero-Images/Section.png",
+      title: "CUSTOM GEAR",
+      subtitle: "Designed For Your Team"
     }
   ];
 
@@ -77,7 +72,7 @@ export const HeroSection: React.FC = () => {
             {/* Decorative Text Overlay */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
               <div className="text-center">
-                <h1 className="font-black text-white/40 text-[12vw] sm:text-[10vw] md:text-[8vw] lg:text-[120px] tracking-widest whitespace-nowrap select-none opacity-80 scale-110">
+                <h1 className="font-black text-white/70 text-[7vw] sm:text-[10vw] md:text-[8vw] lg:text-[90px] tracking-widest whitespace-nowrap select-none opacity-100 scale-110">
                   {slide.title}
                 </h1>
                 <p className="text-white/60 text-sm sm:text-base md:text-lg lg:text-xl font-semibold tracking-[0.3em] mt-2 uppercase">

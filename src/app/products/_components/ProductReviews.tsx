@@ -127,28 +127,24 @@ function PlaceholderImageCard() {
 export function ProductReviews({ reviews }: ProductReviewsProps) {
   const hasRealReviews = reviews && reviews.length > 0;
 
+  if (!hasRealReviews) {
+    return null;
+  }
+
   return (
     <section className="rounded-2xl bg-[#efefef] p-5 sm:p-8">
       <h2 className="text-lg font-black text-slate-900">
-        Product Reviews {hasRealReviews ? `(${reviews.length})` : ''}
+        Product Reviews ({reviews.length})
       </h2>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {hasRealReviews
-          ? reviews.map((review) =>
-              review.photos.length > 0 ? (
-                <PhotoReviewCard key={review.id} review={review} />
-              ) : (
-                <TextReviewCard key={review.id} review={review} />
-              )
-            )
-          : (
-            <>
-              <PlaceholderImageCard />
-              <PlaceholderImageCard />
-              <PlaceholderImageCard />
-            </>
-          )}
+        {reviews.map((review) =>
+          review.photos.length > 0 ? (
+            <PhotoReviewCard key={review.id} review={review} />
+          ) : (
+            <TextReviewCard key={review.id} review={review} />
+          )
+        )}
       </div>
     </section>
   );

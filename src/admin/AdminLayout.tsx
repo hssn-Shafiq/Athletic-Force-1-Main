@@ -20,7 +20,11 @@ import {
   Warehouse,
   Truck,
   Tag,
-  Mail
+  Mail,
+  Globe,
+  BookOpen,
+  LogOut,
+  ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api/client';
@@ -93,8 +97,36 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const isAdmin = Boolean(user?.roles?.some((role) => role === 'admin' || role === 'superadmin'));
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  
+  const userRoles = user?.roles || [];
+  const isSuperAdmin = userRoles.includes('superadmin');
+  const isManager = userRoles.includes('manager');
+  const isSalesAdmin = userRoles.includes('sales_admin');
+  const isEditor = userRoles.includes('editor');
+  const isSeoSpecialist = userRoles.includes('seo_specialist');
+  const isViewer = userRoles.includes('viewer');
+
+  const isAdmin = userRoles.some(r => r !== 'customer');
+
+  const getHighestRole = () => {
+    if (isSuperAdmin) return 'Super Admin';
+    if (isManager) return 'Manager';
+    if (isSalesAdmin) return 'Sales Admin';
+    if (isEditor) return 'Editor';
+    if (isSeoSpecialist) return 'SEO Specialist';
+    if (isViewer) return 'Viewer';
+    return 'Staff';
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/login');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
 
   const [notifications, setNotifications] = useState<{count: number, recentOrders: any[]}>({ count: 0, recentOrders: [] });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -127,8 +159,11 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center px-6">
-        <p className="text-lg font-black italic uppercase tracking-tighter text-slate-700">Checking Admin Access...</p>
+      <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center px-6 text-center">
+        <div>
+          <div className="w-12 h-12 border-4 border-slate-200 border-t-black rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-lg font-black italic uppercase tracking-tighter text-slate-700">Verifying Tactical Clearance...</p>
+        </div>
       </div>
     );
   }
@@ -136,13 +171,34 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   if (!isAuthenticated || !isAdmin) {
     return (
       <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center px-6">
-        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-5 text-center max-w-lg">
-          <h1 className="text-3xl font-black italic uppercase tracking-tighter text-red-700">Access Denied</h1>
-          <p className="mt-2 text-sm font-semibold text-red-700">Admin dashboard is available only for users with admin role.</p>
+        <div className="rounded-[40px] border border-red-200 bg-red-50 p-12 text-center max-w-lg shadow-2xl shadow-red-100">
+          <div className="w-20 h-20 bg-red-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
+             <Settings className="w-10 h-10 text-red-600" />
+          </div>
+          <h1 className="text-4xl font-black italic uppercase tracking-tighter text-red-700">Access Denied</h1>
+          <p className="mt-4 text-sm font-bold text-red-800 uppercase tracking-widest opacity-60">Insufficient Tactical Clearance identified</p>
+          <button 
+            onClick={() => router.push('/')}
+            className="mt-8 px-8 py-3 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-600/20"
+          >
+            Abort & Return Home
+          </button>
         </div>
       </div>
     );
   }
+
+  // --- Permission Matrix ---
+  const canSeeInsights = isSuperAdmin || isManager || isSalesAdmin || isViewer;
+  const canSeeProducts = isSuperAdmin || isManager;
+  const canSeeOrders = isSuperAdmin || isSalesAdmin || isManager;
+  const canSeeJournal = isSuperAdmin || isEditor || isManager || isSeoSpecialist;
+  const canSeeInventory = isSuperAdmin || isSalesAdmin || isManager;
+  const canSeeCustomers = isSuperAdmin || isSalesAdmin;
+  const canSeeEmails = isSuperAdmin;
+  const canSeeSettings = isSuperAdmin;
+  const canSeeSeo = isSuperAdmin || isSeoSpecialist;
+  const canSeeStaff = isSuperAdmin;
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex">
@@ -163,46 +219,69 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
         </div>
 
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto no-scrollbar">
-          <SidebarItem icon={BarChart3} label="Insights" href="/admin" />
-          <SidebarItem 
-            icon={Box} 
-            label="Products" 
-            subItems={[
-              { label: "All Products", href: "/admin/products" },
-              { label: "Add Product", href: "/admin/products/add" },
-              { label: "Collections", href: "/admin/collections" }
-            ]} 
-          />
-          <SidebarItem 
-            icon={ClipboardList} 
-            label="Orders" 
-            subItems={[
-              { label: "Direct Orders", href: "/admin/orders" },
-              { label: "Request Orders", href: "/admin/orders/requests" }
-            ]} 
-          />
-          <SidebarItem icon={Warehouse} label="Inventory" href="/admin/inventory" />
-          <SidebarItem icon={Users} label="Customers" href="/admin/customers" />
-          <SidebarItem icon={Mail} label="Emails" href="/admin/emails" />
+          {canSeeInsights && <SidebarItem icon={BarChart3} label="Insights" href="/admin" />}
+          
+          {canSeeProducts && (
+            <SidebarItem 
+              icon={Box} 
+              label="Products" 
+              subItems={[
+                { label: "All Products", href: "/admin/products" },
+                { label: "Add Product", href: "/admin/products/add" },
+                { label: "Collections", href: "/admin/collections" }
+              ]} 
+            />
+          )}
+
+          {canSeeOrders && (
+            <SidebarItem 
+              icon={ClipboardList} 
+              label="Orders" 
+              subItems={[
+                { label: "Direct Orders", href: "/admin/orders" },
+                { label: "Request Orders", href: "/admin/orders/requests" }
+              ]} 
+            />
+          )}
+
+          {canSeeJournal && (
+            <SidebarItem 
+              icon={BookOpen} 
+              label="Journal" 
+              subItems={[
+                { label: "Manage Blogs", href: "/admin/blog" },
+                { label: "Add Blog", href: "/admin/blog/add" },
+                { label: "Blog Categories", href: "/admin/blog/categories" }
+              ]} 
+            />
+          )}
+
+          {canSeeInventory && <SidebarItem icon={Warehouse} label="Inventory" href="/admin/inventory" />}
+          {canSeeCustomers && <SidebarItem icon={Users} label="Customers" href="/admin/customers" />}
+          {canSeeEmails && <SidebarItem icon={Mail} label="Emails" href="/admin/emails" />}
+
           <div className="pt-4 mt-4 border-t border-slate-50 space-y-1">
-            <p className="px-3 pb-1 text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Commerce</p>
-            <SidebarItem icon={Truck} label="Shipping & Tax" href="/admin/settings/shipping-tax" />
-            <SidebarItem icon={Tag} label="Discounts" href="/admin/discounts" />
-          </div>
-          <div className="pt-4 mt-4 border-t border-slate-50">
+            <p className="px-3 pb-1 text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Strategy</p>
+            {canSeeSeo && <SidebarItem icon={Globe} label="SEO Command" href="/admin/seo" />}
+            {canSeeSettings && <SidebarItem icon={Truck} label="Shipping & Tax" href="/admin/settings/shipping-tax" />}
+            {canSeeStaff && <SidebarItem icon={Users} label="Staff Management" href="/admin/users" />}
             <SidebarItem icon={Settings} label="Settings" href="/admin/settings" />
           </div>
         </nav>
 
         <div className="p-4 border-t border-slate-50">
           <div className="bg-slate-50 rounded-2xl p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
               <User className="w-5 h-5 text-orange-600" />
             </div>
             {isSidebarOpen && (
               <div className="overflow-hidden">
-                <p className="text-[10px] font-black text-slate-900 truncate uppercase tracking-tighter italic">Admin User</p>
-                <p className="text-[8px] text-slate-400 font-bold truncate">support@af1.com</p>
+                <p className="text-[10px] font-black text-slate-900 truncate uppercase tracking-tighter italic font-sora">
+                  {user?.name || 'Tactical Unit'}
+                </p>
+                <p className="text-[8px] text-slate-400 font-bold truncate font-inter">
+                  {user?.email || 'clearance@af1.com'}
+                </p>
               </div>
             )}
           </div>
@@ -300,13 +379,29 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                 )}
               </AnimatePresence>
             </div>
+            <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+               <ShieldAlert className="w-4 h-4 text-orange-600" />
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 font-sora">{getHighestRole()}</span>
+            </div>
+
             <div className="h-8 w-[1px] bg-slate-100 mx-2" />
-            <Link
-              href="/"
-              className="text-[10px] font-black uppercase tracking-widest text-[#FF7348] hover:underline italic"
-            >
-              View Storefront
-            </Link>
+
+            <div className="flex items-center gap-6">
+              <Link
+                href="/"
+                className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-black italic transition-colors font-sora"
+              >
+                View Store
+              </Link>
+              
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm hover:shadow-lg hover:shadow-red-600/20 font-sora group"
+              >
+                <LogOut className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                Logout
+              </button>
+            </div>
           </div>
         </header>
 
