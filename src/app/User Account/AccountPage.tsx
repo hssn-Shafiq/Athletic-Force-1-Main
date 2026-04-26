@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api/client';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { toast } from 'react-toastify';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type TabType = 'dashboard' | 'orders' | 'profile' | 'addresses' | 'wishlist' | 'settings';
 
@@ -261,8 +262,10 @@ const OrdersView = () => {
       
       <div className="space-y-6">
         {isLoading ? (
-          <div className="flex items-center justify-center py-20 bg-white rounded-[40px] border border-slate-100">
-            <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+          <div className="space-y-6">
+            {[1, 2, 3].map(i => (
+              <Skeleton key={i} className="h-48 w-full rounded-[40px]" />
+            ))}
           </div>
         ) : filteredOrders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[40px] border border-slate-100 space-y-4">
@@ -469,8 +472,10 @@ const WishlistView = () => {
 
   if (isLoading) {
     return (
-      <div className="py-20 text-center">
-        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs animate-pulse">Loading wishlist...</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+        {[1, 2, 3].map(i => (
+          <Skeleton key={i} className="h-80 w-full rounded-[40px]" />
+        ))}
       </div>
     );
   }
@@ -695,11 +700,26 @@ export const AccountPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FDFDFD] pt-24 pb-24 flex items-center justify-center">
-        <p className="text-slate-500 font-semibold">Loading your account...</p>
+      <div className="min-h-screen bg-[#FDFDFD] pt-24 pb-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row gap-12">
+            <aside className="lg:w-80 shrink-0">
+              <Skeleton className="h-[400px] w-full rounded-[40px]" />
+            </aside>
+            <main className="flex-1 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Skeleton className="h-32 rounded-[40px]" />
+                <Skeleton className="h-32 rounded-[40px]" />
+                <Skeleton className="h-32 rounded-[40px]" />
+              </div>
+              <Skeleton className="h-96 rounded-[40px]" />
+            </main>
+          </div>
+        </div>
       </div>
     );
   }
+
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Trophy },

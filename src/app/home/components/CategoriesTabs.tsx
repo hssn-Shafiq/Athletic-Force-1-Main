@@ -62,7 +62,7 @@ const CategoryCard: React.FC<{ item: CategoryItem }> = ({ item }) => {
 
       <div className="relative h-full bg-[#F3F3F3] rounded-[28px] sm:rounded-[38px] overflow-hidden flex flex-col border border-[#E5E7EB] group-hover:border-transparent transition-colors p-3 sm:p-4">
         {/* Product Image */}
-        <div className="relative flex-1 min-h-[240px] sm:min-h-[280px] rounded-[22px] sm:rounded-[30px] bg-[#ECECEC] overflow-hidden">
+        <div className="relative flex-1 min-h-[160px] sm:min-h-[280px] rounded-[22px] sm:rounded-[30px] bg-[#ECECEC] overflow-hidden">
           <img
             src={item.image}
             alt={item.title}
@@ -72,7 +72,7 @@ const CategoryCard: React.FC<{ item: CategoryItem }> = ({ item }) => {
         </div>
 
         {/* Label Bar */}
-        <div className="relative z-10 mt-3 sm:mt-4 bg-white rounded-2xl py-2.5 sm:py-3 pl-4 sm:pl-5 pr-14 sm:pr-16 flex items-center border border-[#E3E5E8] min-h-[52px] sm:min-h-[56px]">
+        <div className="relative z-10 mt-3 sm:mt-4 bg-white rounded-2xl py-2.5 sm:py-3 pl-4 sm:pl-5 pr-14 sm:pr-16 flex items-center border border-[#E3E5E8] min-h-[44px] sm:min-h-[56px]">
           <span className="font-black text-sm sm:text-base uppercase tracking-tight text-slate-900">{item.title}</span>
           <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 bg-orange-600 text-white rounded-lg p-1.5 group-hover:scale-110 transition-transform">
             <ArrowUpRight className="w-3.5 h-3.5" />

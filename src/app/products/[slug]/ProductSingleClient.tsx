@@ -34,6 +34,7 @@ import { VideoReviews } from '../_components/VideoReviews';
 import { ProductReviews } from '../_components/ProductReviews';
 import { Product } from '@/types';
 import { getExploreProductBySlugApi } from '@/lib/api/publicProducts';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ─── YouTube URL → embed converter ────────────────────────────────────────────
 function toEmbedUrl(url: string): string | null {
@@ -466,28 +467,29 @@ const ProductSingleClient: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white overflow-x-hidden w-full max-w-full animate-pulse">
+      <div className="min-h-screen bg-white overflow-x-hidden w-full max-w-full">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-          <div className="h-6 w-40 bg-slate-100 rounded" />
+          <Skeleton className="h-6 w-40" />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-14 lg:gap-24">
             <div className="space-y-6">
-              <div className="h-[520px] bg-slate-100 rounded-[40px]" />
-              <div className="h-40 bg-slate-100 rounded-4xl" />
-              <div className="h-28 bg-slate-100 rounded-4xl" />
+              <Skeleton className="h-[520px] rounded-[40px]" />
+              <Skeleton className="h-40 rounded-4xl" />
+              <Skeleton className="h-28 rounded-4xl" />
             </div>
             <div className="space-y-4">
-              <div className="h-10 w-11/12 bg-slate-100 rounded" />
-              <div className="h-7 w-1/2 bg-slate-100 rounded" />
-              <div className="h-44 bg-slate-100 rounded-2xl" />
-              <div className="h-24 bg-slate-100 rounded-2xl" />
-              <div className="h-14 bg-slate-100 rounded-2xl" />
-              <div className="h-16 bg-slate-100 rounded-3xl" />
+              <Skeleton className="h-10 w-11/12" />
+              <Skeleton className="h-7 w-1/2" />
+              <Skeleton className="h-44 rounded-2xl" />
+              <Skeleton className="h-24 rounded-2xl" />
+              <Skeleton className="h-14 rounded-2xl" />
+              <Skeleton className="h-16 rounded-3xl" />
             </div>
           </div>
         </div>
       </div>
     );
   }
+
 
   if (!product || loadError) {
     return (
@@ -521,7 +523,7 @@ const ProductSingleClient: React.FC = () => {
                     <button
                       key={idx}
                       onClick={() => onThumbClick(idx)}
-                      className={`relative min-w-[92px] w-[29vw] max-w-[124px] md:min-w-0 md:w-full aspect-square rounded-2xl overflow-hidden bg-slate-50 border-2 transition-all p-1 group shrink-0 ${selectedIndex === idx ? "border-black scale-95" : "border-transparent hover:border-slate-200"
+                      className={`relative min-w-[64px] w-[20vw] max-w-[80px] md:min-w-0 md:w-full aspect-square rounded-xl overflow-hidden bg-slate-50 border-2 transition-all p-1 group shrink-0 ${selectedIndex === idx ? "border-black scale-95" : "border-transparent hover:border-slate-200"
                         }`}
                     >
                       <img src={thumb} alt={`thumb-${idx}`} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform" />
@@ -534,10 +536,10 @@ const ProductSingleClient: React.FC = () => {
               </div>
 
               {/* Main Carousel */}
-              <div className="flex-1 overflow-hidden rounded-[40px] bg-slate-50 border border-slate-100 shadow-sm" ref={emblaRef}>
+              <div className="flex-1 overflow-hidden rounded-[32px] sm:rounded-[40px] bg-slate-50 border border-slate-100 shadow-sm mx-auto w-[88%] sm:w-full" ref={emblaRef}>
                 <div className="flex h-full select-none cursor-grab active:cursor-grabbing">
                   {thumbnails.map((img, idx) => (
-                    <div key={idx} className="flex-[0_0_100%] min-w-0 aspect-4/5 relative">
+                    <div key={idx} className="flex-[0_0_100%] min-w-0 aspect-square sm:aspect-4/5 relative">
                       <img
                         src={img}
                         alt={`${product.title}-${idx}`}
@@ -553,7 +555,7 @@ const ProductSingleClient: React.FC = () => {
             {product.reviews.length > 0 && (() => {
               const latest = product.reviews[product.reviews.length - 1];
               return (
-                <div className="bg-slate-50 rounded-4xl p-8 space-y-4">
+                <div className="hidden sm:block bg-slate-50 rounded-4xl p-8 space-y-4">
                   <div className="flex justify-between items-start">
                     <div className="flex gap-4">
                       <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-black text-lg uppercase ring-2 ring-white shrink-0">
@@ -584,54 +586,56 @@ const ProductSingleClient: React.FC = () => {
 
             {/* Overall Rating Section (Image 1) */}
             {/* Overall Rating Section */}
-            {(() => {
-              const reviewCount = product.reviews.length;
-              const avgRating = reviewCount
-                ? (product.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount).toFixed(1)
-                : '—';
-              const reviewLabel = reviewCount > 0 ? `${reviewCount} REVIEWS` : 'NO REVIEWS';
-              return (
-                <div className="bg-white border border-slate-500 rounded-none px-4 py-3 sm:px-6 sm:py-4 shadow-none">
-                  <div className="flex items-center gap-4 sm:gap-6">
-                    <div className="text-center shrink-0 w-[112px] sm:w-[132px]">
-                      <div className="text-[4rem] sm:text-[4.5rem] font-black tracking-tighter text-[#E56437] leading-[0.9]">
-                        {avgRating}
-                      </div>
-                      <div className="text-[2rem] sm:text-[2.2rem] font-black uppercase tracking-[0.06em] text-[#E56437] mt-0 leading-none">
-                        Rating
-                      </div>
-                    </div>
-
-                    <div className="h-20 sm:h-24 w-px bg-slate-300 shrink-0" />
-
-                    <div className="flex-1 min-w-0 flex flex-col items-start gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex -space-x-2">
-                          {[1, 2, 3, 4].map((i) => (
-                            <img
-                              key={i}
-                              src={`https://i.pravatar.cc/100?u=${i}`}
-                              className="w-7 h-7 rounded-full border-2 border-white"
-                              alt="reviewer"
-                            />
-                          ))}
+            <div className="hidden sm:block">
+              {(() => {
+                const reviewCount = product.reviews.length;
+                const avgRating = reviewCount
+                  ? (product.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount).toFixed(1)
+                  : '—';
+                const reviewLabel = reviewCount > 0 ? `${reviewCount} REVIEWS` : 'NO REVIEWS';
+                return (
+                  <div className="bg-white border border-slate-500 rounded-none px-4 py-3 sm:px-6 sm:py-4 shadow-none">
+                    <div className="flex items-center gap-4 sm:gap-6">
+                      <div className="text-center shrink-0 w-[90px] sm:w-[132px]">
+                        <div className="text-[3.2rem] sm:text-[4.5rem] font-black tracking-tighter text-[#E56437] leading-[0.9]">
+                          {avgRating}
                         </div>
-                        <div className="text-[2rem] sm:text-[2.1rem] font-black uppercase tracking-[0.04em] text-[#E56437] leading-none whitespace-nowrap">
-                          {reviewLabel}
+                        <div className="text-[1.4rem] sm:text-[2.2rem] font-black uppercase tracking-[0.06em] text-[#E56437] mt-0 leading-none">
+                          Rating
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => setIsReviewModalOpen(true)}
-                        className="shrink-0 bg-[#0F1116] text-white px-8 sm:px-10 py-2.5 sm:py-3 rounded-2xl font-black uppercase tracking-tight italic text-[2rem] sm:text-[2.1rem] leading-none hover:bg-black transition-colors"
-                      >
-                        Write Review
-                      </button>
+                      <div className="h-20 sm:h-24 w-px bg-slate-300 shrink-0" />
+
+                      <div className="flex-1 min-w-0 flex flex-col items-start gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex -space-x-2">
+                            {[1, 2, 3, 4].map((i) => (
+                              <img
+                                key={i}
+                                src={`https://i.pravatar.cc/100?u=${i}`}
+                                className="w-5 h-5 sm:w-7 sm:h-7 rounded-full border-2 border-white"
+                                alt="reviewer"
+                              />
+                            ))}
+                          </div>
+                          <div className="text-[1.4rem] sm:text-[2.1rem] font-black uppercase tracking-[0.04em] text-[#E56437] leading-none whitespace-nowrap">
+                            {reviewLabel}
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => setIsReviewModalOpen(true)}
+                          className="shrink-0 bg-[#0F1116] text-white px-5 sm:px-10 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black uppercase tracking-tight italic text-[1.2rem] sm:text-[2.1rem] leading-none hover:bg-black transition-colors"
+                        >
+                          Write Review
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
+            </div>
           </div>
 
           {/* Right Column: Product Info & Buy */}
@@ -702,8 +706,16 @@ const ProductSingleClient: React.FC = () => {
                       >
                         <div className="pt-4 pb-2">
                           {acc.type === 'colors' ? (
-                            <div className="space-y-6">
-                              <div className="text-lg font-bold text-slate-900">Color: <span className="italic">{selectedColor?.name || 'N/A'}</span></div>
+                            <div className="space-y-3">
+                               <div className="flex items-center justify-start gap-4">
+                                 <div className="text-sm font-black uppercase tracking-widest text-[#FF7348]">Color: <span className="italic">{selectedColor?.name || 'N/A'}</span></div>
+                                 <button
+                                   onClick={() => setSelectedColor(product.variants.colors[0] || null)}
+                                   className="text-black text-[10px] font-black uppercase tracking-widest hover:underline"
+                                 >
+                                   Clear
+                                 </button>
+                               </div>
                               <div className="flex flex-wrap gap-4">
                                 {product.variants.colors.map((color, idx) => (
                                   <button
@@ -721,20 +733,14 @@ const ProductSingleClient: React.FC = () => {
                                   </button>
                                 ))}
                               </div>
-                              <button
-                                onClick={() => setSelectedColor(product.variants.colors[0] || null)}
-                                className="text-[#FF7348] text-xs font-black uppercase tracking-widest hover:underline"
-                              >
-                                Clear
-                              </button>
                             </div>
                           ) : acc.type === 'sizes' ? (
-                            <div className="grid grid-cols-5 gap-3">
+                            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
                               {(availableSizes.length ? availableSizes : product.variants.sizes).map((size) => (
                                 <button
                                   key={size}
                                   onClick={() => setSelectedSize(size)}
-                                  className={`py-4 rounded-xl font-black transition-all ${selectedSize === size
+                                   className={`py-1 rounded-xl font-black text-[10px] transition-all ${selectedSize === size
                                     ? "bg-black text-white shadow-xl scale-95"
                                     : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-black border border-slate-100"
                                     }`}
@@ -775,10 +781,10 @@ const ProductSingleClient: React.FC = () => {
             {/* Pricing */}
             <div className="space-y-2">
               {product.orderType !== 'request' ? (
-                <div className="flex flex-col sm:flex-row sm:items-baseline gap-3 sm:gap-4">
+                <div className="flex flex-row items-baseline gap-3 sm:gap-4">
                   <span className="text-4xl sm:text-5xl font-black italic tracking-tighter text-slate-900">${displayPrice.toFixed(2)}</span>
                   <span className="text-lg sm:text-xl text-slate-300 font-bold line-through">${product.originalPrice}</span>
-                  <Link href="#" className="sm:ml-auto text-xs font-black uppercase tracking-[0.18em] text-[#FF7348] border-b-2 border-[#FF7348] hover:text-[#ff8f6d] hover:border-[#ff8f6d] transition-colors pb-1 italic w-fit">
+                  <Link href="#" className="hidden sm:block sm:ml-auto text-xs font-black uppercase tracking-[0.18em] text-[#FF7348] border-b-2 border-[#FF7348] hover:text-[#ff8f6d] hover:border-[#ff8f6d] transition-colors pb-1 italic w-fit">
                     Sizes & Colors Guide
                   </Link>
                 </div>
@@ -786,7 +792,7 @@ const ProductSingleClient: React.FC = () => {
                 <div className="flex flex-col sm:flex-row items-center gap-4 bg-orange-50 p-6 rounded-2xl border border-orange-100">
                   <div className="text-center sm:text-left">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 leading-none mb-1">Deployment Phase</p>
-                    <h4 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Custom Quote Required</h4>
+                    <h4 className="text-xl sm:text-2xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Custom Quote Required</h4>
                   </div>
                   <ShieldCheck className="w-8 h-8 text-orange-600 sm:ml-auto" />
                 </div>
@@ -975,6 +981,58 @@ const ProductSingleClient: React.FC = () => {
           {product.videoReviews.length > 0 && <VideoReviews videoReviews={product.videoReviews} />}
           <ShopFeaturesFaqSection />
           <ProductReviews reviews={product.reviews} />
+
+          {/* Overall Rating Section (Mobile Only at the end) */}
+          <div className="sm:hidden mt-10">
+            {(() => {
+              const reviewCount = product.reviews.length;
+              const avgRating = reviewCount
+                ? (product.reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount).toFixed(1)
+                : '—';
+              const reviewLabel = reviewCount > 0 ? `${reviewCount} REVIEWS` : 'NO REVIEWS';
+              return (
+                <div className="bg-white border border-slate-500 rounded-none px-4 py-3 shadow-none">
+                  <div className="flex items-center gap-4">
+                    <div className="text-center shrink-0 w-[90px]">
+                      <div className="text-[3.2rem] font-black tracking-tighter text-[#E56437] leading-[0.9]">
+                        {avgRating}
+                      </div>
+                      <div className="text-[1.4rem] font-black uppercase tracking-[0.06em] text-[#E56437] mt-0 leading-none">
+                        Rating
+                      </div>
+                    </div>
+
+                    <div className="h-20 w-px bg-slate-300 shrink-0" />
+
+                    <div className="flex-1 min-w-0 flex flex-col items-start gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex -space-x-2">
+                          {[1, 2, 3, 4].map((i) => (
+                            <img
+                              key={i}
+                              src={`https://i.pravatar.cc/100?u=${i}`}
+                              className="w-5 h-5 rounded-full border-2 border-white"
+                              alt="reviewer"
+                            />
+                          ))}
+                        </div>
+                        <div className="text-[1.4rem] font-black uppercase tracking-[0.04em] text-[#E56437] leading-none whitespace-nowrap">
+                          {reviewLabel}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setIsReviewModalOpen(true)}
+                        className="shrink-0 bg-[#0F1116] text-white px-5 py-2.5 rounded-xl font-black uppercase tracking-tight italic text-[1.2rem] leading-none hover:bg-black transition-colors"
+                      >
+                        Write Review
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </div>
       </div>
 

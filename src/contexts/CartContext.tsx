@@ -19,6 +19,8 @@ import { toast } from 'react-toastify';
 type CartContextValue = {
   items: ApiCartItem[];
   isLoading: boolean;
+  isCartOpen: boolean;
+  setIsCartOpen: (isOpen: boolean) => void;
   addItem: (payload: AddToCartRequest) => Promise<void>;
   updateQuantity: (variantSku: string, quantity: number) => Promise<void>;
   removeItem: (variantSku: string) => Promise<void>;
@@ -34,6 +36,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [items, setItems] = useState<ApiCartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Read guest cart from local storage
   const getGuestCart = useCallback((): ApiCartItem[] => {
@@ -117,6 +120,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
         saveGuestCart(currentItems);
       }
+      setIsCartOpen(true);
       toast.success('Added to cart!');
     } catch (error) {
       console.error('Failed to add item', error);
@@ -170,6 +174,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     () => ({
       items,
       isLoading,
+      isCartOpen,
+      setIsCartOpen,
       addItem,
       updateQuantity,
       removeItem,

@@ -31,6 +31,7 @@ import { toast } from 'react-toastify';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
@@ -448,7 +449,7 @@ function RequestOrderFormContent() {
                                                 <option value="">— Select Category —</option>
                                                 {hierarchy.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                                             </select>
-                                            {isLoadingHierarchy && <div className="absolute inset-0 bg-slate-100/50 animate-pulse rounded-2xl" />}
+                                            {isLoadingHierarchy && <Skeleton className="absolute inset-0 rounded-2xl" />}
                                         </div>
                                     </div>
                                     <div className="space-y-2">

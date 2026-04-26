@@ -27,13 +27,12 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const { isCartOpen, setIsCartOpen, items: cartItems } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
-  const { items: cartItems } = useCart();
   const { items: wishlistItems } = useWishlist();
   const isAdminUser = Boolean(user?.roles?.some((role) => role !== 'customer'));
 

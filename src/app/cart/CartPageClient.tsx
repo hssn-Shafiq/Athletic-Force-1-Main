@@ -9,6 +9,7 @@ import { motion } from "motion/react";
 import { EmptyCart } from "./_components/EmptyCart";
 
 import { useCart } from "@/contexts/CartContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CartPageClient() {
   const router = useRouter();
@@ -27,6 +28,26 @@ export default function CartPageClient() {
     removeItem(id);
   };
 
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+        <div className="flex flex-col gap-12 lg:flex-row">
+          <div className="flex-1 space-y-8">
+            <Skeleton className="h-10 w-1/2" />
+            <div className="space-y-6">
+              {[1, 2].map((i) => (
+                <Skeleton key={i} className="h-48 w-full rounded-3xl" />
+              ))}
+            </div>
+          </div>
+          <aside className="lg:w-96">
+            <Skeleton className="h-[500px] w-full rounded-[40px]" />
+          </aside>
+        </div>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
@@ -34,6 +55,7 @@ export default function CartPageClient() {
       </div>
     );
   }
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
