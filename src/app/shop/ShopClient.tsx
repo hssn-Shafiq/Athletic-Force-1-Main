@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
-import { Product, CollectionHierarchy } from "@/lib/api/types";
+import { PublicProduct, CollectionHierarchy } from "@/lib/api/types";
 import { Search, SlidersHorizontal, ChevronDown, ChevronRight, Filter, X } from "lucide-react";
 import { ProductCard } from "@/components/layout/ProductCard";
 import { QuickViewModal } from "@/components/layout/QuickViewModal";
@@ -16,14 +16,14 @@ import Link from "next/link";
 
 export default function ShopClient() {
   // --- State Command Center ---
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<PublicProduct[]>([]);
   const [hierarchy, setHierarchy] = useState<CollectionHierarchy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [sortBy, setSortBy] = useState("newest");
   const [priceRange, setPriceRange] = useState<number>(1400);
-  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [quickViewProduct, setQuickViewProduct] = useState<PublicProduct | null>(null);
   const [expandedParents, setExpandedParents] = useState<string[]>([]);
 
   // --- Tactical Data Fetching ---
