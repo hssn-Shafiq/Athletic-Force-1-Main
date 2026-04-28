@@ -103,6 +103,13 @@ export default function CartPageClient() {
                         <Link href={`/products/${productSlug}`}>
                           <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-tight hover:text-orange-600 transition-colors cursor-pointer">{item.name}</h3>
                         </Link>
+                        {item.bundleId && (
+                          <div className="flex items-center gap-2 mt-2">
+                             <div className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest italic border border-orange-200">
+                                Tactical Bundle
+                             </div>
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={() => onRemoveItem(item.variantSku)}
@@ -123,7 +130,14 @@ export default function CartPageClient() {
                       )}
                       <div className="space-y-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Price</span>
-                        <span className="text-sm font-black text-slate-900">${item.price.toFixed(2)}</span>
+                        <div className="flex items-center gap-2">
+                          {item.originalPrice && item.originalPrice !== item.price && (
+                            <span className="text-xs text-slate-400 line-through font-bold">
+                              ${item.originalPrice.toFixed(2)}
+                            </span>
+                          )}
+                          <span className="text-sm font-black text-slate-900">${item.price.toFixed(2)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>

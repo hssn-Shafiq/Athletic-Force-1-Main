@@ -35,7 +35,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
     updateFaq,
     removeFaq,
     upsellProductIds,
+    upsellOffers,
+    upsellOptions,
     toggleUpsellProduct,
+    updateUpsellOffer,
     upsellSearch,
     setUpsellSearch,
     filteredUpsellOptions,
@@ -629,6 +632,58 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
                 })
               )}
             </div>
+
+            {upsellProductIds.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-px flex-1 bg-slate-100"></div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tactical Bundle Pricing (Optional)</p>
+                  <div className="h-px flex-1 bg-slate-100"></div>
+                </div>
+                <div className="space-y-2">
+                  {upsellProductIds.map((id) => {
+                    const item = upsellOptions.find((o) => o.id === id);
+                    if (!item) return null;
+                    
+                    const mainPrice = Number(salePrice || regularPrice || 0);
+                    const upsellPrice = Number(item.salePrice || item.regularPrice || item.basePrice || 0);
+                    const currentTotal = mainPrice + upsellPrice;
+
+                    return (
+                      <div key={id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 overflow-hidden flex-shrink-0">
+                            <img src={item.mainImageUrl || '/placeholder.png'} alt="" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-700 truncate">{item.name}</p>
+                            <p className="text-[10px] font-semibold text-slate-400">Current Combined: <span className="text-slate-600">${currentTotal.toFixed(2)}</span></p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-col items-end">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Bundle Total</label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black text-slate-400">$</span>
+                              <input 
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="e.g. 99.99"
+                                value={upsellOffers[id] ?? ''}
+                                onChange={(e) => updateUpsellOffer(id, e.target.value ? Number(e.target.value) : undefined)}
+                                className="w-28 px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold outline-none focus:border-black focus:ring-4 focus:ring-black/5 transition-all bg-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[9px] text-slate-400 italic">Set the total price of the bundle (Main + Upsell). Leave empty to use the current combined price.</p>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

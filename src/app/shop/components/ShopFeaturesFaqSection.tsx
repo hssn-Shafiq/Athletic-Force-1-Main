@@ -46,7 +46,7 @@ export function ShopFeaturesFaqSection() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   return (
-    <section className="mt-16 md:mt-20 px-1 md:px-2">
+    <section className="mt-16 md:mt-20 px-1 md:px-2 mb-20">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12 mb-8 md:mb-10">
         {features.map((item) => {
           const Icon = item.icon;

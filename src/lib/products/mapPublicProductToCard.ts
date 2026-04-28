@@ -50,7 +50,7 @@ export function mapPublicProductToCard(product: PublicProduct): Product {
     galleryImages: product.galleryImages?.map((entry) => entry.url) || [],
     mainVideo: product.mainVideo,
     inventory: product.inventory,
-    collections: product.collections.map((entry) => ({ name: entry.name, slug: entry.slug })),
+    collections: product.collections.map((entry) => ({ id: entry.id, name: entry.name, slug: entry.slug, parentId: entry.parentId })),
     createdAt: product.createdAt,
     status: product.status,
     tags: product.tags,

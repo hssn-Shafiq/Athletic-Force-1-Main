@@ -468,12 +468,21 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
 
               {product.orderType === 'request' && (
                 <div className="flex flex-col gap-4">
-                  <Link 
-                    href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(product.category)}&subcategory=${encodeURIComponent(product.collections?.[0]?.name || '')}`}
-                    className="w-full flex items-center justify-center gap-2 py-5 bg-[#141414] text-white rounded-2xl font-black uppercase italic tracking-widest text-xs hover:bg-black hover:scale-[1.02] transition-all shadow-xl shadow-black/10"
-                  >
-                    Request Custom Quote <ChevronRight className="w-4 h-4" />
-                  </Link>
+                  {(() => {
+                    const parentCollection = (product as any).collections?.find((c: any) => !c.parentId);
+                    const subcategoryCollection = (product as any).collections?.find((c: any) => c.parentId);
+                    const categoryName = parentCollection?.name || 'Product';
+                    const subcategoryName = subcategoryCollection?.name || '';
+                    
+                    return (
+                      <Link 
+                        href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title || (product as any).name)}&category=${encodeURIComponent(categoryName)}&subcategory=${encodeURIComponent(subcategoryName)}`}
+                        className="w-full flex items-center justify-center gap-2 py-5 bg-[#141414] text-white rounded-2xl font-black uppercase italic tracking-widest text-xs hover:bg-black hover:scale-[1.02] transition-all shadow-xl shadow-black/10"
+                      >
+                        Request Custom Quote <ChevronRight className="w-4 h-4" />
+                      </Link>
+                    );
+                  })()}
                 </div>
               )}
 

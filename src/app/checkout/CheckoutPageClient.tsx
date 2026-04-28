@@ -253,12 +253,25 @@ const OrderSummary = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-black text-slate-900 truncate">{item.name}</p>
+                    {item.bundleId && (
+                      <div className="flex items-center gap-1.5 mt-0.5 mb-1">
+                        <div className="w-0.5 h-2.5 bg-orange-500 rounded-full"></div>
+                        <span className="text-[8px] font-black uppercase text-orange-500 italic tracking-tight">Tactical Bundle</span>
+                      </div>
+                    )}
                     {(item.size || item.color) && (
                       <p className="text-[10px] text-slate-400 font-medium">
                         {[item.color, item.size].filter(Boolean).join(' / ')}
                       </p>
                     )}
-                    <p className="text-xs font-black text-slate-700">${(item.price * item.quantity).toFixed(2)}</p>
+                    <div className="flex items-center gap-1.5">
+                      {item.originalPrice && item.originalPrice !== item.price && (
+                        <span className="text-[10px] text-slate-400 line-through font-bold">
+                          ${(item.originalPrice * item.quantity).toFixed(2)}
+                        </span>
+                      )}
+                      <p className="text-xs font-black text-slate-700">${(item.price * item.quantity).toFixed(2)}</p>
+                    </div>
                   </div>
                 </div>
               ))
@@ -548,9 +561,12 @@ export default function CheckoutPageClient() {
         name: item.name,
         imageUrl: item.imageUrl,
         price: item.price,
+        originalPrice: item.originalPrice,
         quantity: item.quantity,
         color: item.color,
         size: item.size,
+        bundleId: item.bundleId,
+        bundleName: item.bundleName,
       })),
     };
 

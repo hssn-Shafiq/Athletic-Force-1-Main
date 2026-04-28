@@ -1,5 +1,6 @@
 
 import type { Metadata, ResolvingMetadata } from "next";
+import Link from "next/link";
 import ProductSingleClient from "./ProductSingleClient";
 import { getExploreProductBySlugApi } from "@/lib/api/publicProducts";
 
@@ -13,14 +14,14 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { slug } = await params;
-  
+
   try {
     const response = await getExploreProductBySlugApi(slug);
-    
+
     if (!response.ok || !response.product) {
-       return {
-         title: "Product Not Found | Athletic Force 1"
-       };
+      return {
+        title: "Product Not Found | Athletic Force 1"
+      };
     }
 
     const product = response.product;
@@ -49,6 +50,27 @@ export async function generateMetadata(
   }
 }
 
-export default function ProductSinglePage() {
-  return <ProductSingleClient />;
+export default async function ProductSinglePage({ params }: Props) {
+  const { slug } = await params;
+
+  try {
+    const response = await getExploreProductBySlugApi(slug);
+    if (!response.ok || !response.product) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-white p-6">
+          <div className="text-center space-y-4">
+            <h1 className="text-2xl font-black text-slate-900 italic uppercase">Product Not Found</h1>
+            <p className="text-slate-500 font-medium">The tactical gear you are looking for has been extracted or relocated.</p>
+            <Link href="/shop" className="inline-block bg-black text-white px-8 py-3 rounded-xl font-black uppercase italic tracking-tighter hover:bg-orange-600 transition-all">
+              Return to Armory
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
+    return <ProductSingleClient initialProduct={response.product} />;
+  } catch (error) {
+    return <ProductSingleClient />; // Fallback to client-side fetch if server-side fails
+  }
 }

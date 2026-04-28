@@ -18,16 +18,16 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => 
       {isOpen && (
         <>
           {/* Backdrop */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 bg-black/40 z-[110] backdrop-blur-sm"
           />
-          
+
           {/* Sidebar */}
-          <motion.div 
+          <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -43,7 +43,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => 
                   {cartItems.length}
                 </span>
               </div>
-              <button 
+              <button
                 onClick={onClose}
                 className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                 aria-label="Close cart"
@@ -58,9 +58,9 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => 
                 cartItems.map((item) => (
                   <div key={item.variantSku} className="flex gap-4 group">
                     <div className="w-24 h-24 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0 border border-slate-200">
-                      <img 
-                        src={item.imageUrl || '/placeholder.png'} 
-                        alt={item.name} 
+                      <img
+                        src={item.imageUrl || '/placeholder.png'}
+                        alt={item.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         referrerPolicy="no-referrer"
                       />
@@ -69,7 +69,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => 
                       <div>
                         <div className="flex justify-between items-start">
                           <h3 className="font-bold text-sm text-slate-900 leading-tight pr-4">{item.name}</h3>
-                          <button 
+                          <button
                             onClick={() => removeItem(item.variantSku)}
                             className="text-slate-300 hover:text-red-500 transition-colors"
                           >
@@ -80,25 +80,38 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => 
                           {item.color && <span>{item.color} </span>}
                           {item.size && <span>| Size: {item.size}</span>}
                         </div>
+                        {item.bundleId && (
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <div className="w-1 h-3 bg-[#FF7348] rounded-full"></div>
+                            <span className="text-[10px] font-black uppercase text-[#FF7348] italic tracking-tight">Tactical Bundle</span>
+                          </div>
+                        )}
                       </div>
-                      
+
                       <div className="flex justify-between items-center mt-2">
                         <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden scale-90 origin-left">
-                          <button 
+                          <button
                             onClick={() => updateQuantity(item.variantSku, item.quantity - 1)}
                             className="p-1 px-2 hover:bg-slate-100 text-slate-400 hover:text-black"
                           >
                             <Minus className="w-3 h-3" />
                           </button>
                           <span className="px-3 text-xs font-bold">{item.quantity}</span>
-                          <button 
+                          <button
                             onClick={() => updateQuantity(item.variantSku, item.quantity + 1)}
                             className="p-1 px-2 hover:bg-slate-100 text-slate-400 hover:text-black"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
-                        <span className="font-black text-sm text-slate-900">${item.price.toFixed(2)}</span>
+                        <div className="flex flex-col items-end">
+                          {item.originalPrice && item.originalPrice !== item.price && (
+                            <span className="text-[10px] text-slate-400 line-through font-bold leading-none mb-0.5">
+                              ${item.originalPrice.toFixed(2)}
+                            </span>
+                          )}
+                          <span className="font-black text-sm text-slate-900 leading-none">${item.price.toFixed(2)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>

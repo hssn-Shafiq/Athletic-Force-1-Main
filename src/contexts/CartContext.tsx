@@ -100,21 +100,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         if (res.ok && res.cart) setItems(res.cart.items);
       } else {
         const currentItems = getGuestCart();
-        const existingIndex = currentItems.findIndex(i => i.variantSku === payload.variantSku);
+        const existingIndex = currentItems.findIndex(i => 
+          i.variantSku === payload.variantSku && i.bundleId === payload.bundleId
+        );
         
         if (existingIndex > -1) {
           currentItems[existingIndex].quantity += payload.quantity;
         } else {
           currentItems.push({
-            productId: payload.productId,
-            variantSku: payload.variantSku,
-            slug: payload.slug,
-            name: payload.name,
-            imageUrl: payload.imageUrl,
-            price: payload.price,
-            quantity: payload.quantity,
-            color: payload.color,
-            size: payload.size,
+            ...payload,
             addedAt: new Date().toISOString(),
           } as ApiCartItem);
         }
@@ -156,7 +150,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         if (res.ok && res.cart) setItems(res.cart.items);
       } else {
         const currentItems = getGuestCart();
-        const nextItems = currentItems.filter(i => i.variantSku !== variantSku);
+        const itemToRemove = currentItems.find(i => i.variantSku === variantSku);
+        
+        let nextItems;
+        if (itemToRemove && itemToRemove.bundleId) {
+          nextItems = currentItems.filter(i => i.bundleId !== itemToRemove.bundleId);
+        } else {
+          nextItems = currentItems.filter(i => i.variantSku !== variantSku);
+        }
         saveGuestCart(nextItems);
       }
       toast.info('Item removed from cart');

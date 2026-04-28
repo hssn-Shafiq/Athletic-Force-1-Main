@@ -7,8 +7,12 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PublicProduct, CollectionHierarchy } from "@/lib/api/types";
 import { Search, ChevronDown, Home, ChevronRight } from "lucide-react";
+import dynamic from "next/dynamic";
 import { ProductCard } from "@/components/layout/ProductCard";
-import { QuickViewModal } from "@/components/layout/QuickViewModal";
+
+const QuickViewModal = dynamic(() => import("@/components/layout/QuickViewModal").then(mod => mod.QuickViewModal), {
+  ssr: false
+});
 import { getExploreProductsApi } from "@/lib/api/publicProducts";
 import { getCollectionHierarchyApi } from "@/lib/api/publicCollections";
 import { ShopSkeleton } from "@/app/shop/components/ShopSkeleton";
@@ -93,7 +97,7 @@ export default function SubCollectionClient() {
         </nav>
 
         {/* Hero Banner - Sub Collection */}
-        <div className="relative w-full h-[190px] md:h-[260px] rounded-[28px] mb-5 flex items-center justify-center bg-black overflow-hidden shadow-2xl">
+        <div className="relative w-full h-[190px] md:h-[350px] rounded-[28px] mb-5 flex items-center justify-center bg-black overflow-hidden shadow-2xl">
           <Image
             src="/shop-hero.png" // Reusing the elite shop hero
             alt={subData?.name || "Collection"}
@@ -228,7 +232,7 @@ export default function SubCollectionClient() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                   {products.map((p: any) => {
                     const mappedProduct = {
                       ...p,

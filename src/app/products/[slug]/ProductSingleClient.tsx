@@ -1,9 +1,9 @@
 
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { toast } from 'react-toastify';
@@ -26,15 +26,33 @@ import {
   ChevronRight,
   ArrowLeft,
   Play,
-  X
+  X,
+  CreditCard,
+  ArrowRight
 } from 'lucide-react';
-import { ShopFeaturesFaqSection } from '@/app/shop/components/ShopFeaturesFaqSection';
-import { ReviewModal } from '../_components/ReviewModal';
-import { VideoReviews } from '../_components/VideoReviews';
-import { ProductReviews } from '../_components/ProductReviews';
+import dynamic from 'next/dynamic';
 import { Product } from '@/types';
 import { getExploreProductBySlugApi } from '@/lib/api/publicProducts';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const ShopFeaturesFaqSection = dynamic(() => import('@/app/shop/components/ShopFeaturesFaqSection').then(mod => mod.ShopFeaturesFaqSection), {
+  ssr: true,
+  loading: () => <div className="h-40 animate-pulse bg-slate-50 rounded-3xl" />
+});
+
+const ReviewModal = dynamic(() => import('../_components/ReviewModal').then(mod => mod.ReviewModal), {
+  ssr: false
+});
+
+const VideoReviews = dynamic(() => import('../_components/VideoReviews').then(mod => mod.VideoReviews), {
+  ssr: true,
+  loading: () => <div className="h-60 animate-pulse bg-slate-50 rounded-3xl" />
+});
+
+const ProductReviews = dynamic(() => import('../_components/ProductReviews').then(mod => mod.ProductReviews), {
+  ssr: true,
+  loading: () => <div className="h-80 animate-pulse bg-slate-50 rounded-3xl" />
+});
 
 // ─── YouTube URL → embed converter ────────────────────────────────────────────
 function toEmbedUrl(url: string): string | null {
@@ -136,6 +154,10 @@ interface DetailedProduct extends Omit<Product, 'variants' | 'inventory' | 'main
     regularPrice?: number;
     salePrice?: number;
     basePrice?: number;
+    bundlePrice?: number;
+    variants: any[];
+    inventory?: any;
+    variantRows: any[];
   }[];
   reviews: {
     id: string;
@@ -160,6 +182,7 @@ interface DetailedProduct extends Omit<Product, 'variants' | 'inventory' | 'main
     size: string;
     stock: number;
     price: number;
+    originalPrice: number;
     sku: string;
     imageUrl?: string;
     isActive?: boolean;
@@ -187,6 +210,7 @@ function mapToDetailedProduct(raw: any): DetailedProduct {
     size: variant.size || 'Default',
     stock: Number(variant.stock || 0),
     price: Number(variant.price || raw.salePrice || raw.regularPrice || raw.basePrice || 0),
+    originalPrice: Number(raw.regularPrice || raw.basePrice || 0),
     sku: variant.sku || `${(raw.slug || 'PRODUCT').toUpperCase()}-${index + 1}`,
     imageUrl: variant.imageUrl,
     isActive: variant.isActive,
@@ -208,7 +232,7 @@ function mapToDetailedProduct(raw: any): DetailedProduct {
     id: raw.id,
     title: raw.name,
     sku: variantRows[0]?.sku || (raw.slug || '00001').toUpperCase(),
-    category: raw.collections?.[0]?.name || 'Product',
+    category: (raw.collections || []).find((c: any) => !c.parentId)?.name || (raw.collections || [])[0]?.name || 'Product',
     price: salePrice,
     originalPrice: regularPrice,
     discount: discount > 0 ? `${discount}% OFF` : '',
@@ -216,7 +240,25 @@ function mapToDetailedProduct(raw: any): DetailedProduct {
     image: raw.mainImageUrl,
     benefits: raw.benefits || '',
     faqs: raw.faqs || [],
-    upsellProducts: raw.upsellProducts || [],
+    upsellProducts: (raw.upsellProducts || []).map((upsell: any) => {
+      const activeV = (upsell.variants || []).filter((v: any) => v.isActive !== false);
+      const rows = activeV.map((v: any, i: number) => ({
+        color: v.color || 'Default',
+        size: v.size || 'Default',
+        stock: Number(v.stock || 0),
+        price: Number(v.price || upsell.salePrice || upsell.regularPrice || upsell.basePrice || 0),
+        originalPrice: Number(upsell.regularPrice || upsell.basePrice || 0),
+        sku: v.sku || `${(upsell.slug || 'UPSELL').toUpperCase()}-${i + 1}`,
+        imageUrl: v.imageUrl,
+        isActive: v.isActive,
+      }));
+      return {
+        ...upsell,
+        variants: activeV,
+        variantRows: rows,
+        inventory: upsell.inventory,
+      };
+    }),
     reviews,
     reviewCount,
     mainVideo: raw.mainVideo?.videoUrl ? raw.mainVideo : null,
@@ -234,27 +276,289 @@ function mapToDetailedProduct(raw: any): DetailedProduct {
     variantRows,
     orderType: raw.orderType || 'direct',
     galleryImages: (raw.galleryImages || []).map((entry: any) => entry.url),
+    collections: raw.collections || [],
   };
 }
 
-const ProductSingleClient: React.FC = () => {
-  const params = useParams<{ slug?: string | string[] }>();
-  const slug = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
+// ─── UpsellSelectionModal ───────────────────────────────────────────────────
+interface UpsellSelectionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  upsell: DetailedProduct['upsellProducts'][0];
+  mainProductPrice: number;
+  onConfirm: (selection: { color?: string; size?: string; sku: string; price: number; imageUrl: string }) => void;
+}
 
-  const [product, setProduct] = useState<DetailedProduct | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
+const UpsellSelectionModal: React.FC<UpsellSelectionModalProps> = ({ isOpen, onClose, upsell, mainProductPrice, onConfirm }) => {
   const [selectedColor, setSelectedColor] = useState<{ name: string; image: string } | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const colors = unique(upsell.variantRows.map(v => v.color).filter(c => c && c !== 'Default'));
+    const sizes = unique(upsell.variantRows.map(v => v.size).filter(s => s && s !== 'Default'));
+
+    if (colors.length > 0) {
+      const firstColor = colors[0];
+      const colorImg = upsell.variantRows.find(v => v.color === firstColor)?.imageUrl || upsell.mainImageUrl || '';
+      setSelectedColor({ name: firstColor, image: colorImg });
+    }
+
+    const availableForColor = colors.length > 0
+      ? unique(upsell.variantRows.filter(v => v.color === colors[0]).map(v => v.size).filter(s => s && s !== 'Default'))
+      : sizes;
+
+    if (availableForColor.length > 0) {
+      setSelectedSize(availableForColor[0]);
+    }
+  }, [isOpen, upsell]);
+
+  const availableSizes = useMemo(() => {
+    if (!selectedColor) {
+      return unique(upsell.variantRows.map(v => v.size).filter(s => s && s !== 'Default'));
+    }
+    return unique(
+      upsell.variantRows
+        .filter((v) => v.color.toLowerCase() === selectedColor.name.toLowerCase())
+        .map((v) => v.size)
+        .filter((s) => s && s !== 'Default')
+    );
+  }, [selectedColor, upsell.variantRows]);
+
+  const currentVariant = upsell.variantRows.find(v => {
+    const cMatch = selectedColor ? v.color.toLowerCase() === selectedColor.name.toLowerCase() : true;
+    const sMatch = selectedSize ? v.size === selectedSize : true;
+    return cMatch && sMatch;
+  });
+
+  const price = currentVariant?.price || upsell.salePrice || upsell.regularPrice || upsell.basePrice || 0;
+  const sku = currentVariant?.sku || upsell.slug.toUpperCase();
+
+  const handleConfirm = () => {
+    onConfirm({
+      color: selectedColor?.name,
+      size: selectedSize || undefined,
+      sku,
+      price,
+      imageUrl: selectedColor?.image || upsell.mainImageUrl || '',
+    });
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="relative w-full max-w-lg bg-white rounded-[40px] overflow-hidden shadow-2xl"
+          >
+            <div className="p-8 sm:p-10 space-y-8">
+              {/* Header */}
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FF7348] italic">Complete the Loadout</span>
+                  <h3 className="text-2xl font-black uppercase italic tracking-tighter text-slate-900 leading-tight">Pick Your Options</h3>
+                </div>
+                <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
+                  <X className="w-6 h-6 text-slate-400" />
+                </button>
+              </div>
+
+              {/* Product Info */}
+              <div className="flex gap-6 items-center">
+                <div className="w-32 h-32 bg-slate-50 rounded-3xl p-3 shrink-0">
+                  <img src={selectedColor?.image || upsell.mainImageUrl || ''} alt={upsell.name} loading="lazy" className="w-full h-full object-contain mix-blend-multiply" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">{upsell.name}</p>
+                  <p className="text-3xl font-black text-slate-900">${price.toFixed(2)}</p>
+                </div>
+              </div>
+
+              {/* Selectors */}
+              <div className="space-y-6">
+                {/* Color Selection */}
+                {unique(upsell.variantRows.map(v => v.color).filter(c => c && c !== 'Default')).length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Select Color</p>
+                    <div className="flex flex-wrap gap-3">
+                      {unique(upsell.variantRows.map(v => v.color).filter(c => c && c !== 'Default')).map((color) => {
+                        const img = upsell.variantRows.find(v => v.color === color)?.imageUrl || upsell.mainImageUrl || '';
+                        return (
+                          <button
+                            key={color}
+                            onClick={() => setSelectedColor({ name: color, image: img })}
+                            className={`group relative w-12 h-12 rounded-xl border-2 transition-all p-1 ${selectedColor?.name === color ? "border-black scale-110" : "border-slate-100 hover:border-slate-300"}`}
+                          >
+                            <img src={img} alt={color} loading="lazy" className="w-full h-full object-cover rounded-lg mix-blend-multiply" />
+                            {selectedColor?.name === color && (
+                              <div className="absolute -top-1 -right-1 bg-black text-white rounded-full p-0.5">
+                                <Check className="w-3 h-3" />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Size Selection */}
+                {availableSizes.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Select Size</p>
+                    <div className="flex flex-wrap gap-2">
+                      {availableSizes.map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => setSelectedSize(size)}
+                          className={`px-5 py-3 rounded-2xl text-xs font-black uppercase transition-all ${selectedSize === size ? "bg-black text-white scale-105 shadow-lg shadow-black/10" : "bg-slate-50 text-slate-400 hover:text-slate-900 border border-slate-100"}`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action */}
+              <div className="space-y-4">
+                <button
+                  onClick={handleConfirm}
+                  className="w-full bg-black text-white py-6 rounded-[24px] font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl"
+                >
+                  <div className="text-left flex-1 pl-6">
+                    {(upsell.bundlePrice || 0) < (mainProductPrice + price) && (
+                      <p className="text-[10px] line-through text-white/40 leading-none mb-1">
+                        ${(mainProductPrice + price).toFixed(2)}
+                      </p>
+                    )}
+                    <p className="leading-none tracking-tighter">
+                      ${(upsell.bundlePrice ?? (mainProductPrice + price)).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 pr-6">
+                    <span>Bundle & Checkout</span>
+                    <ArrowRight className="w-5 h-5" />
+                  </div>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+interface ProductSingleClientProps {
+  initialProduct?: any; // Accepting raw product from server
+}
+
+const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduct }) => {
+  const params = useParams<{ slug?: string | string[] }>();
+  const slug = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
+  const router = useRouter();
+
+  const initialMapped = useMemo(() => initialProduct ? mapToDetailedProduct(initialProduct) : null, [initialProduct]);
+
+  const [product, setProduct] = useState<DetailedProduct | null>(initialMapped);
+  const [isLoading, setIsLoading] = useState(!initialProduct);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const breadcrumbInfo = useMemo(() => {
+    if (!product?.collections?.length) {
+      return { parentName: 'Shop', parentSlug: 'shop' };
+    }
+    
+    // Find a collection that has a parent (this is our subcategory)
+    const subCategory = product.collections.find(c => c.parentId);
+    
+    let rootCategory = null;
+    let sub = subCategory;
+
+    if (subCategory) {
+      if (typeof subCategory.parentId === 'object' && subCategory.parentId !== null) {
+        // Parent is already populated as an object
+        rootCategory = subCategory.parentId;
+      } else if (subCategory.parentId) {
+        // Parent is a string ID, try to find it in the collections array
+        rootCategory = product.collections.find(c => c.id === subCategory.parentId);
+      }
+    }
+
+    // Fallback: if no root found yet, take the first collection that has no parent
+    if (!rootCategory) {
+      rootCategory = product.collections.find(c => !c.parentId);
+    }
+
+    // If still no root, use the first collection available
+    if (!rootCategory && product.collections.length > 0) {
+      rootCategory = product.collections[0];
+    }
+
+    // If we have a subcategory that is the SAME as the root, clear the sub
+    if (sub && rootCategory && (sub.id === (rootCategory as any).id || sub.slug === (rootCategory as any).slug)) {
+      sub = undefined;
+    }
+
+    return {
+      parentName: (rootCategory as any)?.name || 'Shop',
+      parentSlug: (rootCategory as any)?.slug || 'shop',
+      subName: sub?.name,
+      subSlug: sub?.slug
+    };
+  }, [product]);
+
+  const [selectedColor, setSelectedColor] = useState<{ name: string; image: string } | null>(
+    initialMapped?.variants.colors[0] || null
+  );
+
+  const [selectedSize, setSelectedSize] = useState<string | null>(() => {
+    if (!initialMapped) return null;
+    const initialColor = initialMapped.variants.colors[0];
+    const sizes = initialColor
+      ? unique(
+        initialMapped.variantRows
+          .filter((v) => (v.color || "").toLowerCase() === initialColor.name.toLowerCase())
+          .map((v) => v.size)
+          .filter((s) => s && s !== "Default")
+      )
+      : initialMapped.variants.sizes;
+    return sizes[0] || null;
+  });
+
   const [quantity, setQuantity] = useState(1);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
+  const [activeAccordion, setActiveAccordion] = useState<string | null>(() => {
+    if (!initialMapped) return null;
+    const hasColors = initialMapped.variants.colors.length > 0;
+    const hasSizes = initialMapped.variants.sizes.length > 0;
+    const hasBenefits = (initialMapped.benefits as string)?.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim().length > 0;
+    const hasFaqs = Boolean(initialMapped.faqs?.length);
+
+    return hasColors ? "Colors"
+      : hasSizes ? "Sizes"
+        : hasBenefits ? "Benefits"
+          : hasFaqs ? "FAQs"
+            : null;
+  });
   const [showWishlistBurst, setShowWishlistBurst] = useState(false);
   const [flyingBox, setFlyingBox] = useState<{ id: number; startX: number; startY: number; endX: number; endY: number } | null>(null);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  // Upsell Selection Modal State
+  const [isUpsellModalOpen, setIsUpsellModalOpen] = useState(false);
+  const [activeUpsell, setActiveUpsell] = useState<DetailedProduct['upsellProducts'][0] | null>(null);
 
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
@@ -272,10 +576,15 @@ const ProductSingleClient: React.FC = () => {
       setLoadError(null);
 
       try {
-        const response = await getExploreProductBySlugApi(slug);
-        if (!mounted) return;
+        let productData = initialProduct;
 
-        const mapped = mapToDetailedProduct(response.product);
+        if (!productData) {
+          const response = await getExploreProductBySlugApi(slug);
+          productData = response.product;
+        }
+
+        if (!mounted) return;
+        const mapped = mapToDetailedProduct(productData);
         setProduct(mapped);
 
         const initialColor = mapped.variants.colors[0] || null;
@@ -376,7 +685,17 @@ const ProductSingleClient: React.FC = () => {
     ])
     : [];
 
-  const displayPrice = Number(selectedVariant?.price ?? product?.price ?? 0);
+  const productPrice = Number(product?.price ?? 0);
+  const productRegPrice = Number(product?.originalPrice ?? 0);
+  const variantPrice = Number(selectedVariant?.price ?? 0);
+
+  // If variant price matches regular price and there's a sale, use the sale price.
+  // Otherwise use the variant's custom price or the product's base price.
+  const displayPrice = (variantPrice === productRegPrice && productPrice < productRegPrice)
+    ? productPrice
+    : (variantPrice || productPrice);
+
+  const displayOriginalPrice = productRegPrice;
   const displaySku = selectedVariant?.sku || product?.sku || '00001';
 
   useEffect(() => {
@@ -446,6 +765,90 @@ const ProductSingleClient: React.FC = () => {
     setIsAddingToCart(false);
 
     window.dispatchEvent(new CustomEvent('af1:add-to-cart', { detail: { qty: quantity } }));
+  };
+
+  const handleUpsellAddToCart = async (item: any, buttonRect: DOMRect) => {
+    const target = document.getElementById('af1-header-cart-trigger');
+    const targetRect = target?.getBoundingClientRect();
+
+    if (targetRect) {
+      setFlyingBox({
+        id: Date.now(),
+        startX: buttonRect.left + buttonRect.width / 2,
+        startY: buttonRect.top + buttonRect.height / 2,
+        endX: targetRect.left + targetRect.width / 2,
+        endY: targetRect.top + targetRect.height / 2,
+      });
+
+      window.setTimeout(() => {
+        setFlyingBox(null);
+      }, 3000);
+    }
+
+    await addItem(item);
+    window.dispatchEvent(new CustomEvent('af1:add-to-cart', { detail: { qty: 1 } }));
+  };
+
+  const handleUpsellBundleAction = (upsell: DetailedProduct['upsellProducts'][0]) => {
+    setActiveUpsell(upsell);
+    setIsUpsellModalOpen(true);
+  };
+
+  const handleUpsellConfirm = async (selection: { color?: string; size?: string; sku: string; price: number; imageUrl: string }) => {
+    if (!product || !activeUpsell) return;
+
+    const bundleId = `bundle-${product.id}-${activeUpsell.id}-${Date.now()}`;
+    const bundleName = `Tactical Bundle: ${product.title} + ${activeUpsell.name}`;
+
+    // Calculate prices for splitting if admin-defined bundle price exists
+    let mainCartPrice = displayPrice;
+    let upsellCartPrice = selection.price;
+
+    if (activeUpsell.bundlePrice) {
+      // Split logic: Main keeps its current price, Upsell covers the delta to reach bundle total
+      mainCartPrice = displayPrice;
+      upsellCartPrice = Math.max(0, activeUpsell.bundlePrice - displayPrice);
+    }
+
+    // 1. Add Main Product to Cart as bundle component
+    await addItem({
+      productId: product.id,
+      variantSku: displaySku,
+      slug: product.slug,
+      name: product.title,
+      imageUrl: thumbnails[0] || product.image,
+      price: mainCartPrice,
+      originalPrice: displayPrice,
+      quantity: quantity,
+      color: selectedColor?.name,
+      size: selectedSize || undefined,
+      bundleId,
+      bundleName
+    });
+
+    // 2. Add Upsell Product to Cart as bundle component
+    await addItem({
+      productId: activeUpsell.id,
+      variantSku: selection.sku,
+      slug: activeUpsell.slug,
+      name: activeUpsell.name,
+      imageUrl: selection.imageUrl,
+      price: upsellCartPrice,
+      originalPrice: selection.price,
+      quantity: 1,
+      color: selection.color,
+      size: selection.size,
+      bundleId,
+      bundleName
+    });
+
+    setIsUpsellModalOpen(false);
+    toast.success("Bundle added! Redirecting to checkout...", { theme: "dark" });
+
+    // 3. Instant Extraction to Checkout
+    setTimeout(() => {
+      router.push('/checkout');
+    }, 800);
   };
 
   const { toggleItem, isInWishlist } = useWishlist();
@@ -526,7 +929,7 @@ const ProductSingleClient: React.FC = () => {
                       className={`relative min-w-[64px] w-[20vw] max-w-[80px] md:min-w-0 md:w-full aspect-square rounded-xl overflow-hidden bg-slate-50 border-2 transition-all p-1 group shrink-0 ${selectedIndex === idx ? "border-black scale-95" : "border-transparent hover:border-slate-200"
                         }`}
                     >
-                      <img src={thumb} alt={`thumb-${idx}`} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform" />
+                      <img src={thumb} alt={`thumb-${idx}`} loading="lazy" className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform" />
                       {selectedIndex === idx && (
                         <div className="absolute inset-0 bg-black/5" />
                       )}
@@ -543,6 +946,7 @@ const ProductSingleClient: React.FC = () => {
                       <img
                         src={img}
                         alt={`${product.title}-${idx}`}
+                        loading={idx === 0 ? "eager" : "lazy"}
                         className="w-full h-full object-contain mix-blend-multiply pointer-events-none"
                       />
                     </div>
@@ -641,6 +1045,23 @@ const ProductSingleClient: React.FC = () => {
           {/* Right Column: Product Info & Buy */}
           <div className="space-y-6 md:space-y-8">
             <div className="space-y-4">
+              {/* Breadcrumbs */}
+              <nav className="flex items-center flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <Link href="/" className="hover:text-black transition-colors">Home</Link>
+                <ChevronRight className="w-3 h-3" />
+                <Link href={`/collections/${breadcrumbInfo.parentSlug}`} className="hover:text-black transition-colors">
+                  {breadcrumbInfo.parentName}
+                </Link>
+                {breadcrumbInfo.subName && (
+                  <>
+                    <ChevronRight className="w-3 h-3" />
+                    <Link href={`/collections/${breadcrumbInfo.parentSlug}/${breadcrumbInfo.subSlug}`} className="text-orange-600 italic hover:text-orange-700 transition-colors">
+                      {breadcrumbInfo.subName}
+                    </Link>
+                  </>
+                )}
+              </nav>
+
               <div className="flex justify-between items-start gap-3">
                 <h1 className="text-3xl lg:text-4xl font-black italic uppercase tracking-tighter text-slate-900 leading-[0.95]">
                   {product.title}
@@ -675,7 +1096,7 @@ const ProductSingleClient: React.FC = () => {
                 <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full">
                   <div className="flex -space-x-2">
                     {[1, 2, 3].map(i => (
-                      <img key={i} src={`https://i.pravatar.cc/100?u=${i + 10}`} className="w-6 h-6 rounded-full border-2 border-white" alt="av" />
+                      <img key={i} src={`https://i.pravatar.cc/100?u=${i + 10}`} loading="lazy" className="w-6 h-6 rounded-full border-2 border-white" alt="av" />
                     ))}
                   </div>
                   <span className="text-xs font-black text-slate-900 leading-none">4.5 <span className="text-[#FF7348] uppercase italic">Rating</span></span>
@@ -707,15 +1128,15 @@ const ProductSingleClient: React.FC = () => {
                         <div className="pt-4 pb-2">
                           {acc.type === 'colors' ? (
                             <div className="space-y-3">
-                               <div className="flex items-center justify-start gap-4">
-                                 <div className="text-sm font-black uppercase tracking-widest text-[#FF7348]">Color: <span className="italic">{selectedColor?.name || 'N/A'}</span></div>
-                                 <button
-                                   onClick={() => setSelectedColor(product.variants.colors[0] || null)}
-                                   className="text-black text-[10px] font-black uppercase tracking-widest hover:underline"
-                                 >
-                                   Clear
-                                 </button>
-                               </div>
+                              <div className="flex items-center justify-start gap-4">
+                                <div className="text-sm font-black uppercase tracking-widest text-[#FF7348]">Color: <span className="italic">{selectedColor?.name || 'N/A'}</span></div>
+                                <button
+                                  onClick={() => setSelectedColor(product.variants.colors[0] || null)}
+                                  className="text-black text-[10px] font-black uppercase tracking-widest hover:underline"
+                                >
+                                  Clear
+                                </button>
+                              </div>
                               <div className="flex flex-wrap gap-4">
                                 {product.variants.colors.map((color, idx) => (
                                   <button
@@ -724,7 +1145,7 @@ const ProductSingleClient: React.FC = () => {
                                     className={`relative w-[52px] h-[52px] rounded-xl overflow-hidden bg-slate-50 border-2 transition-all p-1 ${selectedColor?.name === color.name ? "border-black ring-4 ring-black/5" : "border-slate-100 hover:border-slate-300"
                                       }`}
                                   >
-                                    <img src={color.image} alt={color.name} className="w-full h-full object-cover mix-blend-multiply" />
+                                    <img src={color.image} alt={color.name} loading="lazy" className="w-full h-full object-cover mix-blend-multiply" />
                                     {selectedColor?.name === color.name && (
                                       <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
                                         <Check className="w-6 h-6 text-white bg-black rounded-full p-1" />
@@ -740,7 +1161,7 @@ const ProductSingleClient: React.FC = () => {
                                 <button
                                   key={size}
                                   onClick={() => setSelectedSize(size)}
-                                   className={`py-1 rounded-xl font-black text-[10px] transition-all ${selectedSize === size
+                                  className={`py-1 rounded-xl font-black text-[10px] transition-all ${selectedSize === size
                                     ? "bg-black text-white shadow-xl scale-95"
                                     : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-black border border-slate-100"
                                     }`}
@@ -783,7 +1204,9 @@ const ProductSingleClient: React.FC = () => {
               {product.orderType !== 'request' ? (
                 <div className="flex flex-row items-baseline gap-3 sm:gap-4">
                   <span className="text-4xl sm:text-5xl font-black italic tracking-tighter text-slate-900">${displayPrice.toFixed(2)}</span>
-                  <span className="text-lg sm:text-xl text-slate-300 font-bold line-through">${product.originalPrice}</span>
+                  {displayOriginalPrice > displayPrice && (
+                    <span className="text-lg sm:text-xl text-slate-300 font-bold line-through">${displayOriginalPrice.toFixed(2)}</span>
+                  )}
                   <Link href="#" className="hidden sm:block sm:ml-auto text-xs font-black uppercase tracking-[0.18em] text-[#FF7348] border-b-2 border-[#FF7348] hover:text-[#ff8f6d] hover:border-[#ff8f6d] transition-colors pb-1 italic w-fit">
                     Sizes & Colors Guide
                   </Link>
@@ -826,7 +1249,7 @@ const ProductSingleClient: React.FC = () => {
               )}
               {product.orderType === 'request' ? (
                 <Link
-                  href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(product.category)}&subcategory=${encodeURIComponent(product.collections?.[0]?.name || '')}`}
+                  href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(product.collections?.find(c => !c.parentId)?.name || 'Product')}&subcategory=${encodeURIComponent(product.collections?.find(c => c.parentId)?.name || '')}`}
                   className="flex-1 flex items-center justify-center gap-2 sm:gap-3 rounded-2xl font-black uppercase italic tracking-tighter text-lg sm:text-xl px-4 py-4 bg-orange-600 hover:bg-orange-700 text-white transition-all shadow-xl active:scale-95 w-full"
                 >
                   <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -846,7 +1269,7 @@ const ProductSingleClient: React.FC = () => {
             {/* Big Action Button */}
             {product.orderType === 'request' ? (
               <Link
-                href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(product.category)}&subcategory=${encodeURIComponent(product.collections?.[0]?.name || '')}`}
+                href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(product.collections?.find(c => !c.parentId)?.name || 'Product')}&subcategory=${encodeURIComponent(product.collections?.find(c => c.parentId)?.name || '')}`}
                 className="w-full text-white py-4 sm:py-6 rounded-3xl font-black uppercase italic tracking-tighter text-xl sm:text-2xl transition-all shadow-xl active:scale-95 bg-black hover:bg-slate-900 border-2 border-orange-500 hover:shadow-2xl flex items-center justify-center gap-3 sm:gap-4"
               >
                 <span>Submit Inquiry</span>
@@ -901,54 +1324,74 @@ const ProductSingleClient: React.FC = () => {
               ))}
             </div>
 
-            {/* Upsell / Bundle Section — only shown if upsell products exist and not a request product */}
+            {/* Tactical Bundle — One Time Offer Section */}
             {product.upsellProducts.length > 0 && product.orderType !== 'request' && (
-              <div className="pt-10 md:pt-12 space-y-6">
+              <div className="pt-12 md:pt-16 space-y-8">
                 <div className="flex justify-between items-center gap-3">
-                  <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-900">Just for You — One Time Offer</h3>
-                  <div className="bg-black text-white px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest italic">Bundle Deal</div>
+                  <h3 className="text-xl sm:text-2xl font-black italic uppercase tracking-tighter text-slate-900">One-Time Tactical Offer</h3>
+                  <div className="bg-[#FF7348] text-white px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest italic animate-pulse">Save on Bundle</div>
                 </div>
+
                 {product.upsellProducts.map((upsell) => {
-                  const upsellPrice = Number(upsell.salePrice ?? upsell.regularPrice ?? upsell.basePrice ?? 0);
-                  const upsellOriginal = Number(upsell.regularPrice ?? upsell.basePrice ?? 0);
-                  const combinedOriginal = (product.originalPrice + upsellOriginal).toFixed(2);
-                  const combinedSale = (product.price + upsellPrice).toFixed(2);
+                  const upsellCurrentPrice = Number(upsell.salePrice ?? upsell.regularPrice ?? upsell.basePrice ?? 0);
+                  const mainCurrentPrice = product.price; // Current sale or regular price
+
+                  const combinedCurrentTotal = mainCurrentPrice + upsellCurrentPrice;
+                  const bundleTotal = upsell.bundlePrice ?? combinedCurrentTotal;
+
+                  const hasBundleDiscount = bundleTotal < combinedCurrentTotal;
+
                   return (
-                    <div key={upsell.id} className="p-5 sm:p-6 md:p-8 border-2 border-slate-200 rounded-[32px] md:rounded-[40px] relative overflow-hidden">
-                      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3 sm:gap-6 min-w-0">
-                        <div className="space-y-4 min-w-0">
-                          <div className="aspect-square bg-slate-50 rounded-2xl overflow-hidden p-2">
+                    <div key={upsell.id} className="group p-6 sm:p-8 md:p-10 border-4 border-slate-100 rounded-[40px] md:rounded-[48px] relative overflow-hidden hover:border-black transition-all duration-500 bg-white">
+                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-10">
+                        {/* Main Product */}
+                        <div className="space-y-4 text-center">
+                          <div className="aspect-square bg-slate-50 rounded-3xl overflow-hidden p-4 group-hover:scale-105 transition-transform">
                             <img src={product.image} alt={product.title} className="w-full h-full object-contain mix-blend-multiply" />
                           </div>
                           <div className="space-y-1">
-                            <p className="text-[8px] font-bold uppercase text-slate-400 line-clamp-2 leading-tight">{product.title}</p>
-                            <p className="text-xs font-black text-slate-900">${product.price.toFixed(2)}</p>
+                            <p className="text-[9px] font-black uppercase text-slate-400 line-clamp-1 leading-tight">{product.title}</p>
+                            <p className="text-sm font-black text-slate-900">${mainCurrentPrice.toFixed(2)}</p>
                           </div>
                         </div>
-                        <div className="self-center text-2xl font-black text-slate-300">+</div>
-                        <div className="space-y-4 min-w-0">
-                          <div className="aspect-square bg-slate-50 rounded-2xl overflow-hidden p-2">
-                            {upsell.mainImageUrl ? (
-                              <img src={upsell.mainImageUrl} alt={upsell.name} className="w-full h-full object-contain mix-blend-multiply" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-300 text-xs font-bold uppercase">No Image</div>
-                            )}
+
+                        <div className="text-3xl font-black text-slate-200">+</div>
+
+                        {/* Upsell Product */}
+                        <div className="space-y-4 text-center">
+                          <div className="aspect-square bg-slate-50 rounded-3xl overflow-hidden p-4 group-hover:scale-105 transition-transform">
+                            <img src={upsell.mainImageUrl || ''} alt={upsell.name} className="w-full h-full object-contain mix-blend-multiply" />
                           </div>
                           <div className="space-y-1">
-                            <p className="text-[8px] font-bold uppercase text-slate-400 line-clamp-2 leading-tight">{upsell.name}</p>
-                            <p className="text-xs font-black text-slate-900">${upsellPrice.toFixed(2)}</p>
+                            <p className="text-[9px] font-black uppercase text-slate-400 line-clamp-1 leading-tight">{upsell.name}</p>
+                            <p className="text-sm font-black text-slate-900">${upsellCurrentPrice.toFixed(2)}</p>
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-8 pt-8 border-t border-slate-100">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-slate-400 line-through tracking-wider leading-none mb-1">${combinedOriginal}</span>
-                          <span className="text-4xl font-black italic tracking-tighter text-slate-900 leading-none">${combinedSale}</span>
+
+                      <div className="mt-10 pt-8 border-t-2 border-dashed border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6">
+                        <div className="text-center sm:text-left">
+                          {hasBundleDiscount && (
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-400 line-through mb-1">
+                              ${combinedCurrentTotal.toFixed(2)}
+                            </p>
+                          )}
+                          <p className="text-5xl font-black italic tracking-tighter text-slate-900 leading-none">
+                            ${bundleTotal.toFixed(2)}
+                          </p>
                         </div>
-                        <button className="flex items-center justify-center gap-3 bg-black text-white px-6 sm:px-8 py-4 sm:py-5 rounded-[20px] font-black uppercase italic tracking-tighter text-lg sm:text-xl hover:scale-105 transition-all shadow-xl active:scale-95 w-full sm:w-auto">
+                        <button
+                          onClick={() => handleUpsellBundleAction(upsell)}
+                          className="w-full sm:w-auto bg-black text-white px-10 py-5 rounded-[24px] font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 hover:bg-[#FF7348] transition-all shadow-2xl active:scale-95"
+                        >
                           <ShoppingBag className="w-6 h-6" />
-                          <span>Buy Now</span>
+                          <span>Grab the Bundle</span>
                         </button>
+                      </div>
+
+                      {/* High-Fidelity Badge */}
+                      <div className="absolute top-0 right-0 bg-black text-white px-6 py-2 rounded-bl-3xl text-[10px] font-black uppercase tracking-widest italic">
+                        Tactical Sync
                       </div>
                     </div>
                   );
@@ -1041,6 +1484,16 @@ const ProductSingleClient: React.FC = () => {
         onClose={() => setIsReviewModalOpen(false)}
         productTitle={product.title}
       />
+
+      {activeUpsell && product && (
+        <UpsellSelectionModal
+          isOpen={isUpsellModalOpen}
+          onClose={() => setIsUpsellModalOpen(false)}
+          upsell={activeUpsell}
+          mainProductPrice={product.price}
+          onConfirm={handleUpsellConfirm}
+        />
+      )}
 
       {/* Dynamic styles for rainbow animation */}
       <style>{`
