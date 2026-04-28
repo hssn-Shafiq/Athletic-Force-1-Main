@@ -166,6 +166,7 @@ export type ProductCollectionOption = {
   id: string;
   name: string;
   slug: string;
+  parentId?: string | null;
 };
 
 export type ProductVariant = {
@@ -207,6 +208,16 @@ export type ProductUpsellOption = {
   slug: string;
   status?: 'active' | 'draft' | 'archived';
   mainImageUrl?: string;
+  regularPrice?: number;
+  salePrice?: number;
+  basePrice?: number;
+  bundlePrice?: number;
+  variants?: ProductVariant[];
+  inventory?: {
+    trackQuantity: boolean;
+    allowBackorder: boolean;
+    globalStock: number;
+  };
 };
 
 export type ProductReview = {
@@ -228,6 +239,11 @@ export type ProductImageAsset = {
   publicId: string;
 };
 
+export type ProductUpsellOffer = {
+  productId: string;
+  bundlePrice?: number;
+};
+
 export type AdminProduct = {
   id: string;
   name: string;
@@ -237,6 +253,7 @@ export type AdminProduct = {
   faqs?: ProductFaq[];
   upsellProductIds?: string[];
   upsellProducts?: ProductUpsellOption[];
+  upsellOffers?: ProductUpsellOffer[];
   orderType: 'direct' | 'request';
   status: 'active' | 'draft' | 'archived';
   collectionIds: string[];
@@ -327,6 +344,7 @@ export type PublicProduct = {
   };
   galleryImages?: ProductImageAsset[];
   reviews?: ProductReview[];
+  upsellOffers?: ProductUpsellOffer[];
   variants: ProductVariant[];
   inventory?: {
     trackQuantity: boolean;
@@ -411,6 +429,7 @@ export type UpsertProductRequest = {
   benefits?: string;
   faqs?: ProductFaq[];
   upsellProductIds?: string[];
+  upsellOffers?: ProductUpsellOffer[];
   orderType: 'direct' | 'request';
   collectionIds: string[];
   status: 'active' | 'draft' | 'archived';
@@ -485,10 +504,13 @@ export type ApiCartItem = {
   name: string;
   imageUrl?: string;
   price: number;
+  originalPrice?: number;
   quantity: number;
   color?: string;
   size?: string;
   addedAt?: string;
+  bundleId?: string;
+  bundleName?: string;
 };
 
 export type ApiCart = {
@@ -510,9 +532,12 @@ export type AddToCartRequest = {
   name: string;
   imageUrl?: string;
   price: number;
+  originalPrice?: number;
   quantity: number;
   color?: string;
   size?: string;
+  bundleId?: string;
+  bundleName?: string;
 };
 
 export type UpdateCartQuantityRequest = {

@@ -24,7 +24,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+import { Suspense } from "react";
+
 export default function ShopPage() {
-  return <ShopClient />;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <ShopClient />
+    </Suspense>
+  );
 }
 

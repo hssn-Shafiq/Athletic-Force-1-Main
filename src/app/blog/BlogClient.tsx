@@ -75,7 +75,7 @@ export default function BlogClient() {
 
             <article className="grid grid-cols-1 lg:grid-cols-2 gap-6 rounded-[40px] bg-white border border-black/10 overflow-hidden shadow-xl shadow-black/5 group">
               <div className="h-[260px] md:h-[420px] overflow-hidden">
-                <img src={featuredPost.thumbnail} alt={featuredPost.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <img src={featuredPost.thumbnail} alt={featuredPost.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
               </div>
               <div className="p-6 md:p-10 flex flex-col justify-between">
                 <div>
@@ -146,7 +146,7 @@ export default function BlogClient() {
               {otherPosts.map((post) => (
                 <article key={post.slug} className="rounded-[32px] overflow-hidden bg-white border border-black/5 group hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col">
                   <div className="h-[240px] overflow-hidden relative">
-                    <img src={post.thumbnail} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    <img src={post.thumbnail} alt={post.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                     <div className="absolute top-4 left-4">
                        <span className="px-3 py-1 bg-black/50 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest rounded-lg italic">
                           {post.category?.name || "Journal"}

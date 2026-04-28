@@ -20,6 +20,7 @@ function buildProductFormData(payload: Partial<UpsertProductRequest> & { removeM
     ...(payload.benefits !== undefined ? { benefits: payload.benefits } : {}),
     ...(payload.faqs !== undefined ? { faqs: payload.faqs } : {}),
     ...(payload.upsellProductIds !== undefined ? { upsellProductIds: payload.upsellProductIds } : {}),
+    ...(payload.upsellOffers !== undefined ? { upsellOffers: payload.upsellOffers } : {}),
     ...(payload.orderType !== undefined ? { orderType: payload.orderType } : {}),
     ...(payload.collectionIds !== undefined ? { collectionIds: payload.collectionIds } : {}),
     ...(payload.status !== undefined ? { status: payload.status } : {}),

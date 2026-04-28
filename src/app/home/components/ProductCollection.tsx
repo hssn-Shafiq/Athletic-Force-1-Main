@@ -2,7 +2,11 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { ProductCard } from '@/components/layout/ProductCard';
-import { QuickViewModal } from '@/components/layout/QuickViewModal';
+import dynamic from 'next/dynamic';
+
+const QuickViewModal = dynamic(() => import('@/components/layout/QuickViewModal').then(mod => mod.QuickViewModal), {
+  ssr: false
+});
 import { Product } from '@/types';
 import { ArrowRight } from 'lucide-react';
 import { getExploreProductsApi } from '@/lib/api/publicProducts';

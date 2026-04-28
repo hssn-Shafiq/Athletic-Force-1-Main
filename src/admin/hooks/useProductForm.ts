@@ -249,6 +249,7 @@ export function useProductForm(productId?: string) {
   const [benefits, setBenefits] = useState('');
   const [faqs, setFaqs] = useState<ProductFormFaq[]>([]);
   const [upsellProductIds, setUpsellProductIds] = useState<string[]>([]);
+  const [upsellOffers, setUpsellOffers] = useState<Record<string, number | undefined>>({});
   const [upsellOptions, setUpsellOptions] = useState<ProductUpsellOption[]>([]);
   const [upsellSearch, setUpsellSearch] = useState('');
   const [orderType, setOrderType] = useState<OrderType>('direct');
@@ -678,6 +679,13 @@ export function useProductForm(productId?: string) {
         setBenefits(product.benefits || '');
         setFaqs((product.faqs || []).map((entry) => ({ question: entry.question || '', answer: entry.answer || '' })));
         setUpsellProductIds(product.upsellProductIds || []);
+        
+        const offersMap: Record<string, number | undefined> = {};
+        (product.upsellOffers || []).forEach((offer: any) => {
+          offersMap[offer.productId] = offer.bundlePrice;
+        });
+        setUpsellOffers(offersMap);
+        
         setOrderType(product.orderType || 'direct');
         setStatus(product.status || 'draft');
         setBasePrice(String(product.basePrice ?? 0));
@@ -1074,10 +1082,21 @@ export function useProductForm(productId?: string) {
   const toggleUpsellProduct = (productOptionId: string) => {
     setUpsellProductIds((prev) => {
       if (prev.includes(productOptionId)) {
+        setUpsellOffers((prevOffers) => {
+          const { [productOptionId]: _, ...rest } = prevOffers;
+          return rest;
+        });
         return prev.filter((id) => id !== productOptionId);
       }
       return [...prev, productOptionId];
     });
+  };
+
+  const updateUpsellOffer = (productId: string, bundlePrice: number | undefined) => {
+    setUpsellOffers((prev) => ({
+      ...prev,
+      [productId]: bundlePrice,
+    }));
   };
 
   const addReview = () => {
@@ -1473,6 +1492,10 @@ export function useProductForm(productId?: string) {
           .map((entry) => ({ question: entry.question.trim(), answer: entry.answer.trim() }))
           .filter((entry) => entry.question && entry.answer),
         upsellProductIds,
+        upsellOffers: upsellProductIds.map((id) => ({
+          productId: id,
+          bundlePrice: upsellOffers[id] !== undefined ? Number(upsellOffers[id]) : undefined,
+        })),
         orderType,
         collectionIds: selectedCollectionIds,
         status: statusOverride ?? status,
@@ -1536,6 +1559,10 @@ export function useProductForm(productId?: string) {
           .map((entry) => ({ question: entry.question.trim(), answer: entry.answer.trim() }))
           .filter((entry) => entry.question && entry.answer),
         upsellProductIds,
+        upsellOffers: upsellProductIds.map((id) => ({
+          productId: id,
+          bundlePrice: upsellOffers[id] !== undefined ? Number(upsellOffers[id]) : undefined,
+        })),
         orderType,
         collectionIds: selectedCollectionIds,
         status: statusOverride ?? status,
@@ -1599,7 +1626,9 @@ export function useProductForm(productId?: string) {
     updateFaq,
     removeFaq,
     upsellProductIds,
+    upsellOffers,
     toggleUpsellProduct,
+    updateUpsellOffer,
     upsellOptions,
     upsellSearch,
     setUpsellSearch,

@@ -79,6 +79,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
           <img 
             src={product.image} 
             alt={product.title}
+            loading="lazy"
             className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
           />
         </Link>

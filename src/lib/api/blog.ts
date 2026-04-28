@@ -35,7 +35,7 @@ export interface BlogPost {
 
 // --- PUBLIC ---
 
-export async function getPublicBlogPostsApi(params?: { category?: string; tag?: string; page?: number; limit?: number }) {
+export async function getPublicBlogPostsApi(params?: { category?: string; tag?: string; search?: string; page?: number; limit?: number }) {
   const { data } = await apiClient.get('/api/blog/posts', { params });
   return data;
 }

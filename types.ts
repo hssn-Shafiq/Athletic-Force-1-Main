@@ -40,8 +40,10 @@ export interface Product {
     globalStock: number;
   };
   collections?: Array<{
+    id: string;
     name: string;
     slug: string;
+    parentId?: string | { id: string; name: string; slug: string } | null;
   }>;
   createdAt?: string;
   status?: 'active' | 'draft' | 'archived';

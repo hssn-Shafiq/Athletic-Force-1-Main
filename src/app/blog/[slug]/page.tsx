@@ -137,7 +137,7 @@ export default async function BlogSinglePage({ params }: BlogDetailProps) {
                 {relatedPosts.map((item: any) => (
                   <Link key={item.slug} href={`/blog/${item.slug}`} className="group block space-y-3">
                     <div className="aspect-[16/9] rounded-2xl overflow-hidden bg-slate-100 border border-slate-50 shadow-sm">
-                      <img src={item.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      <img src={item.thumbnail} loading="lazy" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     </div>
                     <div>
                       <p className="text-[9px] uppercase tracking-widest text-orange-600 font-black italic">{item.category?.name}</p>
