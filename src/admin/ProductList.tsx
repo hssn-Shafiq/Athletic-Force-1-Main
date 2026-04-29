@@ -14,12 +14,14 @@ import {
   AlertTriangle,
   CheckCircle2,
   Package,
-  Columns3
+  Columns3,
+  MessageSquare
 } from 'lucide-react';
 import { deleteAdminProductApi, getAdminProductCollectionsApi, getAdminProductsApi } from '@/lib/api/products';
 import { AdminProduct, ProductCollectionOption } from '@/lib/api/types';
 import { getApiErrorMessage } from '@/lib/api/errors';
 import { toast } from 'react-toastify';
+import { ReviewModerationModal } from './components/ReviewModerationModal';
 
 type ColumnKey = 'product' | 'sku' | 'type' | 'price' | 'stock' | 'status' | 'actions';
 
@@ -38,20 +40,21 @@ export const AdminProductList: React.FC = () => {
   const [search, setSearch] = useState('');
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [collections, setCollections] = useState<ProductCollectionOption[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'active' | 'draft' | 'archived' | ''>('');
   const [stockFilter, setStockFilter] = useState<'in-stock' | 'out-of-stock' | 'low-stock' | ''>('');
   const [collectionFilter, setCollectionFilter] = useState('');
   const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt' | 'name' | 'basePrice'>('createdAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [resultCount, setResultCount] = useState(0);
   const [columnVisibility, setColumnVisibility] = useState(DEFAULT_COLUMN_VISIBILITY);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
   const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
+  const [selectedProductForReviews, setSelectedProductForReviews] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -93,6 +96,7 @@ export const AdminProductList: React.FC = () => {
         setTotalPages(response.pagination.totalPages);
         setResultCount(response.pagination.resultCount);
       } finally {
+        // Subtle delay to make the skeleton look intentional and premium
         if (isMounted) {
           setIsLoading(false);
         }
@@ -280,12 +284,57 @@ export const AdminProductList: React.FC = () => {
           </thead>
           <tbody className="divide-y divide-slate-50">
             {isLoading ? (
-              <tr>
-                <td colSpan={7} className="px-8 py-10 text-center text-sm font-semibold text-slate-500">Loading products...</td>
-              </tr>
+              Array.from({ length: 6 }).map((_, idx) => (
+                <tr key={`skeleton-${idx}`} className="animate-pulse">
+                  {columnVisibility.product && (
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-slate-100" />
+                        <div className="space-y-2">
+                          <div className="h-4 w-32 bg-slate-100 rounded" />
+                          <div className="h-3 w-20 bg-slate-50 rounded" />
+                        </div>
+                      </div>
+                    </td>
+                  )}
+                  {columnVisibility.sku && (
+                    <td className="px-8 py-6">
+                      <div className="space-y-2">
+                        <div className="h-3 w-16 bg-slate-100 rounded" />
+                        <div className="h-2 w-12 bg-slate-50 rounded" />
+                      </div>
+                    </td>
+                  )}
+                  {columnVisibility.type && (
+                    <td className="px-8 py-6">
+                      <div className="h-6 w-24 bg-slate-50 rounded-full" />
+                    </td>
+                  )}
+                  {columnVisibility.price && (
+                    <td className="px-8 py-6">
+                      <div className="h-4 w-12 bg-slate-100 rounded" />
+                    </td>
+                  )}
+                  {columnVisibility.stock && (
+                    <td className="px-8 py-6">
+                      <div className="h-4 w-16 bg-slate-100 rounded" />
+                    </td>
+                  )}
+                  {columnVisibility.status && (
+                    <td className="px-8 py-6">
+                      <div className="h-4 w-20 bg-slate-100 rounded" />
+                    </td>
+                  )}
+                  {columnVisibility.actions && (
+                    <td className="px-8 py-6">
+                      <div className="h-8 w-24 bg-slate-50 rounded-lg" />
+                    </td>
+                  )}
+                </tr>
+              ))
             ) : products.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-8 py-10 text-center text-sm font-semibold text-slate-500">No products found.</td>
+                <td colSpan={7} className="px-8 py-10 text-center text-sm font-semibold text-slate-500 italic">No products found in this vector.</td>
               </tr>
             ) : products.map((product) => (
               <tr key={product.id} className="hover:bg-slate-50 transition-colors group">
@@ -329,6 +378,14 @@ export const AdminProductList: React.FC = () => {
                 </td> : null}
                 {columnVisibility.actions ? <td className="px-8 py-6">
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProductForReviews({ id: product.id, name: product.name })}
+                      className="p-2 hover:bg-orange-50 hover:text-[#FF7348] rounded-lg transition-all text-slate-400"
+                      title="Moderate Reviews"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => router.push(`/admin/products/${product.id}/edit`)}
@@ -391,6 +448,14 @@ export const AdminProductList: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {selectedProductForReviews && (
+        <ReviewModerationModal
+          productId={selectedProductForReviews.id}
+          productName={selectedProductForReviews.name}
+          onClose={() => setSelectedProductForReviews(null)}
+        />
+      )}
     </div>
   );
 };

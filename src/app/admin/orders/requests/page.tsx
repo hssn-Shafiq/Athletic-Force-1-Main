@@ -1,5 +1,5 @@
-import { AdminOrderList } from '../../../../admin/OrderList';
+import OrdersListClient from '../OrdersListClient';
 
 export default function Page() {
-  return <AdminOrderList />;
+  return <OrdersListClient fixedType="request" />;
 }

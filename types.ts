@@ -49,6 +49,15 @@ export interface Product {
   status?: 'active' | 'draft' | 'archived';
   tags?: string[];
   orderType: 'direct' | 'request';
+  reviews?: Array<{
+    id: string;
+    rating: number;
+    fullName: string;
+    reviewText: string;
+    photos: Array<{ url: string; publicId: string }>;
+    userAvatar?: { url: string; publicId: string };
+    createdAt?: string;
+  }>;
 }
 
 export interface CartItem extends Product {

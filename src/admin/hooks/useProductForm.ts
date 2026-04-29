@@ -90,8 +90,8 @@ export type ProductFormReview = {
   fullName: string;
   email: string;
   reviewText: string;
-  photos: ProductMediaAsset[];
-  photoFiles: File[];
+  userAvatar?: ProductMediaAsset;
+  userAvatarFile?: File;
 };
 
 export type ProductFormMainVideo = {
@@ -1110,8 +1110,8 @@ export function useProductForm(productId?: string) {
         fullName: '',
         email: '',
         reviewText: '',
-        photos: [],
-        photoFiles: [],
+        userAvatar: undefined,
+        userAvatarFile: undefined,
       },
     ]);
   };
@@ -1124,38 +1124,40 @@ export function useProductForm(productId?: string) {
     setReviews((prev) => prev.filter((entry) => entry.id !== id));
   };
 
-  const setReviewPhotosFromMedia = (id: string, media: ProductMediaAsset[]) => {
+  const setReviewAvatarFromMedia = (id: string, media: ProductMediaAsset) => {
     setReviews((prev) =>
       prev.map((entry) => {
         if (entry.id !== id) return entry;
         return {
           ...entry,
-          photos: [...entry.photos, ...media],
-          photoFiles: [],
+          userAvatar: media,
+          userAvatarFile: undefined,
         };
       })
     );
   };
 
-  const setReviewPhotoFiles = (id: string, files: File[]) => {
+  const setReviewAvatarFile = (id: string, file: File | undefined) => {
     setReviews((prev) =>
       prev.map((entry) => {
         if (entry.id !== id) return entry;
         return {
           ...entry,
-          photoFiles: files,
+          userAvatarFile: file,
+          userAvatar: undefined,
         };
       })
     );
   };
 
-  const removeReviewPhoto = (id: string, index: number) => {
+  const removeReviewAvatar = (id: string) => {
     setReviews((prev) =>
       prev.map((entry) => {
         if (entry.id !== id) return entry;
         return {
           ...entry,
-          photos: entry.photos.filter((_, photoIndex) => photoIndex !== index),
+          userAvatar: undefined,
+          userAvatarFile: undefined,
         };
       })
     );
@@ -1431,8 +1433,8 @@ export function useProductForm(productId?: string) {
         fullName: review.fullName.trim(),
         email: review.email.trim(),
         reviewText: review.reviewText.trim(),
-        photos: review.photos,
-        photoFiles: review.photoFiles,
+        userAvatar: review.userAvatar,
+        userAvatarFile: review.userAvatarFile,
       }))
       .filter((review) => Boolean(review.fullName) && Boolean(review.email) && Boolean(review.reviewText));
   };
@@ -1677,9 +1679,9 @@ export function useProductForm(productId?: string) {
     addReview,
     updateReview,
     removeReview,
-    setReviewPhotosFromMedia,
-    setReviewPhotoFiles,
-    removeReviewPhoto,
+    setReviewAvatarFromMedia,
+    setReviewAvatarFile,
+    removeReviewAvatar,
     mainVideo,
     setMainVideoField,
     setMainVideoThumbnailFile,

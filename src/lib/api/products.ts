@@ -74,6 +74,7 @@ function buildProductFormData(payload: Partial<UpsertProductRequest> & { removeM
             email: review.email,
             reviewText: review.reviewText,
             photos: review.photos || [],
+            userAvatar: review.userAvatar,
           })),
         }
       : {}),
@@ -118,6 +119,9 @@ function buildProductFormData(payload: Partial<UpsertProductRequest> & { removeM
 
   if (payload.reviews?.length) {
     payload.reviews.forEach((review) => {
+      if (review.userAvatarFile && review.clientKey) {
+        formData.append(`reviewAvatar:${review.clientKey}`, review.userAvatarFile);
+      }
       if (!review.photoFiles?.length || !review.clientKey) return;
       review.photoFiles.forEach((file, index) => {
         formData.append(`reviewPhoto:${review.clientKey}:${index}`, file);
@@ -179,5 +183,15 @@ export async function updateAdminProductApi(productId: string, payload: UpdatePr
 
 export async function deleteAdminProductApi(productId: string) {
   const { data } = await apiClient.delete<DeleteProductResponse>(`/api/admin/products/${productId}`);
+  return data;
+}
+
+export async function getAdminProductReviewsApi(productId: string) {
+  const { data } = await apiClient.get<{ ok: boolean; items: any[] }>(`/api/admin/products/${productId}/reviews`);
+  return data;
+}
+
+export async function updateReviewStatusApi(reviewId: string, status: 'pending' | 'approved' | 'rejected') {
+  const { data } = await apiClient.patch<{ ok: boolean; review: any }>(`/api/admin/reviews/${reviewId}/status`, { status });
   return data;
 }

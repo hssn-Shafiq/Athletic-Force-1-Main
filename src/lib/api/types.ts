@@ -230,6 +230,7 @@ export type ProductReview = {
   email: string;
   reviewText: string;
   photos: ProductImageAsset[];
+  userAvatar?: ProductImageAsset;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -415,6 +416,8 @@ export type UpsertProductReviewRequest = {
   reviewText: string;
   photos?: ProductMediaAsset[];
   photoFiles?: File[];
+  userAvatar?: ProductMediaAsset;
+  userAvatarFile?: File;
 };
 
 export type ProductMediaAsset = {

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
@@ -24,7 +24,13 @@ import {
   Globe,
   BookOpen,
   LogOut,
-  ShieldAlert
+  ShieldAlert,
+  RefreshCw,
+  AlertTriangle,
+  Wand2,
+  X,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api/client';
@@ -34,32 +40,93 @@ interface SidebarItemProps {
   label: string;
   href?: string;
   subItems?: { label: string; href: string }[];
+  isCollapsed?: boolean;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, href, subItems }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, href, subItems, isCollapsed }) => {
   const pathname = usePathname();
   const isActive = href ? pathname === href : subItems?.some((item) => pathname === item.href);
   const [isOpen, setIsOpen] = useState(Boolean(isActive));
+  const [isHovered, setIsHovered] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const itemRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseEnter = () => {
+    if (isCollapsed && itemRef.current) {
+      const rect = itemRef.current.getBoundingClientRect();
+      setCoords({ top: rect.top, left: rect.right });
+    }
+    setIsHovered(true);
+  };
 
   const linkBaseClass = 'block p-2 text-[10px] font-bold uppercase tracking-widest italic transition-colors';
 
   if (subItems) {
     return (
-      <div className="space-y-1">
+      <div className="space-y-1 relative" ref={itemRef}>
         <button 
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => !isCollapsed && setIsOpen(!isOpen)}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={() => setIsHovered(false)}
           className={`w-full flex items-center justify-between p-3 rounded-xl transition-all group ${
-            isActive ? "bg-orange-600 text-white" : "text-slate-500 hover:bg-slate-50 hover:text-black"
-          }`}
+            isActive ? "bg-orange-600 text-white shadow-lg shadow-orange-600/20" : "text-slate-500 hover:bg-slate-50 hover:text-black"
+          } ${isCollapsed ? "justify-center" : ""}`}
         >
           <div className="flex items-center gap-3">
-            <Icon className={`w-5 h-5 ${isActive ? "text-white" : "text-slate-400 group-hover:text-black"}`} />
-            <span className="font-bold uppercase tracking-widest text-[11px] italic">{label}</span>
+            <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-slate-400 group-hover:text-black"}`} />
+            {!isCollapsed && <span className="font-bold uppercase tracking-widest text-[11px] italic truncate">{label}</span>}
           </div>
-          <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+          {!isCollapsed && <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />}
         </button>
+
+        {/* Tooltip / Mini-Menu for Collapsed State */}
         <AnimatePresence>
-          {isOpen && (
+          {isCollapsed && isHovered && (
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              className="fixed z-[100] ml-1 pl-3"
+              style={{ top: coords.top, left: coords.left }}
+            >
+              <div className="bg-black text-white rounded-xl shadow-2xl overflow-hidden min-w-[180px] border border-white/10">
+                <div className="px-4 py-3 border-b border-white/10 bg-white/5">
+                  <p className="text-[10px] font-black uppercase tracking-widest italic opacity-60">Tactical Menu</p>
+                  <p className="text-[11px] font-black uppercase tracking-tighter italic">{label}</p>
+                </div>
+                
+                {subItems ? (
+                  <div className="p-1.5">
+                    {subItems.map((sub) => (
+                      <Link
+                        key={sub.href}
+                        href={sub.href}
+                        className={`block px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest italic transition-all hover:bg-orange-600 hover:text-white ${
+                          pathname === sub.href ? 'text-orange-500' : 'text-slate-300'
+                        }`}
+                      >
+                        {sub.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <Link
+                    href={href!}
+                    className="block px-4 py-3 text-[10px] font-bold uppercase tracking-widest italic text-slate-300 hover:bg-orange-600 hover:text-white transition-all"
+                  >
+                    Open {label}
+                  </Link>
+                )}
+              </div>
+              <div className="absolute left-[8px] top-5 w-3 h-3 bg-black rotate-45 border-l border-b border-white/10" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {!isCollapsed && isOpen && (
             <motion.div 
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -83,18 +150,50 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, href, subI
   }
 
   return (
-    <Link
-      href={href!}
-      className={`flex items-center gap-3 p-3 rounded-xl transition-all group ${pathname === href ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
-    >
-      <Icon className={`w-5 h-5 ${pathname === href ? 'text-white' : 'text-slate-400 group-hover:text-black'}`} />
-      <span className="font-bold uppercase tracking-widest text-[11px] italic">{label}</span>
-    </Link>
+    <div className="relative" ref={itemRef}>
+      <Link
+        href={href!}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`flex items-center gap-3 p-3 rounded-xl transition-all group ${
+          pathname === href ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-500 hover:bg-slate-50 hover:text-black'
+        } ${isCollapsed ? "justify-center" : ""}`}
+      >
+        <Icon className={`w-5 h-5 shrink-0 ${pathname === href ? 'text-white' : 'text-slate-400 group-hover:text-black'}`} />
+        {!isCollapsed && <span className="font-bold uppercase tracking-widest text-[11px] italic truncate">{label}</span>}
+      </Link>
+
+      {/* Tooltip / Mini-Menu for Collapsed State */}
+      <AnimatePresence>
+        {isCollapsed && isHovered && (
+          <motion.div
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="fixed z-[100] ml-1 pl-3"
+            style={{ top: coords.top, left: coords.left }}
+          >
+            <div className="bg-black text-white rounded-xl shadow-2xl overflow-hidden min-w-[150px] border border-white/10">
+              <Link
+                href={href!}
+                className="block px-4 py-3 text-[10px] font-black uppercase tracking-widest italic text-slate-100 hover:bg-orange-600 hover:text-white transition-all"
+              >
+                Access {label}
+              </Link>
+            </div>
+            <div className="absolute left-[8px] top-5 w-3 h-3 bg-black rotate-45 border-l border-b border-white/10" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 
 export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -128,19 +227,55 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const [notifications, setNotifications] = useState<{count: number, recentOrders: any[]}>({ count: 0, recentOrders: [] });
+  const [notifications, setNotifications] = useState<{
+    count: number;
+    details?: { 
+      orders: number; 
+      lowStock: number; 
+      outOfStock: number; 
+      reviews: number;
+      failedPayments: number;
+      quotes: number;
+      delays: number;
+    };
+    recentOrders: any[];
+  }>({ count: 0, recentOrders: [] });
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [dismissedKeys, setDismissedKeys] = useState<Set<string>>(new Set());
+
+  const dismissItem = (key: string) => {
+    setDismissedKeys(prev => {
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+  };
+
+  const fetchNotifications = async (manual = false) => {
+    if (manual) setIsRefreshing(true);
+    try {
+      const { data } = await apiClient.get('/api/orders/admin/notifications');
+      if (data.ok) {
+        setNotifications({ 
+          count: data.pendingCount, 
+          details: data.details,
+          recentOrders: data.recentOrders || [] 
+        });
+      }
+    } catch (e) {
+    } finally {
+      if (manual) {
+        setTimeout(() => setIsRefreshing(false), 600);
+      }
+    }
+  };
 
   React.useEffect(() => {
     if (!isAdmin) return;
-    const fetchNotifications = async () => {
-      try {
-        const { data } = await apiClient.get('/api/orders/admin/notifications');
-        if (data.ok) setNotifications({ count: data.pendingCount, recentOrders: data.recentOrders || [] });
-      } catch (e) {}
-    };
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
+    const interval = setInterval(() => fetchNotifications(), 30000);
     return () => clearInterval(interval);
   }, [isAdmin]);
 
@@ -202,29 +337,34 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex">
-      {/* Sidebar */}
-      <aside className={`bg-white border-r border-slate-100 flex flex-col transition-all duration-300 z-50 fixed lg:static inset-y-0 left-0 ${
-        isSidebarOpen ? "w-72" : "w-20 -translate-x-full lg:translate-x-0"
+      {/* Sidebar - Fixed Positioning */}
+      <aside className={`bg-white border-r border-slate-100 flex flex-col transition-all duration-300 z-50 fixed inset-y-0 left-0 ${
+        isSidebarOpen 
+          ? (isSidebarCollapsed ? "w-20" : "w-72") 
+          : "w-72 -translate-x-full lg:translate-x-0"
       }`}>
-        <div className="p-8 flex items-center gap-3">
-          <div className="bg-black text-white w-10 h-10 rounded-xl flex items-center justify-center shrink-0 rotate-[-5deg]">
-            <span className="text-2xl font-black italic">A</span>
-          </div>
-          {isSidebarOpen && (
-            <div className="flex flex-col leading-none">
-              <span className="text-[10px] tracking-[.3em] font-black text-slate-400 uppercase">Admin</span>
-              <span className="text-xl tracking-tighter font-black italic uppercase text-slate-900 leading-tight">Force 1</span>
+        <div className={`p-8 flex items-center justify-between gap-3 ${isSidebarCollapsed ? "px-5" : ""}`}>
+          <div className="flex items-center gap-3">
+            <div className="bg-black text-white w-10 h-10 rounded-xl flex items-center justify-center shrink-0 rotate-[-5deg]">
+              <span className="text-2xl font-black italic">A</span>
             </div>
-          )}
+            {!isSidebarCollapsed && (
+              <div className="flex flex-col leading-none">
+                <span className="text-[10px] tracking-[.3em] font-black text-slate-400 uppercase">Admin</span>
+                <span className="text-xl tracking-tighter font-black italic uppercase text-slate-900 leading-tight">Force 1</span>
+              </div>
+            )}
+          </div>
         </div>
 
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto no-scrollbar">
-          {canSeeInsights && <SidebarItem icon={BarChart3} label="Insights" href="/admin" />}
+          {canSeeInsights && <SidebarItem icon={BarChart3} label="Insights" href="/admin" isCollapsed={isSidebarCollapsed} />}
           
           {canSeeProducts && (
             <SidebarItem 
               icon={Box} 
               label="Products" 
+              isCollapsed={isSidebarCollapsed}
               subItems={[
                 { label: "All Products", href: "/admin/products" },
                 { label: "Add Product", href: "/admin/products/add" },
@@ -237,6 +377,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
             <SidebarItem 
               icon={ClipboardList} 
               label="Orders" 
+              isCollapsed={isSidebarCollapsed}
               subItems={[
                 { label: "Direct Orders", href: "/admin/orders" },
                 { label: "Request Orders", href: "/admin/orders/requests" }
@@ -248,6 +389,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
             <SidebarItem 
               icon={BookOpen} 
               label="Journal" 
+              isCollapsed={isSidebarCollapsed}
               subItems={[
                 { label: "Manage Blogs", href: "/admin/blog" },
                 { label: "Add Blog", href: "/admin/blog/add" },
@@ -256,20 +398,20 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
             />
           )}
 
-          {canSeeInventory && <SidebarItem icon={Warehouse} label="Inventory" href="/admin/inventory" />}
-          {canSeeCustomers && <SidebarItem icon={Users} label="Customers" href="/admin/customers" />}
-          {canSeeEmails && <SidebarItem icon={Mail} label="Emails" href="/admin/emails" />}
+          {canSeeInventory && <SidebarItem icon={Warehouse} label="Inventory" href="/admin/inventory" isCollapsed={isSidebarCollapsed} />}
+          {canSeeCustomers && <SidebarItem icon={Users} label="Customers" href="/admin/customers" isCollapsed={isSidebarCollapsed} />}
+          {canSeeEmails && <SidebarItem icon={Mail} label="Emails" href="/admin/emails" isCollapsed={isSidebarCollapsed} />}
 
-          <div className="pt-4 mt-4 border-t border-slate-50 space-y-1">
-            <p className="px-3 pb-1 text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Strategy</p>
-            {canSeeSeo && <SidebarItem icon={Globe} label="SEO Command" href="/admin/seo" />}
-            {canSeeSettings && <SidebarItem icon={Truck} label="Shipping & Tax" href="/admin/settings/shipping-tax" />}
-            {canSeeStaff && <SidebarItem icon={Users} label="Staff Management" href="/admin/users" />}
-            <SidebarItem icon={Settings} label="Settings" href="/admin/settings" />
+          <div className={`pt-4 mt-4 border-t border-slate-50 space-y-1 ${isSidebarCollapsed ? "text-center" : ""}`}>
+            {!isSidebarCollapsed && <p className="px-3 pb-1 text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Strategy</p>}
+            {canSeeSeo && <SidebarItem icon={Globe} label="SEO Command" href="/admin/seo" isCollapsed={isSidebarCollapsed} />}
+            {canSeeSettings && <SidebarItem icon={Truck} label="Shipping & Tax" href="/admin/settings/shipping-tax" isCollapsed={isSidebarCollapsed} />}
+            {canSeeStaff && <SidebarItem icon={Users} label="Staff Management" href="/admin/users" isCollapsed={isSidebarCollapsed} />}
+            <SidebarItem icon={Settings} label="Settings" href="/admin/settings" isCollapsed={isSidebarCollapsed} />
           </div>
         </nav>
 
-        <div className="p-4 border-t border-slate-50">
+        <div className="mt-auto p-4 border-t border-slate-50 bg-white">
           <div className="bg-slate-50 rounded-2xl p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
               <User className="w-5 h-5 text-orange-600" />
@@ -288,16 +430,27 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Topbar */}
-        <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-40">
+      {/* Main Content Area - Dedicated Scroll Container */}
+      <div className={`flex-1 flex flex-col h-screen overflow-y-auto min-w-0 transition-all duration-300 ${
+        isSidebarOpen 
+          ? (isSidebarCollapsed ? "lg:ml-20" : "lg:ml-72") 
+          : "ml-0"
+      }`}>
+        {/* Topbar - Locked Tactical Header */}
+        <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-40 shrink-0">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="lg:hidden p-2 hover:bg-slate-50 rounded-xl"
             >
               <Menu className="w-6 h-6" />
+            </button>
+            <button 
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="hidden lg:flex p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-black transition-colors"
+              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isSidebarCollapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
             </button>
             <div className="relative group hidden md:block">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -331,48 +484,177 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     className="absolute right-0 mt-2 w-80 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden"
                   >
-                    <div className="p-4 border-b border-slate-50 flex items-center justify-between">
-                      <h3 className="text-xs font-black uppercase tracking-widest italic text-slate-900">Notifications</h3>
-                      <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md">{notifications.count} New</span>
+                    <div className="p-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xs font-black uppercase tracking-widest italic text-slate-900">Tactical Notifications</h3>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            fetchNotifications(true);
+                          }}
+                          className={`p-1.5 hover:bg-slate-200 rounded-md transition-all ${isRefreshing ? 'animate-spin text-orange-600' : 'text-slate-400'}`}
+                          disabled={isRefreshing}
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <span className="text-[10px] font-black text-orange-600 bg-orange-100 px-2 py-1 rounded-md">{notifications.count} Active</span>
                     </div>
-                    <div className="max-h-[300px] overflow-y-auto">
-                      {notifications.recentOrders.length === 0 ? (
+                    
+                    <div className="max-h-[450px] overflow-y-auto no-scrollbar">
+                      {/* Alerts Summary */}
+                      {notifications.details && (
+                        <div className="p-4 bg-orange-50/30 border-b border-slate-50 space-y-2">
+                           {notifications.details.outOfStock > 0 && !dismissedKeys.has('outOfStock') && (
+                             <div className="group relative">
+                               <Link href="/admin/inventory" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-red-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                                    <span className="text-[10px] font-black uppercase tracking-tighter text-red-600">Critical: {notifications.details.outOfStock} Out of Stock</span>
+                                  </div>
+                                  <ChevronDown className="-rotate-90 w-3 h-3 text-red-400" />
+                               </Link>
+                               <button 
+                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('outOfStock'); }}
+                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-red-50 rounded-md text-red-300 hover:text-red-600 transition-all opacity-0 group-hover:opacity-100"
+                               >
+                                 <X className="w-3 h-3" />
+                               </button>
+                             </div>
+                           )}
+                           {notifications.details.lowStock > 0 && !dismissedKeys.has('lowStock') && (
+                             <div className="group relative">
+                               <Link href="/admin/inventory" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-orange-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-2 h-2 rounded-full bg-orange-600" />
+                                    <span className="text-[10px] font-black uppercase tracking-tighter text-orange-600">Warning: {notifications.details.lowStock} Low Stock</span>
+                                  </div>
+                                  <ChevronDown className="-rotate-90 w-3 h-3 text-orange-400" />
+                               </Link>
+                               <button 
+                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('lowStock'); }}
+                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-orange-50 rounded-md text-orange-300 hover:text-orange-600 transition-all opacity-0 group-hover:opacity-100"
+                               >
+                                 <X className="w-3 h-3" />
+                               </button>
+                             </div>
+                           )}
+                           {notifications.details.delays > 0 && !dismissedKeys.has('delays') && (
+                             <div className="group relative">
+                               <Link href="/admin/orders" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-orange-200 bg-orange-50/50 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                  <div className="flex items-center gap-3">
+                                    <AlertTriangle className="w-3.5 h-3.5 text-orange-700" />
+                                    <span className="text-[10px] font-black uppercase tracking-tighter text-orange-700">Delayed: {notifications.details.delays} Orders {'>'} 48H</span>
+                                  </div>
+                                  <ChevronDown className="-rotate-90 w-3 h-3 text-orange-400" />
+                               </Link>
+                               <button 
+                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('delays'); }}
+                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-orange-100 rounded-md text-orange-400 hover:text-orange-700 transition-all opacity-0 group-hover:opacity-100"
+                               >
+                                 <X className="w-3 h-3" />
+                               </button>
+                             </div>
+                           )}
+                           {notifications.details.failedPayments > 0 && !dismissedKeys.has('failedPayments') && (
+                             <div className="group relative">
+                               <Link href="/admin/orders" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-red-200 bg-red-50/30 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                  <div className="flex items-center gap-3">
+                                    <ShieldAlert className="w-3.5 h-3.5 text-red-700" />
+                                    <span className="text-[10px] font-black uppercase tracking-tighter text-red-700">Alert: {notifications.details.failedPayments} Failed Payments</span>
+                                  </div>
+                                  <ChevronDown className="-rotate-90 w-3 h-3 text-red-400" />
+                               </Link>
+                               <button 
+                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('failedPayments'); }}
+                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-red-100 rounded-md text-red-400 hover:text-red-700 transition-all opacity-0 group-hover:opacity-100"
+                               >
+                                 <X className="w-3 h-3" />
+                               </button>
+                             </div>
+                           )}
+                           {notifications.details.quotes > 0 && !dismissedKeys.has('quotes') && (
+                             <div className="group relative">
+                               <Link href="/admin/orders/requests" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-indigo-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                  <div className="flex items-center gap-3">
+                                    <Wand2 className="w-3.5 h-3.5 text-indigo-600" />
+                                    <span className="text-[10px] font-black uppercase tracking-tighter text-indigo-600">Incoming: {notifications.details.quotes} Quote Requests</span>
+                                  </div>
+                                  <ChevronDown className="-rotate-90 w-3 h-3 text-indigo-400" />
+                               </Link>
+                               <button 
+                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('quotes'); }}
+                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-indigo-50 rounded-md text-indigo-300 hover:text-indigo-600 transition-all opacity-0 group-hover:opacity-100"
+                               >
+                                 <X className="w-3 h-3" />
+                               </button>
+                             </div>
+                           )}
+                           {notifications.details.reviews > 0 && !dismissedKeys.has('reviews') && (
+                             <div className="group relative">
+                               <Link href="/admin/products" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-blue-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-2 h-2 rounded-full bg-blue-600" />
+                                    <span className="text-[10px] font-black uppercase tracking-tighter text-blue-600">{notifications.details.reviews} New Reviews Pending</span>
+                                  </div>
+                                  <ChevronDown className="-rotate-90 w-3 h-3 text-blue-400" />
+                               </Link>
+                               <button 
+                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('reviews'); }}
+                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-blue-50 rounded-md text-blue-300 hover:text-blue-600 transition-all opacity-0 group-hover:opacity-100"
+                               >
+                                 <X className="w-3 h-3" />
+                               </button>
+                             </div>
+                           )}
+                        </div>
+                      )}
+
+                      {/* Orders Section */}
+                      <div className="p-3 bg-slate-50/30 border-b border-slate-50">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Recent Mission Orders</p>
+                      </div>
+
+                      {notifications.recentOrders.filter(o => !dismissedKeys.has(o.id)).length === 0 ? (
                         <div className="p-6 text-center">
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No new orders</p>
                         </div>
                       ) : (
-                        notifications.recentOrders.map((order) => (
-                          <Link 
-                            key={order.id}
-                            href={`/admin/orders/${order.id}`}
-                            onClick={() => {
-                              setIsDropdownOpen(false);
-                              setNotifications(prev => ({
-                                count: Math.max(0, prev.count - 1),
-                                recentOrders: prev.recentOrders.filter(o => o.id !== order.id)
-                              }));
-                            }}
-                            className="block p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0"
-                          >
-                            <div className="flex justify-between items-start mb-1">
-                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                Order #{order.id.slice(-6).toUpperCase()}
-                              </span>
-                              <span className="text-[9px] font-bold text-slate-400">
-                                {new Date(order.createdAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <p className="text-sm font-black text-slate-900 truncate">
-                              {order.userId?.name || order.shippingAddress.firstName + ' ' + order.shippingAddress.lastName}
-                            </p>
-                            <p className="text-xs font-bold text-slate-500 mt-1">${order.total.toFixed(2)}</p>
-                          </Link>
+                        notifications.recentOrders.filter(o => !dismissedKeys.has(o.id)).map((order) => (
+                          <div key={order.id} className="group relative">
+                            <Link 
+                              href={`/admin/orders/${order.id}`}
+                              onClick={() => {
+                                setIsDropdownOpen(false);
+                              }}
+                              className="block p-4 border-b border-slate-50 hover:bg-slate-50 transition-colors last:border-0 pr-12"
+                            >
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                  Order #{order.id.slice(-6).toUpperCase()}
+                                </span>
+                                <span className="text-[9px] font-bold text-slate-400">
+                                  {new Date(order.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="text-sm font-black text-slate-900 truncate uppercase italic tracking-tighter">
+                                {order.userId?.name || order.shippingAddress.firstName + ' ' + order.shippingAddress.lastName}
+                              </p>
+                              <p className="text-xs font-bold text-slate-500 mt-1">${order.total.toFixed(2)}</p>
+                            </Link>
+                            <button 
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem(order.id); }}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-200 rounded-xl text-slate-300 hover:text-slate-600 transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
                         ))
                       )}
                     </div>
                     <div className="p-3 bg-slate-50 text-center border-t border-slate-100">
                       <Link href="/admin/orders" onClick={() => setIsDropdownOpen(false)} className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-black hover:underline italic">
-                        View All Orders
+                        Access All Command Logs
                       </Link>
                     </div>
                   </motion.div>

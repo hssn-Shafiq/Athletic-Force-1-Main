@@ -133,6 +133,9 @@ const OrdersView = () => {
     }
   };
 
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 5;
+
   const filteredOrders = orders.filter(o => {
     if (filter === 'All') return true;
     if (filter === 'Shipped') return ['shipped', 'delivered'].includes(o.status);
@@ -140,6 +143,13 @@ const OrdersView = () => {
     if (filter === 'Cancelled') return ['cancelled', 'failed', 'refunded'].includes(o.status);
     return true;
   });
+
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const paginatedOrders = filteredOrders.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
 
   if (selectedOrder) {
     return (
@@ -180,11 +190,71 @@ const OrdersView = () => {
                         )}
                         <p className="text-xs text-slate-400 font-bold mt-1">Qty: <span className="text-slate-900">{item.quantity}</span></p>
                       </div>
-                      <p className="text-sm font-black text-slate-900">${(item.price * item.quantity).toFixed(2)}</p>
+                      <div className="text-right">
+                        <p className="text-sm font-black text-slate-900">
+                          {selectedOrder.type === 'request' ? 'QUOTE PENDING' : `$${(item.price * item.quantity).toFixed(2)}`}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {/* Customization Dossier (Only for Requests) */}
+              {selectedOrder.type === 'request' && (
+                <div className="bg-[#141414] text-white rounded-[32px] p-8 shadow-2xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                    <Package className="w-32 h-32 rotate-12" />
+                  </div>
+                  
+                  <h3 className="text-xl font-black uppercase tracking-tighter italic text-orange-500 mb-8 flex items-center gap-3">
+                    <Trophy className="w-5 h-5" /> Your Customization Dossier
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                    <div className="space-y-6">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Team / Organization</p>
+                        <p className="text-lg font-black italic uppercase tracking-tighter">{selectedOrder.teamName || 'NOT SPECIFIED'}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Deployment Deadline</p>
+                        <p className="text-lg font-black italic uppercase tracking-tighter">
+                          {selectedOrder.expectedDeliveryDate ? new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString(undefined, { dateStyle: 'long' }) : 'TBD'}
+                        </p>
+                      </div>
+
+                      {selectedOrder.logoUrl && (
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Tactical Logo</p>
+                          <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                            <img src={selectedOrder.logoUrl} className="w-full h-32 object-contain rounded-xl" alt="Custom Logo" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-6">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Customization Intel</p>
+                        <p className="text-sm font-medium leading-relaxed text-slate-300 italic whitespace-pre-wrap">
+                          {selectedOrder.customizationDetails || 'No specific customization details provided.'}
+                        </p>
+                      </div>
+                      
+                      {selectedOrder.notes && (
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Your Notes</p>
+                          <p className="text-sm font-medium leading-relaxed text-slate-300 italic whitespace-pre-wrap">
+                            {selectedOrder.notes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {/* Tracking info if exists */}
               {selectedOrder.trackingId && (
@@ -195,32 +265,39 @@ const OrdersView = () => {
                   </div>
                   <p className="text-sm font-bold text-slate-700">{selectedOrder.carrier || 'Carrier'}</p>
                   <p className="text-xl font-black text-orange-600 mt-1">{selectedOrder.trackingId}</p>
-                  <button className="mt-4 flex items-center justify-center gap-2 bg-black text-white px-6 py-3 rounded-xl font-black uppercase italic tracking-widest text-xs hover:scale-105 transition-all">
+                  <a 
+                    href={selectedOrder.trackingUrl || `/account?tab=orders`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 flex items-center justify-center gap-2 bg-black text-white px-6 py-3 rounded-xl font-black uppercase italic tracking-widest text-xs hover:scale-105 transition-all"
+                  >
                     Track Package <ExternalLink className="w-3.5 h-3.5" />
-                  </button>
+                  </a>
                 </div>
               )}
             </div>
 
             <div className="space-y-6">
               {/* Order Summary */}
-              <div className="bg-slate-50 rounded-[32px] p-8 space-y-4">
-                <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900 border-b border-slate-200 pb-4">Payment Summary</h3>
-                <div className="space-y-3 text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  <div className="flex justify-between"><span>Subtotal</span><span className="text-slate-900">${selectedOrder.subtotal.toFixed(2)}</span></div>
-                  {selectedOrder.discountAmount > 0 && (
-                    <div className="flex justify-between text-green-600"><span>Discount</span><span>-${selectedOrder.discountAmount.toFixed(2)}</span></div>
-                  )}
-                  <div className="flex justify-between"><span>Shipping</span><span className="text-slate-900">${selectedOrder.shippingFee.toFixed(2)}</span></div>
-                  {selectedOrder.taxAmount > 0 && (
-                    <div className="flex justify-between"><span>Tax</span><span className="text-slate-900">${selectedOrder.taxAmount.toFixed(2)}</span></div>
-                  )}
-                  <div className="flex justify-between pt-4 border-t border-slate-200 items-center">
-                    <span className="text-base text-slate-900">Total</span>
-                    <span className="text-2xl font-black text-orange-600 italic">${selectedOrder.total.toFixed(2)}</span>
+              {selectedOrder.type !== 'request' && (
+                <div className="bg-slate-50 rounded-[32px] p-8 space-y-4">
+                  <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900 border-b border-slate-200 pb-4">Payment Summary</h3>
+                  <div className="space-y-3 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                    <div className="flex justify-between"><span>Subtotal</span><span className="text-slate-900">${selectedOrder.subtotal.toFixed(2)}</span></div>
+                    {selectedOrder.discountAmount > 0 && (
+                      <div className="flex justify-between text-green-600"><span>Discount</span><span>-${selectedOrder.discountAmount.toFixed(2)}</span></div>
+                    )}
+                    <div className="flex justify-between"><span>Shipping</span><span className="text-slate-900">${selectedOrder.shippingFee.toFixed(2)}</span></div>
+                    {selectedOrder.taxAmount > 0 && (
+                      <div className="flex justify-between"><span>Tax</span><span className="text-slate-900">${selectedOrder.taxAmount.toFixed(2)}</span></div>
+                    )}
+                    <div className="flex justify-between pt-4 border-t border-slate-200 items-center">
+                      <span className="text-base text-slate-900">Total</span>
+                      <span className="text-2xl font-black text-orange-600 italic">${selectedOrder.total.toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Shipping Address */}
               <div className="bg-white border text-left border-slate-100 rounded-[32px] p-8 space-y-2">
@@ -273,70 +350,112 @@ const OrdersView = () => {
             <p className="text-sm font-black uppercase tracking-widest text-slate-400">No Orders Found</p>
           </div>
         ) : (
-          filteredOrders.map(order => (
-            <div key={order.id} className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm space-y-6 hover:shadow-xl transition-all group">
-              <div className="flex flex-col md:flex-row justify-between pb-6 border-b border-slate-50 gap-6">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 w-full md:w-auto">
-                  <div>
-                    <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Order ID</p>
-                    <p className="font-black text-sm italic tracking-tighter mt-1">#{order.id.slice(-6).toUpperCase()}</p>
+          <>
+            {paginatedOrders.map(order => (
+              <div key={order.id} className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm space-y-6 hover:shadow-xl transition-all group">
+                <div className="flex flex-col md:flex-row justify-between pb-6 border-b border-slate-50 gap-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 w-full md:w-auto">
+                    <div>
+                      <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Order ID</p>
+                      <p className="font-black text-sm italic tracking-tighter mt-1">#{order.id.slice(-6).toUpperCase()}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Date</p>
+                      <p className="font-black text-sm italic tracking-tighter mt-1">{new Date(order.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Total</p>
+                      <p className="font-black text-sm italic tracking-tighter text-orange-600 mt-1">
+                        {order.type === 'request' ? 'QUOTE PENDING' : `$${order.total.toFixed(2)}`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Items</p>
+                      <p className="font-black text-sm italic tracking-tighter mt-1">{order.items.reduce((acc: any, i: any) => acc + i.quantity, 0)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Date</p>
-                    <p className="font-black text-sm italic tracking-tighter mt-1">{new Date(order.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Total</p>
-                    <p className="font-black text-sm italic tracking-tighter text-orange-600 mt-1">${order.total.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Items</p>
-                    <p className="font-black text-sm italic tracking-tighter mt-1">{order.items.reduce((acc: any, i: any) => acc + i.quantity, 0)}</p>
+                  <div className="flex flex-col gap-2 md:items-end">
+                    <div className={`px-4 py-1.5 border rounded-full text-[9px] font-black uppercase tracking-widest self-start md:self-auto italic ${getStatusColor(order.status)}`}>
+                      {order.status.replace('_', ' ')}
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 md:items-end">
-                  <div className={`px-4 py-1.5 border rounded-full text-[9px] font-black uppercase tracking-widest self-start md:self-auto italic ${getStatusColor(order.status)}`}>
-                    {order.status.replace('_', ' ')}
+                
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div className="flex -space-x-4">
+                    {order.items.slice(0, 4).map((item: any, idx: number) => (
+                      <div key={idx} className="w-16 h-16 rounded-2xl bg-slate-50 border-4 border-white overflow-hidden shadow-sm ring-1 ring-slate-100 shrink-0">
+                        <img src={item.imageUrl || '/placeholder.png'} className="w-full h-full object-cover" alt={item.name} />
+                      </div>
+                    ))}
+                    {order.items.length > 4 && (
+                      <div className="w-16 h-16 rounded-2xl bg-slate-100 border-4 border-white overflow-hidden shadow-sm ring-1 ring-slate-100 shrink-0 flex items-center justify-center">
+                        <span className="text-xs font-black text-slate-500">+{order.items.length - 4}</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
-              
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                <div className="flex -space-x-4">
-                  {order.items.slice(0, 4).map((item: any, idx: number) => (
-                    <div key={idx} className="w-16 h-16 rounded-2xl bg-slate-50 border-4 border-white overflow-hidden shadow-sm ring-1 ring-slate-100 shrink-0">
-                      <img src={item.imageUrl || '/placeholder.png'} className="w-full h-full object-cover" alt={item.name} />
-                    </div>
-                  ))}
-                  {order.items.length > 4 && (
-                    <div className="w-16 h-16 rounded-2xl bg-slate-100 border-4 border-white overflow-hidden shadow-sm ring-1 ring-slate-100 shrink-0 flex items-center justify-center">
-                      <span className="text-xs font-black text-slate-500">+{order.items.length - 4}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                  {order.trackingId && (
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-50 px-4 py-3 rounded-2xl w-full md:w-auto justify-center border border-slate-100">
-                      <Truck className="w-4 h-4 text-orange-500" />
-                      <span>{order.carrier || 'Carrier'}: <span className="text-slate-900">{order.trackingId}</span></span>
-                    </div>
-                  )}
-                  <button 
-                    onClick={() => setSelectedOrder(order)}
-                    className="flex items-center justify-center w-full md:w-auto gap-2 border-2 border-slate-100 text-slate-700 px-6 py-3.5 rounded-2xl font-black uppercase italic tracking-widest text-[10px] hover:border-black hover:text-black transition-all"
-                  >
-                    View Details
-                  </button>
-                  {['shipped'].includes(order.status) && (
-                    <button className="flex items-center justify-center w-full md:w-auto gap-3 bg-black text-white px-8 py-3.5 rounded-2xl font-black uppercase italic tracking-tighter text-xs hover:scale-105 transition-all shadow-md">
-                      <span>Track Order</span>
-                      <ExternalLink className="w-4 h-4" />
+                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                    {order.trackingId && (
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-50 px-4 py-3 rounded-2xl w-full md:w-auto justify-center border border-slate-100">
+                        <Truck className="w-4 h-4 text-orange-500" />
+                        <span>{order.carrier || 'Carrier'}: <span className="text-slate-900">{order.trackingId}</span></span>
+                      </div>
+                    )}
+                    <button 
+                      onClick={() => setSelectedOrder(order)}
+                      className="flex items-center justify-center w-full md:w-auto gap-2 border-2 border-slate-100 text-slate-700 px-6 py-3.5 rounded-2xl font-black uppercase italic tracking-widest text-[10px] hover:border-black hover:text-black transition-all"
+                    >
+                      View Details
                     </button>
-                  )}
+                    {['shipped'].includes(order.status) && (
+                      <a 
+                        href={order.trackingUrl || `/account?tab=orders`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center w-full md:w-auto gap-3 bg-black text-white px-8 py-3.5 rounded-2xl font-black uppercase italic tracking-tighter text-xs hover:scale-105 transition-all shadow-md"
+                      >
+                        <span>Track Order</span>
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            ))}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 mt-8">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm disabled:opacity-30 hover:bg-slate-50 transition-all group"
+                >
+                  <ChevronLeft className="w-5 h-5 text-slate-900 group-hover:-translate-x-1 transition-transform" />
+                </button>
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setPage(i + 1)}
+                      className={`w-12 h-12 rounded-2xl font-black italic transition-all ${
+                        page === i + 1 ? 'bg-black text-white' : 'bg-white text-slate-400 border border-slate-100'
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm disabled:opacity-30 hover:bg-slate-50 transition-all group"
+                >
+                  <ChevronRight className="w-5 h-5 text-slate-900 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

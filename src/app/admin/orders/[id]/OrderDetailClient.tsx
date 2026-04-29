@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Save, Truck, Package, Calendar, Loader2 } from 'lucide-react';
+import { ChevronLeft, Save, Truck, Package, Calendar, Loader2, FileText, Trophy, Eye, Download } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'react-toastify';
@@ -17,6 +17,7 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
   const [status, setStatus] = useState('pending');
   const [trackingId, setTrackingId] = useState('');
   const [carrier, setCarrier] = useState('');
+  const [trackingUrl, setTrackingUrl] = useState('');
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
           setStatus(data.order.status);
           setTrackingId(data.order.trackingId || '');
           setCarrier(data.order.carrier || '');
+          setTrackingUrl(data.order.trackingUrl || '');
           setNotes(data.order.notes || '');
         }
       } catch (err) {
@@ -48,6 +50,7 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
         status,
         trackingId: trackingId.trim() || null,
         carrier: carrier.trim() || null,
+        trackingUrl: trackingUrl.trim() || null,
         notes: notes.trim() || null,
       });
       if (data.ok) {
@@ -89,7 +92,7 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => router.back()}
             className="p-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
           >
@@ -108,7 +111,7 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          
+
           {/* Items */}
           <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm">
             <h3 className="text-xl font-black uppercase tracking-tighter italic text-slate-900 mb-6 flex items-center gap-2">
@@ -128,7 +131,9 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
                     <p className="text-xs font-bold text-slate-500 mt-2">SKU: {item.variantSku}</p>
                   </div>
                   <div className="text-right flex flex-col justify-between">
-                    <p className="text-sm font-black text-slate-900">${item.price.toFixed(2)}</p>
+                    <p className="text-sm font-black text-slate-900">
+                      {order.type === 'request' ? 'QUOTE PENDING' : `$${item.price.toFixed(2)}`}
+                    </p>
                     <p className="text-xs font-bold text-slate-400">Qty: {item.quantity}</p>
                   </div>
                 </div>
@@ -136,29 +141,127 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
             </div>
           </div>
 
-          {/* Payment Breakdown */}
-          <div className="bg-slate-50 rounded-[32px] p-8 shadow-sm border border-slate-100">
-            <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900 mb-6">Payment Breakdown</h3>
-            <div className="max-w-sm ml-auto space-y-3 text-xs font-bold uppercase tracking-widest text-slate-500">
-              <div className="flex justify-between"><span>Subtotal:</span> <span className="text-slate-900">${order.subtotal.toFixed(2)}</span></div>
-              {order.discountAmount > 0 && <div className="flex justify-between text-green-600"><span>Discount:</span> <span>-${order.discountAmount.toFixed(2)}</span></div>}
-              <div className="flex justify-between"><span>Shipping:</span> <span className="text-slate-900">${order.shippingFee.toFixed(2)}</span></div>
-              {order.taxAmount > 0 && <div className="flex justify-between"><span>Tax:</span> <span className="text-slate-900">${order.taxAmount.toFixed(2)}</span></div>}
-              <div className="flex justify-between pt-4 mt-2 border-t border-slate-200">
-                <span className="text-lg text-slate-900">Total:</span> 
-                <span className="text-2xl font-black italic text-orange-600">${order.total.toFixed(2)}</span>
+          {/* Customization Dossier (Only for Requests) */}
+          {order.type === 'request' && (
+            <div className="bg-[#141414] text-white rounded-[32px] p-8 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                <Package className="w-32 h-32 rotate-12" />
+              </div>
+
+              <h3 className="text-2xl font-black uppercase tracking-tighter italic text-orange-500 mb-8 flex items-center gap-3">
+                <FileText className="w-6 h-6" /> Customization Dossier
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Team / Organization</p>
+                    <div className="flex items-center gap-3 bg-white/5 border border-white/10 p-4 rounded-2xl">
+                      <Trophy className="w-5 h-5 text-orange-500" />
+                      <p className="text-lg font-black italic uppercase tracking-tighter">{order.teamName || 'NOT SPECIFIED'}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Deployment Deadline</p>
+                    <div className="flex items-center gap-3 bg-white/5 border border-white/10 p-4 rounded-2xl">
+                      <Calendar className="w-5 h-5 text-orange-500" />
+                      <p className="text-lg font-black italic uppercase tracking-tighter">
+                        {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString(undefined, { dateStyle: 'long' }) : 'TBD'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Tactical Logo</p>
+                    {order.logoUrl ? (
+                      <div className="group relative bg-white/5 border border-white/10 p-4 rounded-2xl overflow-hidden">
+                        <img src={order.logoUrl} className="w-full h-48 object-contain rounded-xl" alt="Custom Logo" />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                          <a 
+                            href={order.logoUrl.includes('cloudinary') ? order.logoUrl.replace('/upload/', '/upload/fl_attachment/') : order.logoUrl} 
+                            download 
+                            className="flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] italic hover:scale-105 transition-transform"
+                          >
+                            <Download className="w-4 h-4" /> Download Dossier Asset
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white/5 border border-white/10 p-10 rounded-2xl text-center">
+                        <p className="text-xs font-bold text-slate-500 italic uppercase">No Logo Provided</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Customization Intel</p>
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-2xl min-h-[200px]">
+                      <p className="text-sm font-medium leading-relaxed text-slate-300 italic whitespace-pre-wrap">
+                        {order.customizationDetails || 'No specific customization details provided.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Operational Notes</p>
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+                      <p className="text-sm font-medium leading-relaxed text-slate-300 italic whitespace-pre-wrap">
+                        {order.notes || 'No additional notes provided by customer.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Required Colors</p>
+                    <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+                      <p className="text-sm font-medium leading-relaxed text-slate-300 italic">
+                        {order.items.map((item: any) => item.color || 'Not Specified').join(', ')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Total Quantity</p>
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center gap-3">
+                      <Package className="w-5 h-5 text-orange-500" />
+                      <p className="text-lg font-black italic uppercase tracking-tighter">
+                        {order.items.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0)} Units
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Payment Breakdown (Only for Direct Orders) */}
+          {order.type === 'direct' && (
+            <div className="bg-slate-50 rounded-[32px] p-8 shadow-sm border border-slate-100">
+              <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900 mb-6">Payment Breakdown</h3>
+              <div className="max-w-sm ml-auto space-y-3 text-xs font-bold uppercase tracking-widest text-slate-500">
+                <div className="flex justify-between"><span>Subtotal:</span> <span className="text-slate-900">${order.subtotal.toFixed(2)}</span></div>
+                {order.discountAmount > 0 && <div className="flex justify-between text-green-600"><span>Discount:</span> <span>-${order.discountAmount.toFixed(2)}</span></div>}
+                <div className="flex justify-between"><span>Shipping:</span> <span className="text-slate-900">${order.shippingFee.toFixed(2)}</span></div>
+                {order.taxAmount > 0 && <div className="flex justify-between"><span>Tax:</span> <span className="text-slate-900">${order.taxAmount.toFixed(2)}</span></div>}
+                <div className="flex justify-between pt-4 mt-2 border-t border-slate-200">
+                  <span className="text-lg text-slate-900">Total:</span>
+                  <span className="text-2xl font-black italic text-orange-600">${order.total.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Sidebar */}
         <div className="space-y-8">
-          
+
           {/* Action / Management Card */}
           <div className="bg-white border-2 border-orange-100 rounded-[32px] p-8 shadow-xl shadow-orange-100/50">
             <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900 mb-6">Manage Order</h3>
-            
+
             <div className="space-y-5">
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Order Status</label>
@@ -205,6 +308,17 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
               </div>
 
               <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Tracking URL</label>
+                <input
+                  type="text"
+                  placeholder="Direct link to tracking page"
+                  value={trackingUrl}
+                  onChange={(e) => setTrackingUrl(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-orange-500 focus:bg-white"
+                />
+              </div>
+
+              <div>
                 <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Admin Notes (Private)</label>
                 <textarea
                   placeholder="Internal notes only"
@@ -233,11 +347,11 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
               {order.userId?.name || `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`}
             </p>
             <p className="text-xs font-bold text-slate-500 mb-4">{order.userId?.email || order.guestEmail || order.shippingAddress.email}</p>
-            
+
             <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 mt-6">Shipping Address</h4>
             <p className="text-xs text-slate-600 font-bold leading-relaxed">
-              {order.shippingAddress.address1} {order.shippingAddress.address2}<br/>
-              {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}<br/>
+              {order.shippingAddress.address1} {order.shippingAddress.address2}<br />
+              {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}<br />
               {order.shippingAddress.country}
             </p>
             {order.shippingAddress.phone && (
