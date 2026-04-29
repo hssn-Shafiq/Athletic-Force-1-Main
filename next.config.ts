@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
   // ─── Reverse Proxy ──────────────────────────────────────────────────────────
   // All /api/* requests are proxied through Next.js to the backend.
   // This eliminates CORS entirely — the browser sees one single origin.
+  //removed the origin from rewrites because it was causing the CORS error
   async rewrites() {
     return [
       {
