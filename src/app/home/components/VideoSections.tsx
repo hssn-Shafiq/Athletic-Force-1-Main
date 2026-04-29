@@ -26,7 +26,7 @@ export const VideoSection: React.FC = () => {
       {/* Video Banner */}
       <div className="relative w-full aspect-[16/10] sm:aspect-[21/9] rounded-[26px] sm:rounded-[40px] lg:rounded-[60px] overflow-hidden shadow-2xl group cursor-pointer">
         <img 
-          src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2000&auto=format&fit=crop" 
+          src="/video-main.webp" 
           alt="Athletic Performance" 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
           referrerPolicy="no-referrer"

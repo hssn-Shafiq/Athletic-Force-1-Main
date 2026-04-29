@@ -3,7 +3,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Search, Star, Trash2, Wand2, X } from 'lucide-react';
+import { motion } from 'motion/react';
+import { ArrowLeft, Plus, Search, Star, Trash2, Wand2, X, ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useProductForm } from './hooks/useProductForm';
 import { listAdminMedia, signAdminMediaUpload, uploadImageWithSignature, type AdminMediaItem } from '@/lib/api/media';
@@ -83,9 +84,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
     addReview,
     updateReview,
     removeReview,
-    setReviewPhotosFromMedia,
-    setReviewPhotoFiles,
-    removeReviewPhoto,
+    setReviewAvatarFromMedia,
+    setReviewAvatarFile,
+    removeReviewAvatar,
     mainVideo,
     setMainVideoField,
     setMainVideoThumbnailFile,
@@ -125,12 +126,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
     submitProductUpdate,
   } = useProductForm(resolvedProductId);
 
-  const [newGlobalOptionName, setNewGlobalOptionName] = useState('');
-  const [newGlobalOptionType, setNewGlobalOptionType] = useState<'text' | 'color'>('text');
-  const [newOptionGroupKey, setNewOptionGroupKey] = useState('');
-  const [newValueByGroupId, setNewValueByGroupId] = useState<Record<string, string>>({});
-  const [newColorByGroupId, setNewColorByGroupId] = useState<Record<string, string>>({});
-  const [openChildDropdownByParent, setOpenChildDropdownByParent] = useState<Record<string, boolean>>({});
   const [openGeneratedVariantsByColor, setOpenGeneratedVariantsByColor] = useState<Record<string, boolean>>({});
   const [parentDropdownOpen, setParentDropdownOpen] = useState(false);
   const [selectedParentValueId, setSelectedParentValueId] = useState<string>('');
@@ -139,6 +134,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
   const [mediaLoading, setMediaLoading] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [mediaSearch, setMediaSearch] = useState('');
+  const [mediaSort, setMediaSort] = useState<'new' | 'old'>('new');
+  const [mediaNextCursor, setMediaNextCursor] = useState<string | undefined>(undefined);
+  const [isMediaPaginationLoading, setIsMediaPaginationLoading] = useState(false);
   const initialCreateSignatureRef = useRef<string | null>(null);
   const [mediaTarget, setMediaTarget] = useState<
     | { type: 'main' }
@@ -147,9 +146,16 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
     | { type: 'variant'; variantId: string }
     | { type: 'main-video-thumb' }
     | { type: 'video'; reviewId: string }
-    | { type: 'review-photo'; reviewId: string }
+    | { type: 'review-avatar'; reviewId: string }
   >({ type: 'main' });
   const mediaTargetRef = useRef(mediaTarget);
+
+  const [newGlobalOptionName, setNewGlobalOptionName] = useState('');
+  const [newGlobalOptionType, setNewGlobalOptionType] = useState<'text' | 'color'>('text');
+  const [newOptionGroupKey, setNewOptionGroupKey] = useState('');
+  const [newValueByGroupId, setNewValueByGroupId] = useState<Record<string, string>>({});
+  const [newColorByGroupId, setNewColorByGroupId] = useState<Record<string, string>>({});
+  const [openChildDropdownByParent, setOpenChildDropdownByParent] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     mediaTargetRef.current = mediaTarget;
@@ -216,19 +222,41 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
     }));
   }, [variants]);
 
-  async function openMediaModal(target: typeof mediaTarget) {
-    mediaTargetRef.current = target;
-    setMediaTarget(target);
-    setMediaModalOpen(true);
-    setMediaLoading(true);
+  async function fetchMedia(params: { search?: string; sort?: 'new' | 'old'; cursor?: string; append?: boolean }) {
+    if (params.cursor) setIsMediaPaginationLoading(true);
+    else setMediaLoading(true);
+
     try {
-      const response = await listAdminMedia({ prefix: 'af1/products', pageSize: 100 });
-      setMediaItems(response.items || []);
+      const response = await listAdminMedia({ 
+        prefix: 'af1/products', 
+        pageSize: 20,
+        search: params.search,
+        sort: params.sort,
+        cursor: params.cursor,
+      });
+
+      if (params.append) {
+        setMediaItems((prev) => [...prev, ...(response.items || [])]);
+      } else {
+        setMediaItems(response.items || []);
+      }
+      setMediaNextCursor(response.nextCursor);
     } catch {
       toast.error('Unable to load media library.');
     } finally {
       setMediaLoading(false);
+      setIsMediaPaginationLoading(false);
     }
+  }
+
+  async function openMediaModal(target: typeof mediaTarget) {
+    mediaTargetRef.current = target;
+    setMediaTarget(target);
+    setMediaModalOpen(true);
+    setMediaSearch('');
+    setMediaSort('new');
+    setMediaNextCursor(undefined);
+    void fetchMedia({ search: '', sort: 'new' });
   }
 
   function applyMediaSelection(item: AdminMediaItem) {
@@ -268,9 +296,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
       return;
     }
 
-    if (target.type === 'review-photo') {
-      setReviewPhotosFromMedia(target.reviewId, [asset]);
-      toast.success('Review photo added.');
+    if (target.type === 'review-avatar') {
+      setReviewAvatarFromMedia(target.reviewId, asset);
+      toast.success('Review avatar selected.');
       setMediaModalOpen(false);
       return;
     }
@@ -352,8 +380,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
           fullName: review.fullName,
           email: review.email,
           reviewText: review.reviewText,
-          photos: review.photos.map((photo) => photo.publicId),
-          photoFiles: review.photoFiles.length,
+          userAvatar: review.userAvatar?.publicId,
+          userAvatarFile: Boolean(review.userAvatarFile),
         })),
         orderType,
         status,
@@ -1450,16 +1478,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
                     <input
                       type="file"
                       accept="image/png,image/jpeg,image/jpg,image/webp"
-                      multiple
-                      onChange={(e) => setReviewPhotoFiles(review.id, Array.from(e.target.files || []))}
-                      className="rounded-lg border border-slate-200 px-3 py-2"
+                      onChange={(e) => setReviewAvatarFile(review.id, e.target.files?.[0])}
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-xs"
                     />
                     <button
                       type="button"
-                      onClick={() => void openMediaModal({ type: 'review-photo', reviewId: review.id })}
-                      className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold uppercase tracking-wide"
+                      onClick={() => void openMediaModal({ type: 'review-avatar', reviewId: review.id })}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap"
                     >
-                      Select Media
+                      Select Avatar
                     </button>
                     <button
                       type="button"
@@ -1470,23 +1497,33 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
                     </button>
                   </div>
 
-                  {review.photos.length ? (
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                      {review.photos.map((photo, photoIndex) => (
-                        <div key={`${photo.publicId}-${photoIndex}`} className="relative border border-slate-200 rounded-lg overflow-hidden">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={photo.url} alt="Review media" className="h-20 w-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => removeReviewPhoto(review.id, photoIndex)}
-                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 border border-slate-200 text-xs"
-                          >
-                            <X className="w-3 h-3 mx-auto" />
-                          </button>
-                        </div>
-                      ))}
+                  {(review.userAvatar || review.userAvatarFile) && (
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img 
+                          src={review.userAvatarFile ? URL.createObjectURL(review.userAvatarFile) : review.userAvatar?.url} 
+                          alt="Review avatar" 
+                          className="w-full h-full object-cover" 
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeReviewAvatar(review.id)}
+                          className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4 text-white" />
+                        </button>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-black uppercase tracking-wider text-slate-800 truncate">
+                          Athlete Avatar
+                        </p>
+                        <p className="text-[10px] text-slate-500 truncate">
+                          {review.userAvatarFile ? review.userAvatarFile.name : review.userAvatar?.publicId}
+                        </p>
+                      </div>
                     </div>
-                  ) : null}
+                  )}
 
                   <div className="text-[11px] font-semibold text-slate-500 bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
                     Source: Admin | Status: Published
@@ -1572,26 +1609,58 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
       ) : null}
 
       {mediaModalOpen ? (
-        <div className="fixed inset-0 z-50 bg-black/40 p-4 flex items-center justify-center">
-          <div className="w-full max-w-6xl max-h-[88vh] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col">
-            <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between gap-3">
+        <div className="fixed inset-0 z-50 bg-black/40 p-4 flex items-center justify-center backdrop-blur-sm">
+          <div className="w-full max-w-6xl max-h-[88vh] overflow-hidden rounded-[40px] border border-slate-200 bg-white shadow-2xl flex flex-col">
+            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">Media Library</h3>
-                <p className="text-xs text-slate-500">Upload once, then reuse across product images and variants.</p>
+                <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-900">Media Library</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Upload once, then reuse across product images and variants.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setMediaModalOpen(false)}
-                className="w-9 h-9 rounded-lg border border-slate-200"
+                className="w-10 h-10 rounded-full border border-slate-100 flex items-center justify-center hover:bg-slate-50 transition-all hover:rotate-90"
               >
-                <X className="w-4 h-4 mx-auto" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="px-4 py-3 border-b border-slate-200 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold uppercase tracking-wide cursor-pointer">
-                  Upload Images
+            <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 space-y-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input 
+                    type="text"
+                    value={mediaSearch}
+                    onChange={(e) => {
+                      setMediaSearch(e.target.value);
+                      void fetchMedia({ search: e.target.value, sort: mediaSort });
+                    }}
+                    placeholder="Search by name..."
+                    className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium outline-none focus:border-[#FF7348] transition-all shadow-sm"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select 
+                    value={mediaSort}
+                    onChange={(e) => {
+                      const sort = e.target.value as 'new' | 'old';
+                      setMediaSort(sort);
+                      void fetchMedia({ search: mediaSearch, sort });
+                    }}
+                    className="pl-4 pr-10 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold uppercase tracking-wide outline-none appearance-none cursor-pointer focus:border-[#FF7348] transition-all shadow-sm"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+                  >
+                    <option value="new">Newest First</option>
+                    <option value="old">Oldest First</option>
+                  </select>
+                </div>
+
+                <div className="h-10 w-px bg-slate-200 mx-2" />
+
+                <label className="bg-black text-white px-6 py-3 rounded-2xl text-xs font-black uppercase italic tracking-tighter cursor-pointer hover:bg-[#FF7348] transition-all shadow-lg active:scale-95">
+                  Upload New
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/jpg,image/webp"
@@ -1600,44 +1669,81 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
                     className="hidden"
                   />
                 </label>
-                <button
-                  type="button"
-                  onClick={() => void openMediaModal(mediaTarget)}
-                  className="rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold uppercase tracking-wide"
-                >
-                  Refresh
-                </button>
               </div>
 
               {uploadingMedia ? (
-                <div className="space-y-1">
-                  <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
-                    <div className="h-full bg-[#FF7348] transition-all" style={{ width: `${uploadProgress}%` }} />
+                <div className="space-y-2">
+                  <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${uploadProgress}%` }}
+                      className="h-full bg-[#FF7348]" 
+                    />
                   </div>
-                  <p className="text-[11px] font-semibold text-slate-600">Uploading... {uploadProgress}%</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Processing Mission Assets... {uploadProgress}%</p>
                 </div>
               ) : null}
             </div>
 
-            <div className="flex-1 overflow-auto p-4">
+            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-slate-50/20">
               {mediaLoading ? (
-                <p className="text-sm font-semibold text-slate-500">Loading media...</p>
-              ) : mediaItems.length === 0 ? (
-                <p className="text-sm font-semibold text-slate-500">No uploaded images yet. Upload images above to start.</p>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  {mediaItems.map((item) => (
-                    <button
-                      key={item.publicId}
-                      type="button"
-                      onClick={() => applyMediaSelection(item)}
-                      className="group border border-slate-200 rounded-lg overflow-hidden text-left"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={item.secureUrl} alt="Media item" className="h-28 w-full object-cover" />
-                      <div className="p-2 text-[10px] text-slate-500 truncate group-hover:text-slate-700">{item.publicId}</div>
-                    </button>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                  {[...Array(10)].map((_, i) => (
+                    <div key={i} className="aspect-[4/3] rounded-3xl bg-slate-100 animate-pulse border border-slate-200" />
                   ))}
+                </div>
+              ) : mediaItems.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center">
+                    <Search className="w-8 h-8 text-slate-200" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black uppercase italic tracking-tighter text-slate-900">No Assets Found</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Try a different search or upload new files.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                    {mediaItems.map((item) => (
+                      <button
+                        key={item.publicId}
+                        type="button"
+                        onClick={() => applyMediaSelection(item)}
+                        className="group relative aspect-[4/3] rounded-3xl overflow-hidden border border-slate-200 bg-white hover:border-[#FF7348] hover:shadow-xl hover:shadow-orange-500/10 transition-all text-left"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={item.secureUrl} alt="Media item" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                          <p className="text-[10px] font-black uppercase text-white tracking-widest truncate">{item.publicId.split('/').pop()}</p>
+                          <p className="text-[8px] font-bold text-white/70 uppercase tracking-widest mt-0.5">{item.format?.toUpperCase()} | {Math.round((item.bytes || 0) / 1024)}KB</p>
+                        </div>
+                        <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
+                          <Plus className="w-4 h-4 text-[#FF7348]" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {mediaNextCursor && (
+                    <div className="flex justify-center pb-4">
+                      <button
+                        type="button"
+                        onClick={() => void fetchMedia({ search: mediaSearch, sort: mediaSort, cursor: mediaNextCursor, append: true })}
+                        disabled={isMediaPaginationLoading}
+                        className="group flex items-center gap-2 bg-white border border-slate-200 px-8 py-3 rounded-2xl font-black uppercase italic tracking-tighter text-sm hover:border-[#FF7348] hover:text-[#FF7348] transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                      >
+                        {isMediaPaginationLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <span>Load More Mission Assets</span>
+                            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

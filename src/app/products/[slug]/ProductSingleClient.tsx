@@ -34,6 +34,7 @@ import dynamic from 'next/dynamic';
 import { Product } from '@/types';
 import { getExploreProductBySlugApi } from '@/lib/api/publicProducts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useInView } from 'react-intersection-observer';
 
 const ShopFeaturesFaqSection = dynamic(() => import('@/app/shop/components/ShopFeaturesFaqSection').then(mod => mod.ShopFeaturesFaqSection), {
   ssr: true,
@@ -82,9 +83,9 @@ function MainVideoSection({ mainVideo }: { mainVideo: { videoUrl: string; thumbn
 
   return (
     <section className="rounded-2xl bg-[#efefef] p-5 sm:p-8">
-      <h2 className="text-lg font-black text-slate-900">Product Video</h2>
-      <div className="mt-4 rounded-3xl bg-black p-4 sm:p-6">
-        <div className="relative mx-auto aspect-video max-w-3xl overflow-hidden rounded-2xl bg-black">
+      <h2 className="text-xl sm:text-2xl font-black text-slate-900 text-center">Product Video</h2>
+      <div className="mt-4 rounded-3xl bg-black p-4 sm:p-0">
+        <div className="relative mx-auto aspect-[15/7] max-w-6xl overflow-hidden rounded-2xl bg-black">
           {playing && embedUrl ? (
             <>
               <iframe
@@ -165,6 +166,7 @@ interface DetailedProduct extends Omit<Product, 'variants' | 'inventory' | 'main
     fullName: string;
     reviewText: string;
     photos: { url: string; publicId: string }[];
+    userAvatar?: { url: string; publicId: string };
     createdAt?: string;
   }[];
   mainVideo: MainVideoData | null;
@@ -359,7 +361,7 @@ const UpsellSelectionModal: React.FC<UpsellSelectionModalProps> = ({ isOpen, onC
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             className="relative w-full max-w-lg bg-white rounded-[40px] overflow-hidden shadow-2xl"
           >
-            <div className="p-8 sm:p-10 space-y-8">
+            <div className="p-6 sm:p-10 space-y-8">
               {/* Header */}
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
@@ -429,13 +431,12 @@ const UpsellSelectionModal: React.FC<UpsellSelectionModalProps> = ({ isOpen, onC
                 )}
               </div>
 
-              {/* Action */}
-              <div className="space-y-4">
+              <div className="space-y-4 pt-2">
                 <button
                   onClick={handleConfirm}
-                  className="w-full bg-black text-white py-6 rounded-[24px] font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl"
+                  className="w-full bg-black text-white py-5 sm:py-6 rounded-2xl sm:rounded-[24px] font-black uppercase italic tracking-tighter text-lg sm:text-xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl"
                 >
-                  <div className="text-left flex-1 pl-6">
+                  <div className="text-left flex-1 pl-4 sm:pl-6">
                     {(upsell.bundlePrice || 0) < (mainProductPrice + price) && (
                       <p className="text-[10px] line-through text-white/40 leading-none mb-1">
                         ${(mainProductPrice + price).toFixed(2)}
@@ -468,6 +469,13 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
   const slug = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
   const router = useRouter();
 
+  const { ref: buyBoxRef, inView: buyBoxInView } = useInView({
+    threshold: 0,
+    rootMargin: '-100px 0px 0px 0px'
+  });
+
+  const showStickyBar = !buyBoxInView;
+
   const initialMapped = useMemo(() => initialProduct ? mapToDetailedProduct(initialProduct) : null, [initialProduct]);
 
   const [product, setProduct] = useState<DetailedProduct | null>(initialMapped);
@@ -478,10 +486,10 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
     if (!product?.collections?.length) {
       return { parentName: 'Shop', parentSlug: 'shop' };
     }
-    
+
     // Find a collection that has a parent (this is our subcategory)
     const subCategory = product.collections.find(c => c.parentId);
-    
+
     let rootCategory = null;
     let sub = subCategory;
 
@@ -939,10 +947,10 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
               </div>
 
               {/* Main Carousel */}
-              <div className="flex-1 overflow-hidden rounded-[32px] sm:rounded-[40px] bg-slate-50 border border-slate-100 shadow-sm mx-auto w-[88%] sm:w-full" ref={emblaRef}>
+              <div className="flex-1 overflow-hidden rounded-[24px] sm:rounded-[40px] bg-slate-50 border border-slate-100 shadow-sm w-full relative group" ref={emblaRef}>
                 <div className="flex h-full select-none cursor-grab active:cursor-grabbing">
                   {thumbnails.map((img, idx) => (
-                    <div key={idx} className="flex-[0_0_100%] min-w-0 aspect-square sm:aspect-4/5 relative">
+                    <div key={idx} className="flex-[0_0_100%] min-w-0 aspect-square sm:aspect-4/4 relative">
                       <img
                         src={img}
                         alt={`${product.title}-${idx}`}
@@ -952,38 +960,45 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                     </div>
                   ))}
                 </div>
+                
+                {/* Mobile Slide Index */}
+                <div className="sm:hidden absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase">
+                  {selectedIndex + 1} / {thumbnails.length}
+                </div>
               </div>
             </div>
 
-            {/* Latest Review — shown just below the images */}
+            {/* Latest Review — Mobile Optimized Feed */}
             {product.reviews.length > 0 && (() => {
               const latest = product.reviews[product.reviews.length - 1];
+              const avatarUrl = latest.userAvatar?.url || (latest.photos?.length > 0 ? latest.photos[0].url : null);
+              
               return (
-                <div className="hidden sm:block bg-slate-50 rounded-4xl p-8 space-y-4">
+                <div className="bg-slate-50 rounded-3xl p-5 sm:p-8 space-y-4 border border-slate-100">
                   <div className="flex justify-between items-start">
-                    <div className="flex gap-4">
-                      <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-black text-lg uppercase ring-2 ring-white shrink-0">
-                        {latest.fullName.charAt(0)}
+                    <div className="flex gap-3">
+                      <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-slate-200 bg-white flex items-center justify-center shrink-0 shadow-sm">
+                        {avatarUrl ? (
+                          <img src={avatarUrl} alt={latest.fullName} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-xs font-black text-slate-400 uppercase">{latest.fullName.charAt(0)}</span>
+                        )}
                       </div>
                       <div>
-                        <h4 className="font-black italic uppercase tracking-tighter text-slate-900 leading-none">{latest.fullName}</h4>
-                        <p className="text-slate-400 text-xs font-bold mt-1">Verified Buyer</p>
+                        <h4 className="text-sm font-black italic uppercase tracking-tighter text-slate-900 leading-none">{latest.fullName}</h4>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Verified Operator</p>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-0.5 shrink-0">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`w-4 h-4 ${i < latest.rating ? 'fill-[#FF7348] text-[#FF7348]' : 'fill-slate-200 text-slate-200'}`} />
+                        <Star key={i} className={`w-3 h-3 sm:w-4 sm:h-4 ${i < latest.rating ? 'fill-[#FF7348] text-[#FF7348]' : 'fill-slate-200 text-slate-200'}`} />
                       ))}
                     </div>
                   </div>
-                  {latest.photos.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {latest.photos.slice(0, 4).map((photo) => (
-                        <img key={photo.publicId} src={photo.url} alt="Review photo" className="w-16 h-16 rounded-xl object-cover shrink-0 border border-slate-200" />
-                      ))}
-                    </div>
-                  )}
-                  <p className="text-slate-600 text-sm leading-relaxed font-medium line-clamp-4">{latest.reviewText}</p>
+                  <p className="text-slate-600 text-[13px] leading-relaxed font-medium italic">"{latest.reviewText}"</p>
                 </div>
               );
             })()}
@@ -1001,11 +1016,11 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                   <div className="bg-white border border-slate-500 rounded-none px-4 py-3 sm:px-6 sm:py-4 shadow-none">
                     <div className="flex items-center gap-4 sm:gap-6">
                       <div className="text-center shrink-0 w-[90px] sm:w-[132px]">
-                        <div className="text-[3.2rem] sm:text-[4.5rem] font-black tracking-tighter text-[#E56437] leading-[0.9]">
-                          {avgRating}
+                        <div className={`${reviewCount === 0 ? 'text-[2.5rem] sm:text-[3.5rem]' : 'text-[3.2rem] sm:text-[4.5rem]'} font-black tracking-tighter text-[#E56437] leading-[0.9]`}>
+                          {reviewCount === 0 ? 'NEW' : avgRating}
                         </div>
                         <div className="text-[1.4rem] sm:text-[2.2rem] font-black uppercase tracking-[0.06em] text-[#E56437] mt-0 leading-none">
-                          Rating
+                          {reviewCount === 0 ? 'Rating' : 'Rating'}
                         </div>
                       </div>
 
@@ -1013,18 +1028,29 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
 
                       <div className="flex-1 min-w-0 flex flex-col items-start gap-2">
                         <div className="flex items-center gap-2">
-                          <div className="flex -space-x-2">
-                            {[1, 2, 3, 4].map((i) => (
-                              <img
-                                key={i}
-                                src={`https://i.pravatar.cc/100?u=${i}`}
-                                className="w-5 h-5 sm:w-7 sm:h-7 rounded-full border-2 border-white"
-                                alt="reviewer"
-                              />
-                            ))}
-                          </div>
-                          <div className="text-[1.4rem] sm:text-[2.1rem] font-black uppercase tracking-[0.04em] text-[#E56437] leading-none whitespace-nowrap">
-                            {reviewLabel}
+                          {product.reviews.length > 0 && (
+                            <div className="flex -space-x-2">
+                              {product.reviews.slice(0, 4).map((r: any, i) => {
+                                const avatarUrl = r.userAvatar?.url || (r.photos?.length > 0 ? r.photos[0].url : null);
+                                const initial = r.fullName.charAt(0);
+                                
+                                return (
+                                  <div 
+                                    key={i} 
+                                    className="relative w-6 h-6 sm:w-10 sm:h-10 rounded-full border-2 border-white overflow-hidden bg-slate-100 flex items-center justify-center shadow-sm"
+                                  >
+                                    {avatarUrl ? (
+                                      <img src={avatarUrl} className="w-full h-full object-cover" alt="reviewer" />
+                                    ) : (
+                                      <span className="text-[10px] sm:text-sm font-black text-slate-500 uppercase">{initial}</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          <div className={`text-[1.4rem] sm:text-[1.4rem] font-black uppercase tracking-[0.04em] leading-none whitespace-nowrap ${reviewCount === 0 ? 'text-slate-400 italic' : 'text-[#E56437]'}`}>
+                            {reviewCount === 0 ? 'Be the first to review' : reviewLabel}
                           </div>
                         </div>
 
@@ -1094,10 +1120,24 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-slate-400 text-sm font-bold tracking-widest uppercase">SKU: {displaySku}</span>
                 <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full">
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3].map(i => (
-                      <img key={i} src={`https://i.pravatar.cc/100?u=${i + 10}`} loading="lazy" className="w-6 h-6 rounded-full border-2 border-white" alt="av" />
-                    ))}
+                  <div className="flex -space-x-1.5">
+                    {(product.reviews.length > 0 ? product.reviews.slice(0, 3) : [1, 2, 3]).map((r: any, i) => {
+                      const avatarUrl = typeof r === 'object' ? r.userAvatar?.url : null;
+                      const initial = typeof r === 'object' ? r.fullName.charAt(0) : '';
+
+                      return (
+                        <div 
+                          key={i} 
+                          className="w-5 h-5 sm:w-7 sm:h-7 rounded-full border-2 border-white overflow-hidden bg-slate-200 flex items-center justify-center shrink-0"
+                        >
+                          {avatarUrl ? (
+                            <img src={avatarUrl} loading="lazy" className="w-full h-full object-cover" alt="av" />
+                          ) : (
+                            <span className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase">{initial}</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   <span className="text-xs font-black text-slate-900 leading-none">4.5 <span className="text-[#FF7348] uppercase italic">Rating</span></span>
                 </div>
@@ -1105,14 +1145,14 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
             </div>
 
             {/* Accordions */}
-            <div className="space-y-4 pt-6 border-t border-slate-100">
+            <div className="space-y-4 pt-1 border-t border-slate-100">
               {accordions.map((acc) => (
                 <div key={acc.id} className="border-b border-slate-100 last:border-0 pb-4">
                   <button
                     onClick={() => setActiveAccordion(activeAccordion === acc.id ? null : acc.id)}
                     className="w-full flex justify-between items-center py-2 group"
                   >
-                    <span className="text-sm font-black uppercase tracking-widest text-slate-900 group-hover:text-black transition-colors">
+                    <span className="text-[14px] font-medium uppercase tracking-widest text-slate-900 group-hover:text-black transition-colors">
                       {acc.title}
                     </span>
                     <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${activeAccordion === acc.id ? "rotate-180" : ""}`} />
@@ -1127,9 +1167,9 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                       >
                         <div className="pt-4 pb-2">
                           {acc.type === 'colors' ? (
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-start gap-4">
-                                <div className="text-sm font-black uppercase tracking-widest text-[#FF7348]">Color: <span className="italic">{selectedColor?.name || 'N/A'}</span></div>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="text-[11px] font-medium uppercase tracking-widest text-[#FF7348]">Color: <span className="italic">{selectedColor?.name || 'N/A'}</span></div>
                                 <button
                                   onClick={() => setSelectedColor(product.variants.colors[0] || null)}
                                   className="text-black text-[10px] font-black uppercase tracking-widest hover:underline"
@@ -1137,12 +1177,12 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                                   Clear
                                 </button>
                               </div>
-                              <div className="flex flex-wrap gap-4">
+                              <div className="flex flex-wrap gap-3">
                                 {product.variants.colors.map((color, idx) => (
                                   <button
                                     key={idx}
                                     onClick={() => setSelectedColor(color)}
-                                    className={`relative w-[52px] h-[52px] rounded-xl overflow-hidden bg-slate-50 border-2 transition-all p-1 ${selectedColor?.name === color.name ? "border-black ring-4 ring-black/5" : "border-slate-100 hover:border-slate-300"
+                                    className={`relative w-[47px] h-[47px] rounded-xl overflow-hidden bg-slate-50 border-2 transition-all p-1 ${selectedColor?.name === color.name ? "border-black ring-4 ring-black/5" : "border-slate-100 hover:border-slate-300"
                                       }`}
                                   >
                                     <img src={color.image} alt={color.name} loading="lazy" className="w-full h-full object-cover mix-blend-multiply" />
@@ -1156,13 +1196,13 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                               </div>
                             </div>
                           ) : acc.type === 'sizes' ? (
-                            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                            <div className="grid grid-cols-6 sm:grid-cols-10 gap-0">
                               {(availableSizes.length ? availableSizes : product.variants.sizes).map((size) => (
                                 <button
                                   key={size}
                                   onClick={() => setSelectedSize(size)}
-                                  className={`py-1 rounded-xl font-black text-[10px] transition-all ${selectedSize === size
-                                    ? "bg-black text-white shadow-xl scale-95"
+                                  className={`py-1 w-[47px] h-[47px] rounded-xl font-black text-[11px] transition-all ${selectedSize === size
+                                    ? "bg-black text-white shadow-md scale-95"
                                     : "bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-black border border-slate-100"
                                     }`}
                                 >
@@ -1186,15 +1226,31 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
 
             {/* Inventory Status (Image 1) */}
             {product.orderType !== 'request' && (
-              <div className="space-y-4 pt-4">
-                <div className="flex items-end gap-2 text-2xl font-black italic uppercase tracking-tighter text-[#FF7348]">
-                  <span>{selectedStock}</span>
-                  <span className="text-sm mb-1">Left</span>
-                </div>
-                <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden relative">
-                  <div className="absolute inset-0 bg-linear-to-r from-red-500 via-blue-500 to-red-500 animate-rainbow opacity-80" />
-                  <div className="absolute top-0 right-0 h-full bg-slate-100 transition-all duration-1000" style={{ width: `${100 - stockPercent}%` }} />
-                  <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-red-600 rounded-full border-2 border-white shadow-lg z-10" style={{ left: `calc(${stockPercent}% - 8px)` }} />
+              <div className="space-y-4 pt-0">
+                <div className="relative">
+                  <div className="flex items-end justify-between mb-2">
+                    <div className="flex items-end gap-2 text-2xl font-black italic uppercase tracking-tighter text-[#FF7348]">
+                      <span>{selectedStock}</span>
+                      <span className="text-sm mb-1">Left</span>
+                    </div>
+                    
+                    {selectedStock > 0 && selectedStock < 10 && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        className="bg-red-600 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest italic flex items-center gap-1.5 shadow-lg shadow-red-500/20"
+                      >
+                        <Zap className="w-3 h-3 fill-white animate-pulse" />
+                        <span>Hurry Up! Almost Gone</span>
+                      </motion.div>
+                    )}
+                  </div>
+
+                  <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden relative">
+                    <div className="absolute inset-0 bg-linear-to-r from-red-500 via-blue-500 to-red-500 animate-rainbow opacity-80" />
+                    <div className="absolute top-0 right-0 h-full bg-slate-100 transition-all duration-1000" style={{ width: `${50 - stockPercent}%` }} />
+                    <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-red-600 rounded-full border-2 border-white shadow-lg z-10" style={{ left: `calc(${stockPercent}% + 48%)` }} />
+                  </div>
                 </div>
               </div>
             )}
@@ -1222,7 +1278,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <div ref={buyBoxRef} className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               {product.orderType !== 'request' && (
                 <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 w-full sm:w-auto justify-between sm:justify-start">
                   <button
@@ -1350,7 +1406,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                             <img src={product.image} alt={product.title} className="w-full h-full object-contain mix-blend-multiply" />
                           </div>
                           <div className="space-y-1">
-                            <p className="text-[9px] font-black uppercase text-slate-400 line-clamp-1 leading-tight">{product.title}</p>
+                            <p className="text-[11px] font-black uppercase text-slate-400 line-clamp-1 leading-tight">{product.title}</p>
                             <p className="text-sm font-black text-slate-900">${mainCurrentPrice.toFixed(2)}</p>
                           </div>
                         </div>
@@ -1363,7 +1419,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                             <img src={upsell.mainImageUrl || ''} alt={upsell.name} className="w-full h-full object-contain mix-blend-multiply" />
                           </div>
                           <div className="space-y-1">
-                            <p className="text-[9px] font-black uppercase text-slate-400 line-clamp-1 leading-tight">{upsell.name}</p>
+                            <p className="text-[11px] font-black uppercase text-slate-400 line-clamp-1 leading-tight">{upsell.name}</p>
                             <p className="text-sm font-black text-slate-900">${upsellCurrentPrice.toFixed(2)}</p>
                           </div>
                         </div>
@@ -1412,7 +1468,18 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
             <div className="rounded-3xl p-6 sm:p-8 bg-[#efefef] w-full overflow-hidden">
               <h3 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 text-center">Description of Product</h3>
               <div
-                className="mt-4 text-sm font-medium leading-relaxed text-slate-600 prose prose-sm max-w-none w-full overflow-hidden break-words [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:my-1 [&_strong]:font-medium [&_strong]:text-slate-900 [&_p]:mb-3 [&_p]:break-words [&_*]:font-medium [&_*]:max-w-full [&_img]:max-w-full [&_img]:h-auto [&_table]:w-full [&_table]:table-fixed [&_pre]:overflow-x-auto text-left"
+                className="mt-4 text-sm font-medium leading-relaxed text-slate-600 prose prose-sm max-w-none w-full overflow-hidden break-words 
+  text-center
+  [&_p]:text-center
+  [&_ul]:list-disc [&_ul]:pl-0 [&_ul]:text-left [&_ul]:list-inside
+  [&_ol]:list-decimal [&_ol]:pl-0 [&_ol]:text-left [&_ol]:list-inside
+  [&_li]:text-center [&_li]:my-1
+  [&_table]:mx-auto [&_table]:text-center [&_table]:table-auto
+  [&_th]:text-center [&_td]:text-center
+  [&_img]:mx-auto [&_img]:block
+  [&_strong]:font-medium [&_strong]:text-slate-900
+  [&_pre]:overflow-x-auto
+  [&_*]:max-w-full"
                 dangerouslySetInnerHTML={{ __html: product.description }}
               />
             </div>
@@ -1450,14 +1517,24 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                     <div className="flex-1 min-w-0 flex flex-col items-start gap-2">
                       <div className="flex items-center gap-2">
                         <div className="flex -space-x-2">
-                          {[1, 2, 3, 4].map((i) => (
-                            <img
-                              key={i}
-                              src={`https://i.pravatar.cc/100?u=${i}`}
-                              className="w-5 h-5 rounded-full border-2 border-white"
-                              alt="reviewer"
-                            />
-                          ))}
+                          {(product.reviews.length > 0 ? product.reviews.slice(0, 4) : [1, 2, 3, 4]).map((r: any, i) => {
+                            const hasPhoto = typeof r === 'object' && r.photos?.length > 0;
+                            const avatarUrl = hasPhoto ? r.photos[0].url : null;
+                            const initial = typeof r === 'object' ? r.fullName.charAt(0) : '?';
+
+                            return (
+                              <div 
+                                key={i} 
+                                className="relative w-7 h-7 rounded-full border-2 border-white overflow-hidden bg-slate-100 flex items-center justify-center shadow-sm"
+                              >
+                                {avatarUrl ? (
+                                  <img src={avatarUrl} className="w-full h-full object-cover" alt="reviewer" />
+                                ) : (
+                                  <span className="text-[10px] font-black text-slate-500 uppercase">{initial}</span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                         <div className="text-[1.4rem] font-black uppercase tracking-[0.04em] text-[#E56437] leading-none whitespace-nowrap">
                           {reviewLabel}
@@ -1482,6 +1559,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
       <ReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
+        productId={product.id}
         productTitle={product.title}
       />
 
@@ -1524,6 +1602,60 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Tactical Sticky Action Bar (Universal) */}
+      <AnimatePresence>
+        {showStickyBar && product && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed bottom-0 left-0 right-0 z-50 p-3 sm:p-4 bg-white/95 backdrop-blur-xl border-t border-slate-100 shadow-[0_-15px_40px_rgba(0,0,0,0.12)]"
+          >
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:gap-8">
+              {/* Desktop: Product Info Peek */}
+              <div className="hidden sm:flex items-center gap-4 flex-1 min-w-0">
+                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 p-1 shrink-0">
+                  <img src={thumbnails[0]} alt="product" className="w-full h-full object-contain mix-blend-multiply" />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-sm font-black italic uppercase tracking-tighter text-slate-900 truncate leading-none">
+                    {product.title}
+                  </h4>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      {selectedColor?.name || 'Standard'} / {selectedSize || 'OS'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 sm:gap-8 shrink-0">
+                <div className="text-right">
+                  <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-[0.1em] leading-none mb-1">Deployment Cost</p>
+                  <div className="flex items-baseline gap-1 justify-end">
+                    <p className="text-xl sm:text-2xl font-black italic tracking-tighter text-slate-900 leading-none">${displayPrice.toFixed(2)}</p>
+                    <span className="text-[10px] font-bold text-slate-400">x{quantity}</span>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={handleAddToCart}
+                  className="bg-[#E5633D] text-white px-6 sm:px-12 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-xs sm:text-base flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-orange-500/20 hover:bg-orange-600"
+                >
+                  <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden xs:inline">Deploy to Cart</span>
+                  <span className="xs:hidden">Deploy</span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Dynamic spacing spacer to avoid content overlap at the very bottom */}
+      <div className="h-20 sm:h-24 lg:hidden" />
     </div>
   );
 };

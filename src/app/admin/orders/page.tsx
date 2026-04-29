@@ -6,5 +6,5 @@ export const metadata: Metadata = {
 };
 
 export default function AdminOrdersPage() {
-  return <OrdersListClient />;
+  return <OrdersListClient fixedType="direct" />;
 }

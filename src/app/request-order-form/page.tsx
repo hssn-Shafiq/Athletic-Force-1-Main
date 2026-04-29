@@ -57,6 +57,7 @@ interface ProductItem {
     id: string;
     name: string;
     slug: string;
+    mainImageUrl?: string;
 }
 
 interface FormState {
@@ -73,6 +74,7 @@ interface FormState {
     subcategory: string;
     product: string;
     productId: string;
+    productImage: string;
     quantity: string;
     designDetails: string;
     additionalRequests: string;
@@ -120,6 +122,7 @@ function RequestOrderFormContent() {
         subcategory: '',
         product: '',
         productId: '',
+        productImage: '',
         quantity: '',
         designDetails: '',
         additionalRequests: '',
@@ -149,14 +152,16 @@ function RequestOrderFormContent() {
         const subcategory = searchParams.get('subcategory');
         const product = searchParams.get('product');
         const productId = searchParams.get('productId');
+        const productImage = searchParams.get('productImage');
 
-        if (category || subcategory || product || productId) {
+        if (category || subcategory || product || productId || productImage) {
             setForm(prev => ({
                 ...prev,
                 category: category || prev.category,
                 subcategory: subcategory || prev.subcategory,
                 product: product || prev.product,
-                productId: productId || prev.productId
+                productId: productId || prev.productId,
+                productImage: productImage || prev.productImage
             }));
         }
     }, [searchParams]);
@@ -240,11 +245,15 @@ function RequestOrderFormContent() {
                             const items = res.data.items || [];
                             setProducts(items);
 
-                            // Resolve productId if we have a pre-filled product name but no ID
-                            if (form.product && !form.productId) {
+                            // Resolve productId and image if we have a pre-filled product name but no ID
+                            if (form.product && (!form.productId || !form.productImage)) {
                                 const match = items.find((p: any) => p.name === form.product);
                                 if (match) {
-                                    setForm(prev => ({ ...prev, productId: match.id }));
+                                    setForm(prev => ({ 
+                                        ...prev, 
+                                        productId: prev.productId || match.id,
+                                        productImage: prev.productImage || match.mainImageUrl || ''
+                                    }));
                                 }
                             }
                         }
@@ -270,7 +279,12 @@ function RequestOrderFormContent() {
             setForm(prev => ({ ...prev, subcategory: value, product: '', productId: '' }));
         } else if (name === 'product') {
             const selectedProd = products.find(p => p.name === value);
-            setForm(prev => ({ ...prev, product: value, productId: selectedProd?.id || '' }));
+            setForm(prev => ({ 
+                ...prev, 
+                product: value, 
+                productId: selectedProd?.id || '',
+                productImage: selectedProd?.mainImageUrl || ''
+            }));
         } else {
             setForm(prev => ({ ...prev, [name]: value }));
         }
@@ -477,7 +491,16 @@ function RequestOrderFormContent() {
                                     </div>
                                 </div>
                                 <FormInput label="Required Color Scheme" name="requiredColor" value={form.requiredColor} onChange={handleChange} required icon={Palette} placeholder="e.g. Red, White & Charcoal" />
-                                <FormInput label="Expected Delivery Date" name="expectedDeliveryDate" type="date" value={form.expectedDeliveryDate} onChange={handleChange} required icon={Calendar} />
+                                <FormInput 
+                                    label="Expected Delivery Date" 
+                                    name="expectedDeliveryDate" 
+                                    type="date" 
+                                    value={form.expectedDeliveryDate} 
+                                    onChange={handleChange} 
+                                    required 
+                                    icon={Calendar} 
+                                    min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                                />
                             </div>
                         </div>
 
@@ -597,7 +620,7 @@ function RequestOrderFormContent() {
 
 // ─── SUBCOMPONENTS ────────────────────────────────────────────────────────────
 
-function FormInput({ label, name, type = 'text', value, onChange, required, icon: Icon, placeholder }: any) {
+function FormInput({ label, name, type = 'text', value, onChange, required, icon: Icon, placeholder, min }: any) {
     return (
         <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
@@ -610,6 +633,7 @@ function FormInput({ label, name, type = 'text', value, onChange, required, icon
                 onChange={onChange}
                 required={required}
                 placeholder={placeholder}
+                min={min}
                 className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-xs font-bold outline-none focus:border-orange-500 focus:bg-white transition-all"
             />
         </div>

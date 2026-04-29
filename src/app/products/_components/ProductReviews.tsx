@@ -1,17 +1,13 @@
 import Image from "next/image";
 import { Star } from "lucide-react";
 
-type ReviewPhoto = {
-  url: string;
-  publicId: string;
-};
 
 type Review = {
   id: string;
   rating: number;
   fullName: string;
   reviewText: string;
-  photos: ReviewPhoto[];
+  userAvatar?: { url: string; publicId: string };
   createdAt?: string;
 };
 
@@ -32,94 +28,48 @@ function StarsRow({ rating = 5 }: { rating?: number }) {
   );
 }
 
-function PhotoReviewCard({ review }: { review: Review }) {
-  return (
-    <article className="rounded-xl bg-[#f4f1ee] p-3">
-      <div className="grid grid-cols-3 gap-2">
-        {review.photos.slice(0, 3).map((photo) => (
-          <div key={photo.publicId} className="relative aspect-square overflow-hidden rounded-md bg-slate-200">
-            <Image
-              src={photo.url}
-              alt="Review photo"
-              fill
-              sizes="96px"
-              className="object-cover"
-              unoptimized
-            />
-          </div>
-        ))}
-      </div>
+function ReviewCard({ review }: { review: Review }) {
+  const avatarUrl = review.userAvatar?.url;
 
-      <div className="mt-3 flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-[9px] font-black text-slate-600 uppercase shrink-0">
-            {review.fullName.charAt(0)}
+  return (
+    <article className="rounded-2xl bg-white p-4 sm:p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300">
+      <div className="flex flex-col xs:flex-row items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {/* Tactical Avatar Slot */}
+          <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+            {avatarUrl ? (
+              <Image
+                src={avatarUrl}
+                alt={review.fullName}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <span className="text-xs sm:text-sm font-black text-slate-500 uppercase">
+                {review.fullName.charAt(0)}
+              </span>
+            )}
           </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-900">{review.fullName}</p>
-            <p className="text-[9px] font-semibold text-slate-500">Verified Buyer</p>
+
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-slate-900 truncate">{review.fullName}</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 truncate">Verified Operator</p>
+            </div>
           </div>
         </div>
-        <StarsRow rating={review.rating} />
-      </div>
-
-      <p className="mt-2 text-[10px] font-semibold leading-snug text-slate-600 line-clamp-4">{review.reviewText}</p>
-    </article>
-  );
-}
-
-function TextReviewCard({ review }: { review: Review }) {
-  return (
-    <article className="rounded-xl bg-[#f4f1ee] p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-[9px] font-black text-slate-600 uppercase shrink-0">
-            {review.fullName.charAt(0)}
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-900">{review.fullName}</p>
-            <p className="text-[9px] font-semibold text-slate-500">Verified Buyer</p>
-          </div>
+        <div className="shrink-0 pt-1 xs:pt-0">
+          <StarsRow rating={review.rating} />
         </div>
-        <StarsRow rating={review.rating} />
       </div>
 
-      <p className="mt-2 text-[10px] font-semibold leading-snug text-slate-600 line-clamp-4">{review.reviewText}</p>
-    </article>
-  );
-}
-
-// Static fallback placeholder cards when no real reviews exist
-function PlaceholderImageCard() {
-  return (
-    <article className="rounded-xl bg-[#f4f1ee] p-3">
-      <div className="grid grid-cols-3 gap-2">
-        {[1, 2, 3].map((item) => (
-          <div key={item} className="relative aspect-square overflow-hidden rounded-md bg-slate-200">
-            <Image
-              src="https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png"
-              alt={`Review gallery ${item}`}
-              fill
-              sizes="96px"
-              className="object-cover"
-              unoptimized
-            />
-          </div>
-        ))}
+      <div className="mt-4">
+        <p className="text-[13px] sm:text-sm leading-relaxed text-slate-600 font-medium italic">
+          "{review.reviewText}"
+        </p>
       </div>
-      <div className="mt-3 flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Image src="https://i.pravatar.cc/50?u=image-review" alt="Reviewer" width={20} height={20} className="rounded-full" unoptimized />
-          <div>
-            <p className="text-[10px] font-black text-slate-900">Verified Customer</p>
-            <p className="text-[9px] font-semibold text-slate-500">Verified Buyer</p>
-          </div>
-        </div>
-        <StarsRow rating={5} />
-      </div>
-      <p className="mt-2 text-[10px] font-semibold leading-snug text-slate-600">
-        Great product! Highly recommended. The quality and fit exceeded my expectations.
-      </p>
     </article>
   );
 }
@@ -132,19 +82,24 @@ export function ProductReviews({ reviews }: ProductReviewsProps) {
   }
 
   return (
-    <section className="rounded-2xl bg-[#efefef] p-5 sm:p-8">
-      <h2 className="text-lg font-black text-slate-900">
-        Product Reviews ({reviews.length})
-      </h2>
+    <section className="rounded-2xl sm:rounded-[32px] bg-slate-50/50 border border-slate-100 p-5 sm:p-8 lg:p-12">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">
+            Operational Feedback
+          </h2>
+          <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 sm:mt-1">
+            Verified Intelligence from the field ({reviews.length})
+          </p>
+        </div>
+        
+        {/* Optional: Add sort/filter controls here if needed in future */}
+      </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {reviews.map((review) =>
-          review.photos.length > 0 ? (
-            <PhotoReviewCard key={review.id} review={review} />
-          ) : (
-            <TextReviewCard key={review.id} review={review} />
-          )
-        )}
+      <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {reviews.map((review) => (
+          <ReviewCard key={review.id} review={review} />
+        ))}
       </div>
     </section>
   );

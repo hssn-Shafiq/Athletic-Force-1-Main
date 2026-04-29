@@ -2,18 +2,32 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Filter, Loader2, Package, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { Search, Filter, Loader2, Package, ChevronLeft, ChevronRight, Eye, Clock, AlertCircle } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function OrdersListClient() {
+export default function OrdersListClient({ fixedType }: { fixedType?: 'direct' | 'request' }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState<'direct' | 'request'>('direct');
+  const [typeFilter, setTypeFilter] = useState<'direct' | 'request'>(fixedType || 'direct');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  const fetchStats = async () => {
+    try {
+      setIsLoadingStats(true);
+      const { data } = await apiClient.get('/api/orders/admin/notifications');
+      if (data.ok) setStats(data.details);
+    } catch (err) {
+      console.error('Failed to fetch stats', err);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -36,6 +50,10 @@ export default function OrdersListClient() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
   useEffect(() => {
     fetchOrders();
@@ -69,7 +87,7 @@ export default function OrdersListClient() {
           <h1 className="text-4xl font-black uppercase italic tracking-tighter text-slate-900">
             {typeFilter === 'direct' ? 'Direct Orders' : 'Custom Requests'}
           </h1>
-          <p className="text-slate-500 font-bold text-sm mt-2">
+          <p className="text-slate-500 font-bold text-sm mt-2 italic">
             {typeFilter === 'direct' 
               ? 'Manage standardized inventory sales and shipping.' 
               : 'Analyze tactical custom requirements and issue specialized quotes.'}
@@ -77,21 +95,65 @@ export default function OrdersListClient() {
         </div>
       </div>
 
-      {/* Type Tabs */}
-      <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl w-fit">
-        <button
-          onClick={() => { setTypeFilter('direct'); setPage(1); }}
-          className={`px-8 py-3 rounded-xl text-xs font-black uppercase italic tracking-widest transition-all ${typeFilter === 'direct' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-        >
-          Direct Orders
-        </button>
-        <button
-          onClick={() => { setTypeFilter('request'); setPage(1); }}
-          className={`px-8 py-3 rounded-xl text-xs font-black uppercase italic tracking-widest transition-all ${typeFilter === 'request' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-        >
-          Custom Requests
-        </button>
+      {/* Analytics Brief */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {isLoadingStats ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white p-6 rounded-[30px] border border-slate-100 shadow-sm">
+              <Skeleton className="h-3 w-24 mb-4" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+          ))
+        ) : (
+          <>
+            <div className="bg-white p-6 rounded-[30px] border border-slate-100 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Active Quotes</p>
+                <h4 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900">{stats?.quotes || 0}</h4>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-orange-600 flex items-center justify-center rotate-[-5deg]">
+                <Package className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-[30px] border border-slate-100 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Pending Orders</p>
+                <h4 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900">{stats?.orders || 0}</h4>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center rotate-[-5deg]">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-[30px] border border-slate-100 shadow-sm flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Shipping Delays</p>
+                <h4 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900">{stats?.delays || 0}</h4>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-[#FF7348] flex items-center justify-center rotate-[-5deg]">
+                <AlertCircle className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </>
+        )}
       </div>
+
+      {/* Type Tabs - Only show if not fixed */}
+      {!fixedType && (
+        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl w-fit">
+          <button
+            onClick={() => { setTypeFilter('direct'); setPage(1); }}
+            className={`px-8 py-3 rounded-xl text-xs font-black uppercase italic tracking-widest transition-all ${typeFilter === 'direct' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            Direct Orders
+          </button>
+          <button
+            onClick={() => { setTypeFilter('request'); setPage(1); }}
+            className={`px-8 py-3 rounded-xl text-xs font-black uppercase italic tracking-widest transition-all ${typeFilter === 'request' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            Custom Requests
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
         <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">

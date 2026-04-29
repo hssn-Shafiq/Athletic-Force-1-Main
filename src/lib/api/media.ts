@@ -31,7 +31,7 @@ export async function signAdminMediaUpload(folder = 'af1/products') {
   return data;
 }
 
-export async function listAdminMedia(params?: { prefix?: string; cursor?: string; pageSize?: number }) {
+export async function listAdminMedia(params?: { prefix?: string; cursor?: string; pageSize?: number; search?: string; sort?: 'new' | 'old' }) {
   const { data } = await apiClient.get<MediaListResponse>('/api/admin/media', { params });
   return data;
 }

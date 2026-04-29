@@ -20,7 +20,9 @@ import {
   XCircle,
   Banknote,
   ShoppingBag,
-  Zap
+  Zap,
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { apiClient } from '@/lib/api/client';
@@ -33,8 +35,13 @@ type EmailType =
   | 'order_shipped'
   | 'order_cancelled'
   | 'order_refunded'
+  | 'order_paid'
   | 'low_stock_alert'
-  | 'abandoned_cart';
+  | 'admin_new_order_direct'
+  | 'admin_new_order_request'
+  | 'abandoned_cart'
+  | 'quote_request'
+  | 'password_reset';
 
 interface EmailTemplateData {
   type: string;
@@ -251,6 +258,111 @@ const DynamicTemplate = ({ type, data }: { type: EmailType; data: EmailTemplateD
                     </div>
                 </div>
             );
+        case 'order_paid':
+            return (
+                <div style={{ backgroundColor: '#f0fff4' }}>
+                    <div style={{ background: 'linear-gradient(135deg,#166534,#15803d,#166534)', padding: '54px 40px', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '84px', height: '84px', lineHeight: '84px', fontSize: '38px', marginBottom: '22px' }}>💰</div>
+                        <h1 style={{ margin: '0 0 8px', color: '#ffffff', fontSize: '30px', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic' }}>{data.heading}</h1>
+                        <p style={{ margin: 0, color: '#dcfce7', fontSize: '15px' }}>Your transaction is secure and confirmed. 🎯</p>
+                    </div>
+                    <div className="bg-[#f0fdf4] py-3 text-center border-b border-[#bcf0da]">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#166534]">✨ &nbsp; Transaction for #AF1-2026 is SUCCESSFUL</p>
+                    </div>
+                    <div className="p-12 text-left space-y-10">
+                        <div>
+                            <p className="text-[#94A3B8] text-[10px] font-black uppercase tracking-widest mb-2">Confirmed,</p>
+                            <h2 className="text-2xl font-black italic uppercase text-[#0F172A] mb-4">ALEX 👋</h2>
+                            <p className="text-[#475569] text-base leading-relaxed">{data.body}</p>
+                        </div>
+                        <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-8 grid grid-cols-2 gap-8">
+                            <div>
+                                <p className="text-[10px] font-black uppercase text-[#64748b] mb-1">Order ID</p>
+                                <p className="text-sm font-black font-mono">#AF1-2026</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black uppercase text-[#64748b] mb-1">Status</p>
+                                <p className="text-sm font-black text-[#166534]">✅ PAID & SECURE</p>
+                            </div>
+                        </div>
+                        <DossierSummary {...MOCK_ORDER} />
+                        <button className="w-full bg-black text-white py-5 rounded-lg font-black uppercase italic tracking-tighter text-xl shadow-xl">
+                            {data.buttonText || 'Track My Progress'}
+                        </button>
+                    </div>
+                </div>
+            );
+        case 'admin_new_order_direct':
+            return (
+                <div className="p-10 space-y-8 font-sans text-slate-900">
+                    <h2 className="text-xl font-black uppercase italic border-b-2 border-black pb-4">🚨 New Direct Order Received</h2>
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer Intelligence</p>
+                        <p className="font-bold text-lg">Alex Johnson</p>
+                        <p className="text-slate-500">alex.j@example.com</p>
+                    </div>
+                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex justify-between items-center">
+                        <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Order ID</p>
+                            <p className="font-mono font-black">#AF1-69EB6</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Revenue</p>
+                            <p className="text-2xl font-black text-green-600">$129.99</p>
+                        </div>
+                    </div>
+                    <DossierSummary {...MOCK_ORDER} />
+                    <div className="pt-6 border-t border-slate-100">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Shipping Logistics</p>
+                        <p className="text-sm leading-relaxed text-slate-600">4807 Greenleaf Ct, Ste D, Modesto, CA 95356</p>
+                    </div>
+                    <button className="w-full bg-black text-white py-4 rounded-xl font-black uppercase italic text-sm shadow-lg shadow-black/10">
+                        Open Order in Command Center
+                    </button>
+                </div>
+            );
+        case 'admin_new_order_request':
+            return (
+                <div className="p-10 space-y-8 font-sans text-slate-900">
+                    <h2 className="text-xl font-black uppercase italic border-b-2 border-orange-500 pb-4 text-orange-600">📝 New Quote Request Received</h2>
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Requester Intelligence</p>
+                        <p className="font-bold text-lg">Hassan Shafiq</p>
+                        <p className="text-slate-500">shafiq@example.com</p>
+                    </div>
+                    <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100 flex justify-between items-center">
+                        <div>
+                            <p className="text-[10px] font-bold text-orange-400 uppercase">Request ID</p>
+                            <p className="font-mono font-black text-orange-900">#AF1-QUOTE-782</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] font-bold text-orange-400 uppercase">Type</p>
+                            <p className="text-lg font-black text-orange-700 italic">CUSTOM REQUEST</p>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tactical Dossier</p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 bg-slate-50 rounded-xl">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Team Name</p>
+                                <p className="font-black text-sm uppercase">Shadow Wolves</p>
+                            </div>
+                            <div className="p-4 bg-slate-50 rounded-xl">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Deployment Date</p>
+                                <p className="font-black text-sm">May 15, 2026</p>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-slate-50 rounded-xl">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Technical Notes</p>
+                            <p className="text-xs italic text-slate-600">Need the logo to be reflective silver. Contrast stitching on the sleeves is required.</p>
+                        </div>
+                    </div>
+                    <DossierSummary {...MOCK_ORDER} />
+                    <button className="w-full bg-orange-500 text-white py-4 rounded-xl font-black uppercase italic text-sm shadow-lg shadow-orange-500/20">
+                        Review Custom Dossier
+                    </button>
+                </div>
+            );
         case 'abandoned_cart':
             return (
                 <div className="bg-[#f0eef8]">
@@ -282,6 +394,47 @@ const DynamicTemplate = ({ type, data }: { type: EmailType; data: EmailTemplateD
                     </div>
                 </div>
             );
+        case 'quote_request':
+            return (
+                <div className="bg-[#f4f1eb]">
+                    <div className="bg-gradient-to-br from-[#1e293b] to-[#020617] p-16 text-center text-white">
+                        <div className="w-20 h-20 bg-white/10 border-2 border-white/20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">📝</div>
+                        <h1 className="text-3xl font-black italic uppercase mb-2">{data.heading}</h1>
+                        <p className="text-slate-400 text-sm">Dossier Received. Tactical Review in Progress. 🎯</p>
+                    </div>
+                    <div className="bg-[#f1f5f9] py-3 text-center border-b border-[#e2e8f0]">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#475569]">📝 &nbsp; Request #AF1-QUOTE Logged Successfully</p>
+                    </div>
+                    <div className="p-12 space-y-10 text-left">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Hey,</p>
+                            <h2 className="text-2xl font-black italic uppercase text-black mb-4">Alex 👋</h2>
+                            <p className="text-[#475569] text-base leading-relaxed">{data.body}</p>
+                        </div>
+                        <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-8 grid grid-cols-2 gap-8">
+                            <div>
+                                <p className="text-[10px] font-black uppercase text-[#64748b] mb-1">Request ID</p>
+                                <p className="text-sm font-black font-mono">#AF1-QUOTE</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black uppercase text-[#64748b] mb-1">Current Status</p>
+                                <p className="text-sm font-black text-[#FF7348]">🔍 UNDER REVIEW</p>
+                            </div>
+                        </div>
+                        <DossierSummary {...MOCK_ORDER} />
+                        <div className="space-y-6">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Next Operational Steps</p>
+                            <div className="flex gap-4 items-center">
+                                <div className="w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center font-black">1</div>
+                                <div>
+                                    <p className="text-xs font-black uppercase">Dossier Review</p>
+                                    <p className="text-[10px] text-slate-500">Evaluating your design and logistics requirements.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
         default:
             return (
                 <div className="p-12 text-center space-y-8">
@@ -307,9 +460,11 @@ export const EmailPreviews: React.FC = () => {
     { id: 'welcome', label: 'Welcome', icon: UserPlus },
     { id: 'order_placed', label: 'New Order', icon: ShoppingBag },
     { id: 'order_shipped', label: 'Shipped', icon: Truck },
-    { id: 'order_cancelled', label: 'Cancelled', icon: XCircle },
-    { id: 'order_refunded', label: 'Refunded', icon: Banknote },
+    { id: 'admin_new_order_direct', label: 'Admin (Direct)', icon: ShieldCheck },
+    { id: 'admin_new_order_request', label: 'Admin (Quote)', icon: ShieldAlert },
     { id: 'abandoned_cart', label: 'Cart Reminder', icon: ShoppingCart },
+    { id: 'quote_request', label: 'Quote Request', icon: FileText },
+    { id: 'password_reset', label: 'Reset Pwd', icon: Zap },
     { id: 'low_stock_alert', label: 'Stock Alert', icon: AlertCircle },
   ];
 
@@ -348,7 +503,7 @@ export const EmailPreviews: React.FC = () => {
     }
   };
 
-  const isShippedType = activeTab === 'order_shipped' || activeTab === 'order_cancelled' || activeTab === 'order_refunded';
+  const isShippedType = activeTab === 'order_shipped' || activeTab === 'order_cancelled' || activeTab === 'order_refunded' || activeTab === 'order_placed' || activeTab === 'abandoned_cart' || activeTab === 'quote_request' || activeTab === 'order_paid' || activeTab === 'admin_new_order_direct' || activeTab === 'admin_new_order_request';
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] p-6 lg:p-12">

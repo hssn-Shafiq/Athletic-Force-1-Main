@@ -79,7 +79,7 @@ export function VideoReviews({ videoReviews }: VideoReviewsProps) {
           return (
             <div
               key={index}
-              className="relative overflow-hidden rounded-2xl border-2 border-transparent bg-black aspect-[3/4] sm:aspect-auto sm:h-64"
+              className="relative overflow-hidden rounded-2xl border-2 border-transparent bg-black aspect-[3/6] sm:aspect-auto sm:h-100"
             >
               {isPlaying && embedUrl ? (
                 <>
@@ -103,7 +103,7 @@ export function VideoReviews({ videoReviews }: VideoReviewsProps) {
                 <button
                   type="button"
                   onClick={() => setPlayingIndex(index)}
-                  className="group absolute inset-0 flex h-full w-full items-center justify-center"
+                  className="group absolute  inset-0 flex h-full w-full items-center justify-center"
                   aria-label={`Play video review ${index + 1}`}
                 >
                   {item.thumbnailUrl ? (
@@ -121,8 +121,8 @@ export function VideoReviews({ videoReviews }: VideoReviewsProps) {
                     </div>
                   )}
                   {/* Play icon overlay */}
-                  <div className="absolute inset-0 grid place-items-center">
-                    <div className="grid h-12 w-12 place-items-center rounded-full bg-black/55 border border-white/60 text-white transition group-hover:scale-110">
+                  <div className="absolute inset-0 bottom-6 right-4 cursor-pointer grid place-items-end">
+                    <div className="grid h-10 w-10 place-items-center rounded-full bg-black/55 border border-white/60 text-white transition group-hover:scale-110">
                       <Play className="h-5 w-5" />
                     </div>
                   </div>
