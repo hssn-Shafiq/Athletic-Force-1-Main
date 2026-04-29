@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@vercel/speed-insights": "^2.0.0",
     "axios": "^1.15.1",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.38.0",
