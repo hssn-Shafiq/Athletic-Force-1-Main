@@ -1,9 +1,22 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+const BACKEND_URL = process.env.BACKEND_URL ?? 'https://athletic-force-1-main-bacckend.vercel.app';
+
 const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
+  },
+  // ─── Reverse Proxy ──────────────────────────────────────────────────────────
+  // All /api/* requests are proxied through Next.js to the backend.
+  // This eliminates CORS entirely — the browser sees one single origin.
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${BACKEND_URL}/api/:path*`,
+      },
+    ];
   },
   images: {
     formats: ["image/avif", "image/webp"],
