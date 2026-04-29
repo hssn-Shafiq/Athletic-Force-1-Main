@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 import path from "path";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? 'https://athletic-force-1-main-bacckend.vercel.app';
+const BACKEND_URL = process.env.BACKEND_URL ?? 'https://athletic-force-1-main-backend.vercel.app';
 
 const nextConfig: NextConfig = {
   turbopack: {
