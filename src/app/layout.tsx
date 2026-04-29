@@ -6,6 +6,7 @@ import "react-quill-new/dist/quill.snow.css";
 import { AppShell } from "../components/layout/AppShell";
 import { ToastProvider } from "../components/ui/ToastProvider";
 import { AppProviders } from "@/components/providers/AppProviders";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -37,6 +38,7 @@ export default function RootLayout({
           <AppShell>{children}</AppShell>
         </AppProviders>
         <ToastProvider />
+        <SpeedInsights />
       </body>
     </html>
   );
