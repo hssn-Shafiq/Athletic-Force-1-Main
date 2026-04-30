@@ -296,6 +296,7 @@ export type AdminProduct = {
     metaDescription?: string;
     urlHandle?: string;
   };
+  pendingReviewsCount?: number;
   createdAt?: string;
   updatedAt?: string;
 };

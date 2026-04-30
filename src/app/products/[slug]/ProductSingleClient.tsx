@@ -234,7 +234,7 @@ function mapToDetailedProduct(raw: any): DetailedProduct {
     id: raw.id,
     title: raw.name,
     sku: variantRows[0]?.sku || (raw.slug || '00001').toUpperCase(),
-    category: (raw.collections || []).find((c: any) => !c.parentId)?.name || (raw.collections || [])[0]?.name || 'Product',
+    category: (raw.collections || []).find((c: any) => c.parentId)?.name || (raw.collections || []).find((c: any) => !c.parentId)?.name || (raw.collections || [])[0]?.name || 'Product',
     price: salePrice,
     originalPrice: regularPrice,
     discount: discount > 0 ? `${discount}% OFF` : '',
