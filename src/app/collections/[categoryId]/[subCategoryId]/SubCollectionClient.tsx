@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { PublicProduct, CollectionHierarchy } from "@/lib/api/types";
 import { Search, ChevronDown, Home, ChevronRight } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -31,10 +31,12 @@ export default function SubCollectionClient() {
   const [priceRange, setPriceRange] = useState<number>(1400);
   const [quickViewProduct, setQuickViewProduct] = useState<PublicProduct | null>(null);
   const [expandedParents, setExpandedParents] = useState<string[]>([]);
+  const [selectedSubSlug, setSelectedSubSlug] = useState<string>(subSlug);
+  const router = useRouter();
 
   // --- Breadcrumb & Hero Intel ---
   const parentData = useMemo(() => hierarchy.find(p => p.slug === parentSlug), [hierarchy, parentSlug]);
-  const subData = useMemo(() => parentData?.subcategories.find(s => s.slug === subSlug), [parentData, subSlug]);
+  const subData = useMemo(() => parentData?.subcategories.find(s => s.slug === (selectedSubSlug === "ALL" ? "" : selectedSubSlug)), [parentData, selectedSubSlug]);
 
   // --- Tactical Data Fetching ---
   const fetchSubCollectionData = useCallback(async () => {
@@ -42,7 +44,7 @@ export default function SubCollectionClient() {
     try {
       const [productRes, hierarchyRes] = await Promise.all([
         getExploreProductsApi({
-          collection: subSlug, // Filter specifically by the sub-category slug
+          collection: selectedSubSlug === "ALL" ? parentSlug : selectedSubSlug,
           search: searchQuery || undefined,
           maxPrice: priceRange,
           sortBy: sortBy,
@@ -89,15 +91,13 @@ export default function SubCollectionClient() {
           <ChevronRight className="w-3 h-3" />
           <Link href="/shop" className="hover:text-black transition-colors">SHOP</Link>
           <ChevronRight className="w-3 h-3" />
-          <Link href={`/collections/${parentSlug}`} className="hover:text-black transition-colors">
-            {parentData?.name || parentSlug.replace(/-/g, ' ')}
-          </Link>
-          <ChevronRight className="w-3 h-3 text-black" />
-          <span className="text-black">{subData?.name || subSlug.replace(/-/g, ' ')}</span>
+          <Link href={`/collections/${parentSlug}`} className="hover:text-black transition-colors">{parentData?.name || parentSlug}</Link>
+          <ChevronRight className="w-3.5 h-3.5" />
+          <span className="text-black font-bold">{selectedSubSlug === "ALL" ? `All ${parentData?.name || ""}` : (subData?.name || subSlug.replace(/-/g, ' '))}</span>
         </nav>
 
         {/* Hero Banner - Sub Collection */}
-        <div className="relative w-full h-[190px] md:h-[350px] rounded-[28px] mb-5 flex items-center justify-center bg-black overflow-hidden shadow-2xl">
+        <div className="relative w-full h-[220px] md:h-[380px] rounded-[40px] mb-8 flex items-center justify-center bg-black overflow-hidden shadow-2xl group">
           <Image
             src="/shop-hero.png" // Reusing the elite shop hero
             alt={subData?.name || "Collection"}
@@ -109,16 +109,16 @@ export default function SubCollectionClient() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
           <div className="relative text-center">
              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-orange-500 mb-2 italic">Specialized Collection</p>
-             <h1 className="text-[42px] md:text-[62px] font-black text-white tracking-tighter italic uppercase leading-none drop-shadow-2xl">
-                {subData?.name || subSlug.replace(/-/g, ' ')}
-             </h1>
+             <h1 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter text-white mb-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+              {selectedSubSlug === "ALL" ? `All ${parentData?.name || ""}` : (subData?.name || subSlug.replace(/-/g, ' '))}
+            </h1>
           </div>
         </div>
 
-        {/* Main Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-0 border border-gray-200 bg-[#f3f3f3] relative rounded-3xl overflow-hidden shadow-sm">
-          {/* Left Sidebar - Desktop View */}
-          <aside className="hidden md:block md:col-span-1 p-6 md:border-r border-gray-200 bg-white/50 backdrop-blur-md">
+        {/* Main Layout Grid - Standardized Elite Design */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-0 border border-slate-200 bg-[#f3f3f3] relative rounded-[40px] overflow-hidden shadow-xl mb-20">
+          {/* Left Sidebar - Tactical Intelligence */}
+          <aside className="hidden md:block md:col-span-1 p-8 md:border-r border-slate-200 bg-white/40 backdrop-blur-xl">
             <div className="space-y-8">
               {/* Search Box */}
               <div className="relative group">
@@ -134,8 +134,8 @@ export default function SubCollectionClient() {
 
               {/* Price Range */}
               <div>
-                <h3 className="text-xs font-black uppercase italic tracking-widest text-slate-900 mb-4 flex items-center gap-2">
-                  <div className="w-1 h-3 bg-black" />
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 italic flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
                   Price Ceiling
                 </h3>
                 <input
@@ -154,8 +154,8 @@ export default function SubCollectionClient() {
 
               {/* Navigation Hierarchy */}
               <div className="space-y-4">
-                <h3 className="text-xs font-black uppercase italic tracking-widest text-slate-900 mb-4 flex items-center gap-2">
-                  <div className="w-1 h-3 bg-black" />
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 italic flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
                   Other Collections
                 </h3>
                 {hierarchy.map((parent) => (
@@ -171,20 +171,30 @@ export default function SubCollectionClient() {
                     </button>
                     
                     {expandedParents.includes(parent.id) && (
-                      <div className="space-y-2 pl-3 border-l-2 border-slate-100 mt-2">
+                      <div className="space-y-3 pl-1 mt-3">
                         {parent.subcategories.map(sub => (
-                          <Link
+                          <div
                             key={sub.id}
-                            href={`/collections/${parent.slug}/${sub.slug}`}
-                            className={`flex items-center justify-between group py-1.5 transition-all hover:translate-x-1`}
+                            onClick={() => {
+                              if (sub.slug === selectedSubSlug) {
+                                setSelectedSubSlug("ALL");
+                              } else {
+                                router.push(`/collections/${parent.slug}/${sub.slug}`, { scroll: false });
+                              }
+                            }}
+                            className="flex items-center justify-between cursor-pointer group/item py-0.5"
                           >
-                            <span className={`text-[12px] font-bold ${sub.slug === subSlug ? "text-orange-600" : "text-slate-400 group-hover:text-black"}`}>
-                                {sub.name}
+                            <span className={`text-[11px] font-bold transition-all ${sub.slug === selectedSubSlug ? "text-slate-900 translate-x-1" : "text-slate-400 group-hover/item:text-black group-hover/item:translate-x-1"}`}>
+                              {sub.name} <span className="text-[9px] font-bold opacity-40 ml-1">({sub.productCount || 0})</span>
                             </span>
-                            <span className="text-[10px] font-bold text-slate-300 group-hover:text-slate-500 transition-colors">
-                                ({sub.productCount || 0})
-                            </span>
-                          </Link>
+                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${sub.slug === selectedSubSlug ? "bg-[#FF7348] border-[#FF7348] shadow-lg shadow-[#FF7348]/20" : "border-slate-100 bg-white"}`}>
+                              {sub.slug === selectedSubSlug && (
+                                <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5 text-white" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                              )}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -197,20 +207,27 @@ export default function SubCollectionClient() {
           {/* Products Section */}
           <div className="md:col-span-3 bg-white">
             {/* Sort Row */}
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-10">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Showing <span className="text-black">{products.length}</span> Results
-                </p>
+            {/* Operational Status Bar - Sticky with Sort */}
+            <div className="px-8 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-white/90 backdrop-blur-md sticky top-0 z-30">
+              <div className="flex items-center gap-3">
+                 <div className="w-1.5 h-5 bg-orange-600 rounded-full animate-pulse" />
+                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                    Units Identified: <span className="text-black ml-1 font-sora font-black">{products.length}</span>
+                 </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest hidden sm:inline">Sort Matrix:</span>
                 <select 
                     value={sortBy} 
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="h-10 pl-4 pr-10 bg-slate-50 border border-slate-100 rounded-xl font-bold text-[10px] uppercase tracking-widest outline-none focus:ring-2 focus:ring-orange-500/20 transition-all"
+                    className="h-10 pl-4 pr-10 bg-slate-50 border border-slate-100 rounded-xl font-bold text-[10px] uppercase tracking-[0.2em] outline-none focus:ring-4 focus:ring-orange-500/10 transition-all cursor-pointer hover:bg-slate-100"
                 >
                     <option value="newest">Newest First</option>
                     <option value="most-selling">Best Sellers</option>
                     <option value="price-low-high">Price: Low to High</option>
                     <option value="price-high-low">Price: High to Low</option>
                 </select>
+              </div>
             </div>
 
             {/* Products Grid */}
@@ -222,17 +239,17 @@ export default function SubCollectionClient() {
                   <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Search className="w-8 h-8 text-slate-300" />
                   </div>
-                  <h3 className="text-xl font-black italic uppercase tracking-tighter mb-2">No Tactical Gear Found</h3>
-                  <p className="text-sm text-slate-400 max-w-xs mx-auto">We couldn't find any items matching your current filters in this sub-collection.</p>
+                  <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-4 text-slate-900">Zero Gear Detected</h3>
+                  <p className="text-sm text-slate-400 max-w-xs mx-auto font-medium mb-8">Try adjusting your filters or mission parameters.</p>
                   <button 
                     onClick={() => {setPriceRange(1400); setSearchQuery("");}}
-                    className="mt-8 px-8 py-3 bg-black text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10"
+                    className="px-12 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] italic hover:bg-orange-600 transition-all shadow-xl shadow-black/10 active:scale-95"
                   >
-                    Reset Mission Filters
+                    Reset Operational Area
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
                   {products.map((p: any) => {
                     const mappedProduct = {
                       ...p,
@@ -242,10 +259,10 @@ export default function SubCollectionClient() {
                       image: p.mainImageUrl,
                       price: p.salePrice || p.basePrice,
                       originalPrice: p.regularPrice || p.basePrice,
-                      category: p.collections?.find((c: any) => c.parentId)?.name || p.collections?.[0]?.name || "Athletic Wear",
+                      category: p.collections?.find((c: any) => c.parentId)?.name || p.collections?.[0]?.name || "Tactical Gear",
                       rating: p.rating || 4.9,
                       discount: p.regularPrice && p.salePrice ? `-${Math.round((1 - p.salePrice/p.regularPrice) * 100)}%` : undefined,
-                      isNew: true
+                      isNew: p.badgeName?.toLowerCase() === 'new'
                     };
                     return (
                       <ProductCard

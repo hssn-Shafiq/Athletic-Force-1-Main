@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { PublicProduct, CollectionHierarchy } from "@/lib/api/types";
-import { Search, SlidersHorizontal, ChevronDown, ChevronRight, Filter, X } from "lucide-react";
+import { Search, SlidersHorizontal, ChevronDown, ChevronRight, ChevronLeft, Filter, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { ProductCard } from "@/components/layout/ProductCard";
 
@@ -91,8 +91,12 @@ export default function ShopClient() {
 
   // --- UI Logic ---
   const handleCollectionSelect = (parentSlug: string, subSlug: string = "ALL") => {
-    setSelectedParentSlug(parentSlug);
-    setSelectedSubSlug(subSlug);
+    if (selectedSubSlug === subSlug) {
+      setSelectedSubSlug("ALL");
+    } else {
+      setSelectedParentSlug(parentSlug);
+      setSelectedSubSlug(subSlug);
+    }
   };
 
   const toggleParent = (id: string, slug: string) => {
@@ -153,205 +157,244 @@ export default function ShopClient() {
           </div>
         </div>
 
-        {/* Main Shop Layout */}
-        <div className="flex flex-col lg:flex-row gap-8">
+        {/* Main Layout Grid - Standardized with SubCollection design */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-0 border border-slate-200 bg-[#f3f3f3] relative rounded-[40px] overflow-hidden shadow-xl mb-20">
           
-          {/* Tactical Sidebar */}
-          <aside className="w-full lg:w-[280px] shrink-0 space-y-8">
-            
-            {/* Search Box */}
-            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 italic">Signal Search</h3>
-              <div className="relative group">
-                <input
-                  type="text"
-                  placeholder="Identify..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-12 pl-4 pr-10 border border-slate-100 rounded-2xl text-sm bg-slate-50 focus:outline-none focus:ring-4 focus:ring-orange-500/10 transition-all font-bold"
-                />
-                <Search className="absolute right-4 top-3.5 w-5 h-5 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
+          {/* Left Sidebar - Tactical Intelligence */}
+          <aside className="md:col-span-1 p-8 md:border-r border-slate-200 bg-white/40 backdrop-blur-xl">
+            <div className="space-y-10">
+              
+              {/* Search Box - Signal Identification */}
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 italic flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                  Signal Search
+                </h3>
+                <div className="relative group">
+                  <input
+                    type="text"
+                    placeholder="Identify gear..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full h-14 pl-5 pr-12 border border-slate-200 rounded-2xl text-sm bg-white focus:outline-none focus:ring-4 focus:ring-orange-500/10 transition-all font-bold placeholder:text-slate-300 shadow-sm"
+                  />
+                  <Search className="absolute right-4 top-4.5 w-5 h-5 text-slate-300 group-focus-within:text-orange-500 transition-colors" />
+                </div>
               </div>
-            </div>
 
-            {/* Price Range */}
-            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 italic">Price Ceiling</h3>
-              <input
-                type="range"
-                min="0"
-                max="1400"
-                value={priceRange}
-                onChange={(e) => setPriceRange(parseInt(e.target.value))}
-                className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-black"
-              />
-              <div className="mt-4 flex items-center justify-between text-[11px] font-black text-slate-900 uppercase">
-                <span className="px-2 py-1 bg-slate-50 rounded-md">$0</span>
-                <span className="px-2 py-1 bg-orange-500 text-white rounded-md">${priceRange}</span>
-              </div>
-            </div>
-
-            {/* Targeted Collections Sidebar */}
-            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 italic">Asset Sectors</h3>
-              <div className="space-y-6">
-                {targetedHierarchy.map((parent) => (
-                  <div key={parent.id} className="space-y-4">
-                    <button 
-                      onClick={() => toggleParent(parent.id, parent.slug)}
-                      className="flex items-center justify-between w-full group py-1"
-                    >
-                      <span className={`text-sm font-black uppercase italic transition-colors ${selectedParentSlug === parent.slug ? 'text-black' : 'text-slate-400 hover:text-black'}`}>
-                        {parent.name}
-                      </span>
-                      <ChevronDown className={`w-4 h-4 transition-transform ${expandedParents.includes(parent.id) ? "rotate-180" : ""}`} />
-                    </button>
-                    
-                    {expandedParents.includes(parent.id) && (
-                      <div className="space-y-3 pl-1">
-                        {parent.subcategories.map(sub => (
-                          <div 
-                            key={sub.id} 
-                            onClick={() => handleCollectionSelect(parent.slug, sub.slug)}
-                            className="flex items-center justify-between cursor-pointer group"
-                          >
-                            <span className={`text-[12px] font-bold transition-all ${selectedSubSlug === sub.slug ? "text-slate-900" : "text-slate-400 group-hover:text-black"}`}>
-                              {sub.name} <span className="text-[10px] font-bold opacity-60 ml-1">({sub.productCount || 0})</span>
-                            </span>
-                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${selectedSubSlug === sub.slug ? "bg-[#FF7348] border-[#FF7348] shadow-lg shadow-[#FF7348]/20" : "border-slate-100 bg-slate-50"}`}>
-                              {selectedSubSlug === sub.slug && (
-                                <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5 text-white" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                                  <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+              {/* Price Ceiling - Resource Allocation */}
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 italic flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                  Price Ceiling
+                </h3>
+                <div className="px-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="1400"
+                    value={priceRange}
+                    onChange={(e) => setPriceRange(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-black"
+                  />
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">$0</span>
+                    <span className="px-3 py-1 bg-black text-white text-[10px] font-black rounded-lg italic tracking-widest shadow-lg shadow-black/20">
+                      MAX ${priceRange}
+                    </span>
                   </div>
-                ))}
+                </div>
               </div>
+
+              {/* Asset Sectors - Collection Hierarchy */}
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 italic flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                  Asset Sectors
+                </h3>
+                <div className="space-y-6">
+                  {targetedHierarchy.map((parent) => (
+                    <div key={parent.id} className="space-y-4">
+                      <button 
+                        onClick={() => toggleParent(parent.id, parent.slug)}
+                        className="flex items-center justify-between w-full group py-1"
+                      >
+                        <span className={`text-xs font-black uppercase italic tracking-wider transition-all ${selectedParentSlug === parent.slug ? 'text-black' : 'text-slate-400 hover:text-black'}`}>
+                          {parent.name}
+                        </span>
+                        <ChevronDown className={`w-4 h-4 transition-transform text-slate-300 group-hover:text-black ${expandedParents.includes(parent.id) ? "rotate-180 text-black" : ""}`} />
+                      </button>
+                      
+                      {expandedParents.includes(parent.id) && (
+                        <div className="space-y-3 pl-1">
+                          {parent.subcategories.map(sub => (
+                            <div 
+                              key={sub.id} 
+                              onClick={() => handleCollectionSelect(parent.slug, sub.slug)}
+                              className="flex items-center justify-between cursor-pointer group/item"
+                            >
+                              <span className={`text-[11px] font-bold transition-all ${selectedSubSlug === sub.slug ? "text-slate-900 translate-x-1" : "text-slate-400 group-hover/item:text-black group-hover/item:translate-x-1"}`}>
+                                {sub.name} <span className="text-[9px] font-bold opacity-40 ml-1">({sub.productCount || 0})</span>
+                              </span>
+                              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${selectedSubSlug === sub.slug ? "bg-[#FF7348] border-[#FF7348] shadow-lg shadow-[#FF7348]/20" : "border-slate-100 bg-white"}`}>
+                                {selectedSubSlug === sub.slug && (
+                                  <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5 text-white" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reset Control */}
+              <button 
+                onClick={() => {setPriceRange(1400); setSearchQuery(""); setSelectedSubSlug("ALL");}}
+                className="w-full py-4 border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:bg-black hover:text-white hover:border-black transition-all group italic"
+              >
+                Clear Signal
+              </button>
             </div>
           </aside>
 
-          {/* Main Content Area */}
-          <div className="flex-1 min-w-0">
+          {/* Right Content Area - Operational Theater */}
+          <div className="md:col-span-3 bg-white min-h-[800px]">
             
-            {/* Top Tabs Grid */}
-            <div className="mb-8 overflow-x-auto pb-4 scrollbar-hide">
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => setSelectedSubSlug("ALL")}
-                  className={`px-8 py-3 rounded-full text-[10px] font-black uppercase italic tracking-widest transition-all ${
-                    selectedSubSlug === "ALL" 
-                      ? "bg-white text-black border-2 border-black shadow-xl shadow-black/5" 
-                      : "bg-slate-200/50 text-slate-400 hover:bg-slate-200 hover:text-black"
-                  }`}
-                >
-                  All {activeParent?.name || ""}
-                </button>
-                {activeParent?.subcategories.map(sub => (
-                  <button
-                    key={sub.id}
-                    onClick={() => setSelectedSubSlug(sub.slug)}
-                    className={`px-8 py-3 rounded-full text-[10px] font-black uppercase italic tracking-widest transition-all ${
-                      selectedSubSlug === sub.slug 
-                        ? "bg-white text-black border-2 border-black shadow-xl shadow-black/5 scale-105" 
-                        : "bg-slate-200/50 text-slate-400 hover:bg-slate-200 hover:text-black"
-                    }`}
-                  >
-                    {sub.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Asset Control Row */}
-            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            {/* Operational Status Bar - Sticky with Sort */}
+            <div className="px-8 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-white/90 backdrop-blur-md sticky top-0 z-30">
               <div className="flex items-center gap-3">
-                 <div className="w-1 h-4 bg-orange-600" />
-                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Units Identified: <span className="text-black ml-1 font-sora">{products.length}</span>
+                 <div className="w-1.5 h-5 bg-orange-600 rounded-full animate-pulse" />
+                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                    Units Identified: <span className="text-black ml-1 font-sora font-black">{products.length}</span>
                  </p>
               </div>
-              
+
               <div className="flex items-center gap-3">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-300 italic">Sort Matrix</span>
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest hidden sm:inline">Sort Matrix:</span>
                 <select 
                   value={sortBy} 
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="h-12 pl-6 pr-12 bg-black text-white rounded-2xl font-black text-[11px] uppercase tracking-widest outline-none hover:bg-slate-900 transition-all cursor-pointer shadow-xl shadow-black/20"
+                  className="h-10 pl-4 pr-10 bg-slate-50 border border-slate-100 rounded-xl font-bold text-[10px] uppercase tracking-[0.2em] outline-none focus:ring-4 focus:ring-orange-500/10 transition-all cursor-pointer hover:bg-slate-100"
                 >
-                  <option value="newest">Recent Intel</option>
-                  <option value="most-selling">Top Sellers</option>
-                  <option value="price-low-high">Price: Low-High</option>
-                  <option value="price-high-low">Price: High-Low</option>
+                  <option value="newest">Newest First</option>
+                  <option value="most-selling">Best Sellers</option>
+                  <option value="price-low-high">Price: Low to High</option>
+                  <option value="price-high-low">Price: High to Low</option>
                 </select>
               </div>
             </div>
 
-            {/* Product Grid Area */}
-            {searchQuery && (
-              <div className="mb-10 p-6 bg-orange-50 border border-orange-100 rounded-[32px] flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <Search className="w-4 h-4 text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-orange-400">Signal Match</p>
-                    <h2 className="text-sm font-black italic uppercase text-slate-900 font-sora">Results for: <span className="text-orange-600">"{searchQuery}"</span></h2>
+            {/* Premium Category Navigation - Enhanced Scroller */}
+            <div className="px-8 pt-8">
+              <div className="relative group/tabs mb-4">
+                {/* Tactical Navigation Arrows */}
+                <button 
+                  onClick={() => {
+                    const el = document.getElementById('category-scroller');
+                    if (el) el.scrollBy({ left: -200, behavior: 'smooth' });
+                  }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 backdrop-blur-xl rounded-full border border-slate-100 flex items-center justify-center opacity-0 group-hover/tabs:opacity-100 transition-all hover:bg-black hover:text-white shadow-xl shadow-black/5"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <button 
+                  onClick={() => {
+                    const el = document.getElementById('category-scroller');
+                    if (el) el.scrollBy({ left: 200, behavior: 'smooth' });
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 backdrop-blur-xl rounded-full border border-slate-100 flex items-center justify-center opacity-0 group-hover/tabs:opacity-100 transition-all hover:bg-black hover:text-white shadow-xl shadow-black/5"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+
+                {/* Indicators */}
+                <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
+                <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
+                
+                <div 
+                  id="category-scroller"
+                  className="overflow-x-auto scrollbar-hide scroll-smooth py-2"
+                >
+                  <div className="flex flex-nowrap items-center gap-3 px-12">
+                    <button
+                      onClick={() => setSelectedSubSlug("ALL")}
+                      className={`px-10 py-4 rounded-2xl text-[10px] font-black uppercase italic tracking-[0.2em] transition-all whitespace-nowrap shadow-sm border ${
+                        selectedSubSlug === "ALL" 
+                          ? "bg-black text-white border-black shadow-black/20 translate-y-[-2px]" 
+                          : "bg-slate-50 text-slate-400 border-slate-100 hover:bg-white hover:text-black"
+                      }`}
+                    >
+                      All {activeParent?.name || ""}
+                    </button>
+                    {activeParent?.subcategories.map(sub => (
+                      <button
+                        key={sub.id}
+                        onClick={() => handleCollectionSelect(selectedParentSlug, sub.slug)}
+                        className={`px-10 py-4 rounded-2xl text-[10px] font-black uppercase italic tracking-[0.2em] transition-all whitespace-nowrap shadow-sm border ${
+                          selectedSubSlug === sub.slug 
+                            ? "bg-[#FF7348] text-white border-[#FF7348] shadow-[#FF7348]/20 translate-y-[-2px]" 
+                            : "bg-slate-50 text-slate-400 border-slate-100 hover:bg-white hover:text-black"
+                        }`}
+                      >
+                        {sub.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <button 
-                  onClick={() => {setSearchQuery(""); router.push('/shop', { scroll: false });}}
-                  className="px-5 py-2 bg-white border border-orange-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-sm flex items-center gap-2"
-                >
-                  Clear Signal <X className="w-3.5 h-3.5" />
-                </button>
               </div>
-            )}
+            </div>
 
-            {isLoading ? (
-              <ShopSkeleton />
-            ) : products.length === 0 ? (
-              <div className="text-center py-32 bg-slate-50 rounded-[64px] border-2 border-dashed border-slate-200">
-                <Filter className="w-12 h-12 text-slate-200 mx-auto mb-6" />
-                <h3 className="text-xl font-black italic uppercase text-slate-900 mb-2 font-sora">No Assets Detected</h3>
-                <p className="text-sm text-slate-400 max-w-xs mx-auto font-medium mb-8">Try adjusting your filters or mission parameters.</p>
-                <button 
-                  onClick={() => {setPriceRange(1400); setSelectedSubSlug("ALL"); setSearchQuery("");}}
-                  className="px-10 py-4 bg-black text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-2xl"
-                >
-                  Reset Gear Matrix
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-8">
-                {products.map((p: any) => {
-                  const mappedProduct = {
-                    ...p,
-                    id: p.id || p._id,
-                    name: p.name,
-                    title: p.name,
-                    image: p.mainImageUrl,
-                    price: p.salePrice || p.basePrice,
-                    originalPrice: p.regularPrice || p.basePrice,
-                    category: p.collections?.find((c: any) => c.parentId)?.name || p.collections?.[0]?.name || "Tactical Gear",
-                    rating: p.rating || 4.8,
-                    discount: p.regularPrice && p.salePrice ? `-${Math.round((1 - p.salePrice/p.regularPrice) * 100)}%` : undefined,
-                    isNew: p.badgeName?.toLowerCase() === 'new'
-                  };
-                  return (
-                    <ProductCard
-                      key={mappedProduct.id}
-                      product={mappedProduct as any}
-                      onOpenQuickView={() => setQuickViewProduct(mappedProduct as any)}
-                    />
-                  );
-                })}
-              </div>
-            )}
+            {/* Tactical Grid Deployment */}
+            <div className="p-8">
+              {isLoading ? (
+                <ShopSkeleton />
+              ) : products.length === 0 ? (
+                <div className="text-center py-24 bg-slate-50 rounded-[40px] border border-slate-100 border-dashed">
+                  <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+                    <Filter className="w-12 h-12 text-slate-200 animate-pulse" />
+                  </div>
+                  <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-4 text-slate-900">Zero Gear Detected</h3>
+                  <p className="text-sm text-slate-400 max-w-xs mx-auto font-medium mb-8">Try adjusting your filters or mission parameters.</p>
+                  <button 
+                    onClick={() => {setPriceRange(1400); setSearchQuery(""); setSelectedSubSlug("ALL");}}
+                    className="px-12 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] italic hover:bg-orange-600 transition-all shadow-xl shadow-black/10 active:scale-95"
+                  >
+                    Reset Operational Area
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                  {products.map((p: any) => {
+                    const mappedProduct = {
+                      ...p,
+                      id: p.id || p._id,
+                      name: p.name,
+                      title: p.name,
+                      image: p.mainImageUrl,
+                      price: p.salePrice || p.basePrice,
+                      originalPrice: p.regularPrice || p.basePrice,
+                      category: p.collections?.find((c: any) => c.parentId)?.name || p.collections?.[0]?.name || "Tactical Gear",
+                      rating: p.rating || 4.9,
+                      discount: p.regularPrice && p.salePrice ? `-${Math.round((1 - p.salePrice/p.regularPrice) * 100)}%` : undefined,
+                      isNew: p.badgeName?.toLowerCase() === 'new'
+                    };
+                    return (
+                      <ProductCard
+                        key={mappedProduct.id}
+                        product={mappedProduct as any}
+                        onOpenQuickView={() => setQuickViewProduct(mappedProduct as any)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

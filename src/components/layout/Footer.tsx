@@ -3,15 +3,27 @@ import Link from "next/link";
 import Image from "next/image";
 import { Facebook, Instagram, Youtube, Music2 } from "lucide-react";
 
-const aboutLinks = ["About Us", "Careers", "News", "Feedback", "Contact"];
-const usefulLinks = [
-  "New Products",
-  "Best Sellers",
-  "Bundles & Set",
-  "1 to One Gift Card",
-  "Store Locations",
+const aboutLinks = [
+  { name: "About Us", href: "/about" },
+  { name: "Careers", href: "#" },
+  { name: "News", href: "/blog" },
+  { name: "Feedback", href: "#" },
+  { name: "Contact", href: "#" },
 ];
-const customerLinks = ["Help Center", "My Account", "Track My Order", "Return Policy", "Become Reseller"];
+const usefulLinks = [
+  { name: "New Products", href: "/shop" },
+  { name: "Best Sellers", href: "/shop" },
+  { name: "Bundles & Set", href: "/shop" },
+  { name: "1 to One Gift Card", href: "#" },
+  { name: "Store Locations", href: "#" },
+];
+const customerLinks = [
+  { name: "Help Center", href: "#" },
+  { name: "My Account", href: "/account" },
+  { name: "Track My Order", href: "#" },
+  { name: "Return Policy", href: "/terms-and-conditions" },
+  { name: "Become Reseller", href: "#" },
+];
 
 export const Footer: React.FC = () => {
   return (
@@ -73,9 +85,9 @@ export const Footer: React.FC = () => {
             <p className="text-xs uppercase tracking-wider text-white/55 mb-3">About Company</p>
             <ul className="space-y-2.5">
               {aboutLinks.map((item) => (
-                <li key={item}>
-                  <Link href="#" className="text-sm text-white/85 hover:text-white">
-                    {item}
+                <li key={item.name}>
+                  <Link href={item.href} className="text-sm text-white/85 hover:text-white">
+                    {item.name}
                   </Link>
                 </li>
               ))}
@@ -86,9 +98,9 @@ export const Footer: React.FC = () => {
             <p className="text-xs uppercase tracking-wider text-white/55 mb-3">Useful Links</p>
             <ul className="space-y-2.5">
               {usefulLinks.map((item) => (
-                <li key={item}>
-                  <Link href="#" className="text-sm text-white/85 hover:text-white">
-                    {item}
+                <li key={item.name}>
+                  <Link href={item.href} className="text-sm text-white/85 hover:text-white">
+                    {item.name}
                   </Link>
                 </li>
               ))}
@@ -99,9 +111,9 @@ export const Footer: React.FC = () => {
             <p className="text-xs uppercase tracking-wider text-white/55 mb-3">Customer Services</p>
             <ul className="space-y-2.5">
               {customerLinks.map((item) => (
-                <li key={item}>
-                  <Link href="#" className="text-sm text-white/85 hover:text-white">
-                    {item}
+                <li key={item.name}>
+                  <Link href={item.href} className="text-sm text-white/85 hover:text-white">
+                    {item.name}
                   </Link>
                 </li>
               ))}
@@ -112,10 +124,10 @@ export const Footer: React.FC = () => {
         <div className="px-5 md:px-8 py-6 md:py-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
           <p className="text-xs text-white/60">Copyright (c) 2025 Reseller. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-4 text-xs text-white/60">
-            <Link href="#" className="hover:text-white/90">
+            <Link href="/privacy-policy" className="hover:text-white/90">
               Privacy & Cookie Policy
             </Link>
-            <Link href="#" className="hover:text-white/90">
+            <Link href="/terms-and-conditions" className="hover:text-white/90">
               Terms of Service
             </Link>
           </div>

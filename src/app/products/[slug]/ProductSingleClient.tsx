@@ -974,7 +974,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
               const avatarUrl = latest.userAvatar?.url || (latest.photos?.length > 0 ? latest.photos[0].url : null);
               
               return (
-                <div className="bg-slate-50 rounded-3xl p-5 sm:p-8 space-y-4 border border-slate-100">
+                <div className="hidden sm:block bg-slate-50 rounded-3xl p-5 sm:p-8 space-y-4 border border-slate-100">
                   <div className="flex justify-between items-start">
                     <div className="flex gap-3">
                       <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-slate-200 bg-white flex items-center justify-center shrink-0 shadow-sm">
@@ -1631,10 +1631,10 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 sm:gap-8 shrink-0">
-                <div className="text-right">
+              <div className="flex items-center justify-between w-full sm:w-auto gap-4 sm:gap-8 shrink-0">
+                <div className="text-left sm:text-right">
                   <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-[0.1em] leading-none mb-1">Deployment Cost</p>
-                  <div className="flex items-baseline gap-1 justify-end">
+                  <div className="flex items-baseline gap-1 justify-start sm:justify-end">
                     <p className="text-xl sm:text-2xl font-black italic tracking-tighter text-slate-900 leading-none">${displayPrice.toFixed(2)}</p>
                     <span className="text-[10px] font-bold text-slate-400">x{quantity}</span>
                   </div>
