@@ -337,7 +337,7 @@ export default function ShopClient() {
                     image: p.mainImageUrl,
                     price: p.salePrice || p.basePrice,
                     originalPrice: p.regularPrice || p.basePrice,
-                    category: p.collections?.[0]?.name || "Tactical Gear",
+                    category: p.collections?.find((c: any) => c.parentId)?.name || p.collections?.[0]?.name || "Tactical Gear",
                     rating: p.rating || 4.8,
                     discount: p.regularPrice && p.salePrice ? `-${Math.round((1 - p.salePrice/p.regularPrice) * 100)}%` : undefined,
                     isNew: p.badgeName?.toLowerCase() === 'new'

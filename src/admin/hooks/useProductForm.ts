@@ -118,13 +118,43 @@ function toKey(value: string) {
 }
 
 function generateSku(productName: string, index: number, labels: string[]) {
-  const productPart = toKey(productName || 'product').toUpperCase() || 'PRODUCT';
+  const words = (productName || 'PRODUCT').trim().split(/[\s-]+/);
+  let productPart = '';
+  if (words.length >= 2) {
+    productPart = words
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase();
+  } else {
+    productPart = words[0].slice(0, 3).toUpperCase();
+  }
+
+  // Ensure product part is at least 2 chars
+  if (productPart.length < 2) productPart = (productName || 'PR').slice(0, 3).toUpperCase();
+
   const variantPart = labels
-    .slice(0, 3)
-    .map((label) => toKey(label || 'na').toUpperCase() || 'NA')
+    .map((label) => {
+      const l = toKey(label || 'NA').toUpperCase();
+      if (l === 'BLACK') return 'BLK';
+      if (l === 'WHITE') return 'WHT';
+      if (l === 'YELLOW') return 'YLW';
+      if (l === 'GREEN') return 'GRN';
+      if (l === 'ORANGE') return 'ORG';
+      if (l === 'PURPLE') return 'PRP';
+      if (l === 'SILVER') return 'SLV';
+      if (l === 'GOLDEN') return 'GLD';
+      if (l === 'SMALL') return 'S';
+      if (l === 'MEDIUM') return 'M';
+      if (l === 'LARGE') return 'L';
+      if (l.startsWith('EXTRA-LARGE')) return 'XL';
+      if (l.startsWith('DOUBLE-XL')) return '2XL';
+      if (l.startsWith('TRIPLE-XL')) return '3XL';
+      return l.replace(/[^A-Z0-9]/g, '').slice(0, 3);
+    })
     .join('-');
+
   const serial = String(index + 1).padStart(3, '0');
-  return `${productPart}-${variantPart || 'DEFAULT'}-${serial}`;
+  return `${productPart}-${variantPart || 'DEF'}-${serial}`;
 }
 
 function toNumber(value: string, fallback = 0) {
@@ -289,6 +319,8 @@ export function useProductForm(productId?: string) {
   const [isCollectionLoading, setIsCollectionLoading] = useState(false);
   const [collectionSearch, setCollectionSearch] = useState('');
   const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([]);
+  // Tracks whether we've already auto-normalized parent IDs for the current product session
+  const collectionNormalizedRef = useRef<string>('');
 
   const [bulkPrice, setBulkPrice] = useState('');
   const [bulkStock, setBulkStock] = useState('');
@@ -403,6 +435,36 @@ export function useProductForm(productId?: string) {
       mounted = false;
     };
   }, []);
+
+  // Auto-normalize legacy products: if a selected collection is a sub but its parent ID
+  // is not yet in selectedCollectionIds, add it automatically. Runs once per product load.
+  useEffect(() => {
+    if (!productId || isCollectionLoading || !collections.length) return;
+    if (collectionNormalizedRef.current === productId) return; // already done for this product
+
+    setSelectedCollectionIds((prev) => {
+      if (!prev.length) return prev; // product hasn't loaded yet — wait for next trigger
+
+      const toAdd: string[] = [];
+      prev.forEach((id) => {
+        const col = collections.find((c) => c.id === id);
+        const parentId = typeof col?.parentId === 'string' ? col.parentId : null;
+        if (parentId && !prev.includes(parentId) && !toAdd.includes(parentId)) {
+          toAdd.push(parentId);
+        }
+      });
+
+      // Mark as normalized now that we processed real data
+      collectionNormalizedRef.current = productId;
+      return toAdd.length ? [...prev, ...toAdd] : prev;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId, isCollectionLoading, collections, selectedCollectionIds]);
+
+  // Reset normalization flag when switching to a different product
+  useEffect(() => {
+    collectionNormalizedRef.current = '';
+  }, [productId]);
 
   useEffect(() => {
     let mounted = true;
@@ -1173,8 +1235,38 @@ export function useProductForm(productId?: string) {
 
   const toggleCollection = (collectionId: string) => {
     setSelectedCollectionIds((prev) => {
+      const col = collections.find((c) => c.id === collectionId);
+
       if (prev.includes(collectionId)) {
-        return prev.filter((id) => id !== collectionId);
+        // --- Deselecting ---
+        // Block deselecting a parent that is being held by an active sub
+        if (!col?.parentId) {
+          const hasActiveSub = prev.some((id) => {
+            const c = collections.find((c) => c.id === id);
+            return c?.parentId === collectionId;
+          });
+          if (hasActiveSub) return prev; // silently block — sub will handle parent removal
+        }
+
+        const next = prev.filter((id) => id !== collectionId);
+
+        // If this was a sub, auto-remove its parent if no other selected subs still need it
+        if (col?.parentId) {
+          const stillNeedsParent = next.some((id) => {
+            const c = collections.find((c) => c.id === id);
+            return c?.parentId === col.parentId;
+          });
+          if (!stillNeedsParent) {
+            return next.filter((id) => id !== col.parentId);
+          }
+        }
+        return next;
+      }
+
+      // --- Selecting ---
+      // If selecting a sub, auto-add its parent if not already included
+      if (col?.parentId && !prev.includes(col.parentId)) {
+        return [...prev, collectionId, col.parentId];
       }
       return [...prev, collectionId];
     });
@@ -1686,6 +1778,7 @@ export function useProductForm(productId?: string) {
     setMainVideoField,
     setMainVideoThumbnailFile,
     setMainVideoThumbnailFromMedia,
+    collections,
     filteredCollections,
     isCollectionLoading,
     collectionSearch,

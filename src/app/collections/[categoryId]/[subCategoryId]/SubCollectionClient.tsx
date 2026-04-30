@@ -242,7 +242,7 @@ export default function SubCollectionClient() {
                       image: p.mainImageUrl,
                       price: p.salePrice || p.basePrice,
                       originalPrice: p.regularPrice || p.basePrice,
-                      category: p.collections?.[0]?.name || "Athletic Wear",
+                      category: p.collections?.find((c: any) => c.parentId)?.name || p.collections?.[0]?.name || "Athletic Wear",
                       rating: p.rating || 4.9,
                       discount: p.regularPrice && p.salePrice ? `-${Math.round((1 - p.salePrice/p.regularPrice) * 100)}%` : undefined,
                       isNew: true

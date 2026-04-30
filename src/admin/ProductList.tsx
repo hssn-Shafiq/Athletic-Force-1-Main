@@ -381,10 +381,15 @@ export const AdminProductList: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setSelectedProductForReviews({ id: product.id, name: product.name })}
-                      className="p-2 hover:bg-orange-50 hover:text-[#FF7348] rounded-lg transition-all text-slate-400"
+                      className="relative p-2 hover:bg-orange-50 hover:text-[#FF7348] rounded-lg transition-all text-slate-400"
                       title="Moderate Reviews"
                     >
                       <MessageSquare className="w-4 h-4" />
+                      {(product.pendingReviewsCount ?? 0) > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white shadow-sm ring-2 ring-white animate-pulse">
+                          {product.pendingReviewsCount}
+                        </span>
+                      )}
                     </button>
                     <button
                       type="button"

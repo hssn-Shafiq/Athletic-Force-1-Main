@@ -20,6 +20,7 @@ export function mapPublicProductToCard(product: PublicProduct): Product {
     : 0;
 
   const category =
+    product.collections.find((entry) => entry.parentId)?.name ||
     product.collections.find((entry) => entry.slug?.toLowerCase() === 'merchandise')?.name ||
     product.collections[0]?.name ||
     'Product';

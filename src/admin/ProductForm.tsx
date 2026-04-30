@@ -92,6 +92,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
     setMainVideoThumbnailFile,
     setMainVideoThumbnailFromMedia,
     filteredCollections,
+    collections,
     isCollectionLoading,
     collectionSearch,
     setCollectionSearch,
@@ -1553,21 +1554,92 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
               <p className="text-sm text-slate-500 px-2 py-2">Loading collections...</p>
             ) : filteredCollections.length === 0 ? (
               <p className="text-sm text-slate-500 px-2 py-2">No collections found.</p>
-            ) : (
-              filteredCollections.map((entry) => (
-                <label key={entry.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-2 hover:bg-slate-50 cursor-pointer">
-                  <span className="text-sm font-semibold text-slate-700">{entry.name}</span>
-                  <input
-                    type="checkbox"
-                    checked={selectedCollectionIds.includes(entry.id)}
-                    onChange={() => toggleCollection(entry.id)}
-                  />
-                </label>
-              ))
-            )}
+            ) : (() => {
+              // Separate parents from subcollections
+              const parents = filteredCollections.filter((c) => !c.parentId);
+              const subs = filteredCollections.filter((c) => c.parentId);
+              // Orphan subs (parent not in filtered list)
+              const visibleParentIds = new Set(parents.map((p) => p.id));
+              const orphanSubs = subs.filter((s) => !visibleParentIds.has(s.parentId as string));
+
+              return (
+                <>
+                  {parents.map((parent) => {
+                    const children = subs.filter((s) => s.parentId === parent.id);
+                    const isSelected = selectedCollectionIds.includes(parent.id);
+                    const isAutoSelected = isSelected && children.some((c) => selectedCollectionIds.includes(c.id));
+                    return (
+                      <div key={parent.id} className="space-y-0.5">
+                        {/* Parent row */}
+                        <label
+                          className={`flex items-center justify-between gap-2 rounded-lg px-2 py-2 ${isAutoSelected ? 'bg-orange-50 cursor-not-allowed opacity-80' : 'hover:bg-slate-50 cursor-pointer'}`}
+                          title={isAutoSelected ? 'Auto-included because a subcollection is selected' : undefined}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-sm font-bold text-slate-800 truncate">{parent.name}</span>
+                            {isAutoSelected && (
+                              <span className="shrink-0 text-[9px] font-black uppercase tracking-widest bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full border border-orange-200">
+                                Auto
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            disabled={isAutoSelected}
+                            onChange={() => toggleCollection(parent.id)}
+                            className="shrink-0 accent-orange-500"
+                          />
+                        </label>
+
+                        {/* Subcollection rows — indented */}
+                        {children.map((child) => {
+                          const isChildSelected = selectedCollectionIds.includes(child.id);
+                          return (
+                            <label
+                              key={child.id}
+                              className="flex items-center justify-between gap-2 rounded-lg pl-6 pr-2 py-1.5 hover:bg-slate-50 cursor-pointer"
+                            >
+                              <span className="text-sm font-semibold text-slate-600">{child.name}</span>
+                              <input
+                                type="checkbox"
+                                checked={isChildSelected}
+                                onChange={() => toggleCollection(child.id)}
+                                className="shrink-0 accent-orange-500"
+                              />
+                            </label>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+
+                  {/* Orphan subs (their parent didn't match the search) */}
+                  {orphanSubs.map((entry) => (
+                    <label
+                      key={entry.id}
+                      className="flex items-center justify-between gap-2 rounded-lg px-2 py-2 hover:bg-slate-50 cursor-pointer"
+                    >
+                      <span className="text-sm font-semibold text-slate-700">{entry.name}</span>
+                      <input
+                        type="checkbox"
+                        checked={selectedCollectionIds.includes(entry.id)}
+                        onChange={() => toggleCollection(entry.id)}
+                        className="shrink-0 accent-orange-500"
+                      />
+                    </label>
+                  ))}
+                </>
+              );
+            })()}
           </div>
 
-          <p className="text-xs text-slate-500 font-medium">Selected: {selectedCollectionIds.length}</p>
+          <p className="text-xs text-slate-500 font-medium">
+            Selected: {selectedCollectionIds.filter((id) => {
+              const col = filteredCollections.find((c) => c.id === id) ?? collections.find((c) => c.id === id);
+              return Boolean(col?.parentId); // Only count subcollections (parents are auto)
+            }).length} subcollection(s) · {selectedCollectionIds.length} total IDs stored
+          </p>
 
           <div className="pt-2 border-t border-slate-200 space-y-3">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Selected Thumbnails</h4>
