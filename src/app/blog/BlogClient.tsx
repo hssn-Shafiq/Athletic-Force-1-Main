@@ -36,12 +36,12 @@ export default function BlogClient() {
   // Filter change: Only fetch posts
   useEffect(() => {
     if (isLoading) return; // Skip if initial load is still happening
-    
+
     const fetchFilteredPosts = async () => {
       setIsFiltering(true);
       try {
-        const postRes = await getPublicBlogPostsApi({ 
-          category: selectedCategory === "all" ? undefined : selectedCategory 
+        const postRes = await getPublicBlogPostsApi({
+          category: selectedCategory === "all" ? undefined : selectedCategory
         });
         if (postRes.ok) setPosts(postRes.posts);
       } catch (err) {
@@ -61,9 +61,9 @@ export default function BlogClient() {
   }
 
   return (
-    <main className="bg-[#f3f3f3] min-h-screen">
+    <main className="bg-[var(--color-page-background)] min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
-        
+
         {/* Editorial Hero Section */}
         <section className="relative overflow-hidden rounded-[32px] border border-black/10 bg-gradient-to-br from-white via-white to-zinc-100 p-8 md:p-12 mb-12">
           <div className="absolute -right-12 -top-16 h-44 w-44 rounded-full bg-accent/20 blur-2xl" />
@@ -83,21 +83,21 @@ export default function BlogClient() {
         {/* Tactical Sector Filters */}
         <section className="mb-8">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2">
-              <button 
-                onClick={() => setSelectedCategory("all")}
-                className={`rounded-full border px-5 py-2 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedCategory === "all" ? "bg-black text-white border-black" : "bg-white text-slate-400 border-slate-100 hover:border-black hover:text-black"}`}
+            <button
+              onClick={() => setSelectedCategory("all")}
+              className={`rounded-full border px-5 py-2 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedCategory === "all" ? "bg-black text-white border-black" : "bg-white text-slate-400 border-slate-100 hover:border-black hover:text-black"}`}
+            >
+              All Sectors
+            </button>
+            {categories.map((cat) => (
+              <button
+                key={cat._id}
+                onClick={() => setSelectedCategory(cat._id)}
+                className={`rounded-full border px-5 py-2 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedCategory === cat._id ? "bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-600/20" : "bg-white text-slate-400 border-slate-100 hover:border-black hover:text-black"}`}
               >
-                All Sectors
+                {cat.name}
               </button>
-              {categories.map((cat) => (
-                <button 
-                  key={cat._id} 
-                  onClick={() => setSelectedCategory(cat._id)}
-                  className={`rounded-full border px-5 py-2 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedCategory === cat._id ? "bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-600/20" : "bg-white text-slate-400 border-slate-100 hover:border-black hover:text-black"}`}
-                >
-                  {cat.name}
-                </button>
-              ))}
+            ))}
           </div>
         </section>
 
@@ -105,11 +105,11 @@ export default function BlogClient() {
         <section className={`transition-opacity duration-300 ${isFiltering ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
           {posts.length === 0 ? (
             <div className="py-32 bg-white rounded-[40px] border border-slate-100 text-center shadow-sm">
-               <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Search className="w-10 h-10 text-slate-200" />
-               </div>
-               <h3 className="text-2xl font-black italic uppercase text-slate-900 tracking-tighter">No Intel Found</h3>
-               <p className="text-sm text-slate-400 font-medium mt-2">No intelligence reports found in this tactical sector.</p>
+              <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Search className="w-10 h-10 text-slate-200" />
+              </div>
+              <h3 className="text-2xl font-black italic uppercase text-slate-900 tracking-tighter">No Intel Found</h3>
+              <p className="text-sm text-slate-400 font-medium mt-2">No intelligence reports found in this tactical sector.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 relative">
@@ -131,7 +131,7 @@ export default function BlogClient() {
                         />
                       ) : (
                         <div className="w-full h-full bg-slate-200 flex items-center justify-center">
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">No Visual Intel</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">No Visual Intel</span>
                         </div>
                       )}
 
@@ -146,7 +146,7 @@ export default function BlogClient() {
                       {/* Category Badge - Added to locker room style */}
                       <div className="absolute bottom-4 left-4">
                         <span className="px-3 py-1.5 bg-black/70 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest rounded-lg italic border border-white/10">
-                           {post.category?.name || "Journal"}
+                          {post.category?.name || "Journal"}
                         </span>
                       </div>
                     </div>
@@ -181,14 +181,14 @@ function BlogSkeleton() {
     <div className="max-w-7xl mx-auto px-4 py-10 md:py-14 animate-pulse">
       <div className="h-64 w-full bg-slate-200 rounded-[32px] mb-12" />
       <div className="flex justify-between mb-8">
-         <div className="h-10 w-48 bg-slate-200 rounded-xl" />
-         <div className="h-10 w-64 bg-slate-200 rounded-xl" />
+        <div className="h-10 w-48 bg-slate-200 rounded-xl" />
+        <div className="h-10 w-64 bg-slate-200 rounded-xl" />
       </div>
       <div className="h-[420px] w-full bg-slate-200 rounded-[40px] mb-14" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-         {[...Array(3)].map((_, i) => (
-           <div key={i} className="h-96 bg-slate-200 rounded-[32px]" />
-         ))}
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-96 bg-slate-200 rounded-[32px]" />
+        ))}
       </div>
     </div>
   );

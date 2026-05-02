@@ -51,7 +51,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, produ
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const file = e.target.files[0];
-      
+
       // Limit to 5MB
       if (file.size > 5 * 1024 * 1024) {
         toast.error('Avatar file is too large. Please select an image smaller than 5MB.');
@@ -72,11 +72,11 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, produ
       setIsUploadingAvatar(true);
       setUploadProgress(0);
       try {
-        const signed = await signReviewAvatarUploadApi({ 
-          productSlug: productTitle.toLowerCase().replace(/\s+/g, '-'), 
-          collectionSlug: 'reviews' 
+        const signed = await signReviewAvatarUploadApi({
+          productSlug: productTitle.toLowerCase().replace(/\s+/g, '-'),
+          collectionSlug: 'reviews'
         });
-        
+
         const result = await uploadImageWithSignature(file, signed, (progress) => {
           setUploadProgress(progress);
         });
@@ -159,7 +159,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, produ
                 <h2 className="text-xl sm:text-2xl font-black italic uppercase tracking-tighter text-slate-900">Write a Review</h2>
                 <p className="text-slate-400 text-xs sm:text-sm font-medium mt-1 uppercase tracking-wider">{productTitle}</p>
               </div>
-              <button 
+              <button
                 onClick={handleClose}
                 disabled={isUploadingAvatar || isSubmitting}
                 className="p-2 hover:bg-slate-100 rounded-full transition-all hover:rotate-90 disabled:opacity-30"
@@ -172,11 +172,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, produ
             <div className="p-6 sm:p-8 space-y-6 sm:y-8 overflow-y-auto custom-scrollbar">
               {/* Avatar Upload */}
               <div className="flex items-center gap-6 pb-2">
-                <div 
+                <div
                   onClick={() => !isUploadingAvatar && avatarInputRef.current?.click()}
-                  className={`relative w-20 h-20 rounded-full bg-slate-50 border-2 border-dashed flex items-center justify-center cursor-pointer group transition-all overflow-hidden ${
-                    isUploadingAvatar ? 'border-[#FF7348] border-solid' : 'border-slate-200 hover:border-[#FF7348]'
-                  }`}
+                  className={`relative w-20 h-20 rounded-full bg-slate-50 border-2 border-dashed flex items-center justify-center cursor-pointer group transition-all overflow-hidden ${isUploadingAvatar ? 'border-[#FF7348] border-solid' : 'border-slate-200 hover:border-[#FF7348]'
+                    }`}
                 >
                   {avatarPreview ? (
                     <img src={avatarPreview} alt="Avatar" className={`w-full h-full object-cover ${isUploadingAvatar ? 'opacity-50' : ''}`} />
@@ -199,15 +198,15 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, produ
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Add your face to the mission.</p>
                   {isUploadingAvatar && (
                     <div className="mt-2 w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <motion.div 
+                      <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${uploadProgress}%` }}
-                        className="h-full bg-[#FF7348]"
+                        className="h-full bg-[var(--color-accent)]"
                       />
                     </div>
                   )}
                 </div>
-                <input 
+                <input
                   type="file"
                   ref={avatarInputRef}
                   onChange={handleAvatarChange}
@@ -230,12 +229,11 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, produ
                       onClick={() => setRating(star)}
                       className="transition-transform active:scale-90"
                     >
-                      <Star 
-                        className={`w-8 h-8 sm:w-10 h-10 transition-colors ${
-                          (hover || rating) >= star 
-                            ? "fill-[#FF7348] text-[#FF7348]" 
+                      <Star
+                        className={`w-8 h-8 sm:w-10 h-10 transition-colors ${(hover || rating) >= star
+                            ? "fill-[#FF7348] text-[#FF7348]"
                             : "text-slate-200"
-                        }`} 
+                          }`}
                       />
                     </button>
                   ))}
@@ -246,8 +244,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, produ
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Full Name</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="John Doe"
@@ -256,8 +254,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, produ
                 </div>
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Email Address</label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="john@example.com"
@@ -268,7 +266,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, produ
 
               <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Your Review</label>
-                <textarea 
+                <textarea
                   rows={4}
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
@@ -281,7 +279,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, produ
             {/* Footer */}
             <div className="p-6 sm:p-8 bg-slate-50 shrink-0 space-y-4">
               <div className="flex justify-end">
-                <button 
+                <button
                   disabled={isSubmitting || isUploadingAvatar}
                   onClick={handleSubmit}
                   className="group flex items-center gap-2 bg-[#141414] text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-sm sm:text-lg hover:bg-black transition-all hover:gap-4 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"

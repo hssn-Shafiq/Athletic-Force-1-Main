@@ -88,8 +88,8 @@ export default function OrdersListClient({ fixedType }: { fixedType?: 'direct' |
             {typeFilter === 'direct' ? 'Direct Orders' : 'Custom Requests'}
           </h1>
           <p className="text-slate-500 font-bold text-sm mt-2 italic">
-            {typeFilter === 'direct' 
-              ? 'Manage standardized inventory sales and shipping.' 
+            {typeFilter === 'direct'
+              ? 'Manage standardized inventory sales and shipping.'
               : 'Analyze tactical custom requirements and issue specialized quotes.'}
           </p>
         </div>
@@ -129,7 +129,7 @@ export default function OrdersListClient({ fixedType }: { fixedType?: 'direct' |
                 <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Shipping Delays</p>
                 <h4 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900">{stats?.delays || 0}</h4>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-[#FF7348] flex items-center justify-center rotate-[-5deg]">
+              <div className="w-12 h-12 rounded-2xl bg-[var(--color-accent)] flex items-center justify-center rotate-[-5deg]">
                 <AlertCircle className="w-6 h-6 text-white" />
               </div>
             </div>
@@ -159,9 +159,9 @@ export default function OrdersListClient({ fixedType }: { fixedType?: 'direct' |
         <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="relative w-full md:w-80 shrink-0">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Search by name, email..." 
+            <input
+              type="text"
+              placeholder="Search by name, email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-12 pr-4 text-xs font-bold outline-none focus:border-orange-500 focus:bg-white transition-all"
@@ -244,7 +244,7 @@ export default function OrdersListClient({ fixedType }: { fixedType?: 'direct' |
                       </span>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <Link 
+                      <Link
                         href={`/admin/orders/${order.id}`}
                         className="inline-flex items-center justify-center p-2 bg-white border border-slate-200 rounded-lg hover:border-black hover:text-orange-600 transition-all shadow-sm"
                         title="View Order Details"
@@ -264,14 +264,14 @@ export default function OrdersListClient({ fixedType }: { fixedType?: 'direct' |
           <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-500">
             <span>Page {page} of {totalPages}</span>
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
                 className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <button 
+              <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
                 className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition-colors"

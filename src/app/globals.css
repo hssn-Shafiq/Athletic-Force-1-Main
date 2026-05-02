@@ -4,7 +4,8 @@
   --background: #ffffff;
   --heading: #050505;
   --content: #9CA3AF;
-  --accent: #EF4444;
+  --accent: #DD6132;
+  --page-background:#FAFAFA;
 }
 
 @theme inline {
@@ -14,6 +15,7 @@
   --color-accent: var(--accent);
   --font-sans: var(--font-sora);
   --font-inter: var(--font-inter);
+  --color-page-background:var(--page-background);
 }
 
 body {

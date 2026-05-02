@@ -60,7 +60,7 @@ const CategoryCard: React.FC<{ item: CategoryItem }> = ({ item }) => {
       {/* Hover Gradient Border Container */}
       <div className="absolute -inset-[2px] rounded-[30px] sm:rounded-[40px] bg-transparent group-hover:bg-gradient-to-br group-hover:from-orange-500 group-hover:via-red-500 group-hover:to-yellow-400 transition-all duration-300 -z-10" />
 
-      <div className="relative h-full bg-[#F3F3F3] rounded-[28px] sm:rounded-[38px] overflow-hidden flex flex-col border border-[#E5E7EB] group-hover:border-transparent transition-colors p-3 sm:p-4">
+      <div className="relative h-full bg-[var(--color-page-background)] rounded-[28px] sm:rounded-[38px] overflow-hidden flex flex-col border border-[#E5E7EB] group-hover:border-transparent transition-colors p-3 sm:p-4">
         {/* Product Image */}
         <div className="relative flex-1 min-h-[160px] sm:min-h-[280px] rounded-[22px] sm:rounded-[30px] bg-[#ECECEC] overflow-hidden">
           <img
@@ -85,7 +85,7 @@ const CategoryCard: React.FC<{ item: CategoryItem }> = ({ item }) => {
 
 export const CategoriesTabs: React.FC = () => {
   const [activeTab, setActiveTab] = useState("ALL");
-  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+  const [emblaRef, emblaApi] = useEmblaCarousel({
     align: 'start',
     containScroll: 'trimSnaps',
     dragFree: true
@@ -93,8 +93,8 @@ export const CategoriesTabs: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
 
-  const filteredItems = activeTab === "ALL" 
-    ? CATEGORY_ITEMS 
+  const filteredItems = activeTab === "ALL"
+    ? CATEGORY_ITEMS
     : CATEGORY_ITEMS.filter(item => item.category === activeTab);
 
   const onSelect = useCallback(() => {
@@ -122,18 +122,17 @@ export const CategoriesTabs: React.FC = () => {
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-900">
             Categories
           </h2>
-          
+
           {/* Tabs */}
           <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`shrink-0 whitespace-nowrap px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 shadow-sm ${
-                  activeTab === tab 
-                    ? "bg-black text-white scale-105 shadow-lg" 
+                className={`shrink-0 whitespace-nowrap px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 shadow-sm ${activeTab === tab
+                    ? "bg-black text-white scale-105 shadow-lg"
                     : "bg-white text-slate-500 border border-slate-200 hover:border-slate-400"
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -146,16 +145,16 @@ export const CategoriesTabs: React.FC = () => {
             View All Products
             <MoveRight className="w-4 h-4" />
           </button>
-          
+
           {/* Carousel Controls */}
           <div className="hidden md:flex items-center gap-2">
-            <button 
+            <button
               onClick={scrollPrev}
               className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center hover:bg-black hover:text-white transition-all"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <button 
+            <button
               onClick={scrollNext}
               className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center hover:bg-black hover:text-white transition-all"
             >
@@ -193,9 +192,8 @@ export const CategoriesTabs: React.FC = () => {
             <button
               key={index}
               onClick={() => scrollTo(index)}
-              className={`h-1.5 transition-all duration-300 rounded-full ${
-                index === selectedIndex ? "w-8 bg-black" : "w-2 bg-slate-300 hover:bg-slate-400"
-              }`}
+              className={`h-1.5 transition-all duration-300 rounded-full ${index === selectedIndex ? "w-8 bg-black" : "w-2 bg-slate-300 hover:bg-slate-400"
+                }`}
             />
           ))}
         </div>

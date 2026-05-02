@@ -168,10 +168,10 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
   const handleAddToCart = async () => {
     if (!product) return;
     setIsAddingToCart(true);
-    
+
     // We expect variant to have a SKU or fallback to productId.
     const sku = (selectedVariant as any)?.sku || product.id || '';
-    
+
     await addItem({
       productId: product.id || '',
       variantSku: sku,
@@ -182,7 +182,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
       color: effectiveSelectedColor ?? undefined,
       size: effectiveSelectedSize ?? undefined,
     });
-    
+
     setIsAddingToCart(false);
     onClose();
   };
@@ -191,9 +191,8 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={onClose}
       />
 
@@ -202,9 +201,8 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
         className={`fixed inset-0 z-[210] flex items-center justify-center p-4 transition-all duration-300 pointer-events-none`}
       >
         <div
-          className={`relative bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto pointer-events-auto transition-all duration-300 ${
-            isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'
-          }`}
+          className={`relative bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto pointer-events-auto transition-all duration-300 ${isOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-4'
+            }`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close Button */}
@@ -232,7 +230,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                   </span>
                 )}
                 {product.discount && (
-                  <span className="bg-[#FF7348] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                  <span className="bg-[var(--color-accent)] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
                     {product.discount}
                   </span>
                 )}
@@ -244,9 +242,8 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                 className="absolute top-14 right-3 sm:top-4 sm:right-4 z-10 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center transition-colors"
               >
                 <Heart
-                  className={`w-4 h-4 transition-colors ${
-                    isWishlisted ? 'fill-red-500 text-red-500' : 'text-slate-400'
-                  }`}
+                  className={`w-4 h-4 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-slate-400'
+                    }`}
                 />
               </button>
 
@@ -254,9 +251,8 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                 src={currentImage}
                 alt={product.title}
                 onLoad={() => setImageLoaded(true)}
-                className={`w-full h-full object-contain mix-blend-multiply p-6 transition-opacity duration-500 ${
-                  imageLoaded ? 'opacity-100' : 'opacity-0'
-                }`}
+                className={`w-full h-full object-contain mix-blend-multiply p-6 transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'
+                  }`}
               />
 
               {allImages.length > 1 ? (
@@ -296,9 +292,8 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                         setImageLoaded(false);
                         setSelectedImageIndex(idx);
                       }}
-                      className={`w-12 h-12 rounded-xl overflow-hidden border-2 bg-white ${
-                        selectedImageIndex === idx ? 'border-black' : 'border-white/70'
-                      }`}
+                      className={`w-12 h-12 rounded-xl overflow-hidden border-2 bg-white ${selectedImageIndex === idx ? 'border-black' : 'border-white/70'
+                        }`}
                     >
                       <img src={img} alt={`preview-${idx}`} className="w-full h-full object-cover" />
                     </button>
@@ -328,7 +323,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
 
               {/* Description (Truncated) */}
               {product.description && (
-                <div 
+                <div
                   className="text-xs text-slate-500 font-medium italic mb-5 line-clamp-4 leading-relaxed prose-sm max-w-full break-words [overflow-wrap:anywhere]"
                   dangerouslySetInnerHTML={{ __html: product.description }}
                 />
@@ -351,7 +346,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                 </div>
               ) : (
                 <div className="mb-5">
-                   <span className="text-orange-600 text-[10px] sm:text-xs font-black uppercase italic tracking-[0.2em] bg-orange-50 px-4 py-2 rounded-xl">Custom Quote Required</span>
+                  <span className="text-orange-600 text-[10px] sm:text-xs font-black uppercase italic tracking-[0.2em] bg-orange-50 px-4 py-2 rounded-xl">Custom Quote Required</span>
                 </div>
               )}
 
@@ -367,11 +362,10 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                         key={color.name}
                         type="button"
                         onClick={() => handleColorSelect(color.name)}
-                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
-                          effectiveSelectedColor === color.name
+                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-2 ${effectiveSelectedColor === color.name
                             ? 'bg-black text-white scale-105 shadow-md'
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
+                          }`}
                       >
                         {color.imageUrl ? (
                           <span className="w-5 h-5 rounded-md overflow-hidden border border-white/50 shrink-0 bg-white/20">
@@ -403,11 +397,10 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                       <button
                         key={size}
                         onClick={() => setSelectedSize(size)}
-                        className={`w-9 h-9 rounded-xl text-[10px] font-bold transition-all duration-200 ${
-                          effectiveSelectedSize === size
+                        className={`w-9 h-9 rounded-xl text-[10px] font-bold transition-all duration-200 ${effectiveSelectedSize === size
                             ? 'bg-black text-white scale-105 shadow-md'
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
+                          }`}
                       >
                         {size}
                       </button>
@@ -453,11 +446,10 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                     <button
                       disabled={!effectiveSelectedSize || isAddingToCart}
                       onClick={handleAddToCart}
-                      className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all duration-200 ${
-                        effectiveSelectedSize && !isAddingToCart
-                          ? 'bg-black text-white hover:bg-[#FF7348] hover:scale-[1.02] shadow-lg'
+                      className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all duration-200 ${effectiveSelectedSize && !isAddingToCart
+                          ? 'bg-black text-white hover:bg-[var(--color-accent)] hover:scale-[1.02] shadow-lg'
                           : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                      }`}
+                        }`}
                     >
                       <ShoppingBag className="w-4 h-4" />
                       {isAddingToCart ? 'Adding...' : `Add to Cart — $${((selectedVariant?.price ?? product.price) * quantity).toFixed(2)}`}
@@ -473,9 +465,9 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                     const subcategoryCollection = (product as any).collections?.find((c: any) => c.parentId);
                     const categoryName = parentCollection?.name || 'Product';
                     const subcategoryName = subcategoryCollection?.name || '';
-                    
+
                     return (
-                      <Link 
+                      <Link
                         href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title || (product as any).name)}&category=${encodeURIComponent(categoryName)}&subcategory=${encodeURIComponent(subcategoryName)}`}
                         className="w-full flex items-center justify-center gap-2 py-5 bg-[#141414] text-white rounded-2xl font-black uppercase italic tracking-widest text-xs hover:bg-black hover:scale-[1.02] transition-all shadow-xl shadow-black/10"
                       >

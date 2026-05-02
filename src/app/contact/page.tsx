@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
         }
       };
     }
-  } catch (err) {}
+  } catch (err) { }
 
   return {
     title: "Contact Us | Team Orders & Support | Athletic Force 1",
@@ -70,7 +70,7 @@ const trustPoints = [
 
 export default function ContactPage() {
   return (
-    <main className="bg-[#f3f3f3] min-h-screen">
+    <main className="bg-[var(--color-page-background)] min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
         <section className="relative rounded-[34px] overflow-hidden border border-black/10 bg-heading text-white p-8 md:p-12">
           <div className="absolute inset-0 opacity-25" style={{

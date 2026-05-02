@@ -27,7 +27,7 @@ const customerLinks = [
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-[#f3f3f3] mt-16 px-0 pb-0">
+    <footer className="bg-[var(--color-page-background)] mt-16 px-0 pb-0">
       <div className="w-full bg-black text-white rounded-t-[36px] rounded-b-none border border-white/10 overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 px-5 md:px-8 py-8 md:py-10 border-b border-white/10">
           <div>

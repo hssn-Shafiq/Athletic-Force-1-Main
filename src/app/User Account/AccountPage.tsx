@@ -4,8 +4,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  User, Package, MapPin, Heart, Settings, 
+import {
+  User, Package, MapPin, Heart, Settings,
   LogOut, ChevronRight, CheckCircle2,
   Trophy, Shield, Clock, ArrowRight,
   ExternalLink,
@@ -30,74 +30,74 @@ const DashboardView = () => {
 
   useEffect(() => {
     const fetchInsights = async () => {
-        try {
-            const { data } = await apiClient.get('/api/orders/my-orders');
-            if (data.ok) {
-                const pending = data.orders.filter((o: any) => ['pending', 'paid', 'processing', 'dev_bypass'].includes(o.status)).length;
-                const spent = data.orders.reduce((sum: number, o: any) => sum + (o.status !== 'cancelled' ? o.total : 0), 0);
-                setMetrics({ pending, spent, points: Math.floor(spent * 0.1) });
-            }
-        } catch (err) {
-            console.error("Tactical analysis failed.", err);
+      try {
+        const { data } = await apiClient.get('/api/orders/my-orders');
+        if (data.ok) {
+          const pending = data.orders.filter((o: any) => ['pending', 'paid', 'processing', 'dev_bypass'].includes(o.status)).length;
+          const spent = data.orders.reduce((sum: number, o: any) => sum + (o.status !== 'cancelled' ? o.total : 0), 0);
+          setMetrics({ pending, spent, points: Math.floor(spent * 0.1) });
         }
+      } catch (err) {
+        console.error("Tactical analysis failed.", err);
+      }
     };
     fetchInsights();
   }, []);
 
   return (
-  <div className="space-y-8">
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="bg-black p-8 rounded-[40px] text-white space-y-4 relative overflow-hidden group">
-        <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-orange-600 rounded-full blur-3xl opacity-40 group-hover:scale-150 transition-transform" />
-        <Clock className="w-8 h-8 text-orange-500 relative z-10" />
-        <div className="relative z-10">
-          <p className="text-slate-400 text-xs font-black uppercase tracking-widest italic">Pending Orders</p>
-          <h4 className="text-4xl font-black italic uppercase tracking-tighter">{String(metrics.pending).padStart(2, '0')}</h4>
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-black p-8 rounded-[40px] text-white space-y-4 relative overflow-hidden group">
+          <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-orange-600 rounded-full blur-3xl opacity-40 group-hover:scale-150 transition-transform" />
+          <Clock className="w-8 h-8 text-orange-500 relative z-10" />
+          <div className="relative z-10">
+            <p className="text-slate-400 text-xs font-black uppercase tracking-widest italic">Pending Orders</p>
+            <h4 className="text-4xl font-black italic uppercase tracking-tighter">{String(metrics.pending).padStart(2, '0')}</h4>
+          </div>
+        </div>
+        <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm space-y-4">
+          <Package className="w-8 h-8 text-slate-900" />
+          <div>
+            <p className="text-slate-400 text-xs font-black uppercase tracking-widest italic">Total Spent</p>
+            <h4 className="text-4xl font-black italic uppercase tracking-tighter">${metrics.spent.toLocaleString()}</h4>
+          </div>
+        </div>
+        <div className="bg-[var(--color-accent)] p-8 rounded-[40px] text-white space-y-4">
+          <Trophy className="w-8 h-8 text-white" />
+          <div>
+            <p className="text-white/70 text-xs font-black uppercase tracking-widest italic">Reward Points</p>
+            <h4 className="text-4xl font-black italic uppercase tracking-tighter">{metrics.points.toLocaleString()}</h4>
+          </div>
         </div>
       </div>
-      <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm space-y-4">
-        <Package className="w-8 h-8 text-slate-900" />
-        <div>
-          <p className="text-slate-400 text-xs font-black uppercase tracking-widest italic">Total Spent</p>
-          <h4 className="text-4xl font-black italic uppercase tracking-tighter">${metrics.spent.toLocaleString()}</h4>
-        </div>
-      </div>
-      <div className="bg-[#FF7348] p-8 rounded-[40px] text-white space-y-4">
-        <Trophy className="w-8 h-8 text-white" />
-        <div>
-          <p className="text-white/70 text-xs font-black uppercase tracking-widest italic">Reward Points</p>
-          <h4 className="text-4xl font-black italic uppercase tracking-tighter">{metrics.points.toLocaleString()}</h4>
-        </div>
-      </div>
-    </div>
 
-    <section className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900">Recent Activity</h2>
-        <button className="text-xs font-bold uppercase tracking-widest text-[#FF7348] hover:underline">View All</button>
-      </div>
-      <div className="bg-white rounded-[40px] overflow-hidden border border-slate-100 shadow-sm">
-        <div className="divide-y divide-slate-50">
-          {[1, 2].map(i => (
-            <div key={i} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
-              <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-slate-100 rounded-2xl overflow-hidden">
-                  <img src="https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png" className="w-full h-full object-cover" alt="Product" />
-                </div>
-                <div>
-                  <h5 className="font-black italic uppercase tracking-tighter text-slate-900">Custom 7v7 Uniform Pro-Fit</h5>
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Order #AF-{1024 + i} • Shipped</p>
-                </div>
-              </div>
-              <button className="p-3 hover:bg-white rounded-xl shadow-sm transition-all">
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
-          ))}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-slate-900">Recent Activity</h2>
+          <button className="text-xs font-bold uppercase tracking-widest text-[#FF7348] hover:underline">View All</button>
         </div>
-      </div>
-    </section>
-  </div>
+        <div className="bg-white rounded-[40px] overflow-hidden border border-slate-100 shadow-sm">
+          <div className="divide-y divide-slate-50">
+            {[1, 2].map(i => (
+              <div key={i} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-slate-100 rounded-2xl overflow-hidden">
+                    <img src="https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png" className="w-full h-full object-cover" alt="Product" />
+                  </div>
+                  <div>
+                    <h5 className="font-black italic uppercase tracking-tighter text-slate-900">Custom 7v7 Uniform Pro-Fit</h5>
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Order #AF-{1024 + i} • Shipped</p>
+                  </div>
+                </div>
+                <button className="p-3 hover:bg-white rounded-xl shadow-sm transition-all">
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
   );
 };
 
@@ -153,190 +153,189 @@ const OrdersView = () => {
 
   if (selectedOrder) {
     return (
-        <div className="space-y-8">
-          <button onClick={() => setSelectedOrder(null)} className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-black flex items-center gap-2">
-            <ChevronLeft className="w-4 h-4" /> Back to Orders
-          </button>
+      <div className="space-y-8">
+        <button onClick={() => setSelectedOrder(null)} className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-black flex items-center gap-2">
+          <ChevronLeft className="w-4 h-4" /> Back to Orders
+        </button>
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
-            <div>
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900">
-                Order #{selectedOrder.id.slice(-6).toUpperCase()}
-              </h2>
-              <p className="text-xs font-bold text-slate-500 mt-2">Placed on {new Date(selectedOrder.createdAt).toLocaleDateString()}</p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+          <div>
+            <h2 className="text-3xl font-black italic uppercase tracking-tighter text-slate-900">
+              Order #{selectedOrder.id.slice(-6).toUpperCase()}
+            </h2>
+            <p className="text-xs font-bold text-slate-500 mt-2">Placed on {new Date(selectedOrder.createdAt).toLocaleDateString()}</p>
+          </div>
+          <div className={`px-5 py-2 border rounded-full text-[10px] font-black uppercase tracking-widest italic flex items-center justify-center ${getStatusColor(selectedOrder.status)}`}>
+            {selectedOrder.status.replace('_', ' ')}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Items List */}
+            <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm space-y-6">
+              <h3 className="text-xl font-black uppercase tracking-tighter italic text-slate-900 border-b border-slate-50 pb-4">Items Ordered</h3>
+              <div className="space-y-6">
+                {selectedOrder.items.map((item: any, idx: number) => (
+                  <div key={idx} className="flex gap-4 border-b border-slate-50 pb-6 last:border-0 last:pb-0">
+                    <div className="w-20 h-20 bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden shrink-0">
+                      <img src={item.imageUrl || '/placeholder.png'} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-slate-900 truncate">{item.name}</p>
+                      {(item.size || item.color) && (
+                        <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest">
+                          {[item.color, item.size].filter(Boolean).join(' / ')}
+                        </p>
+                      )}
+                      <p className="text-xs text-slate-400 font-bold mt-1">Qty: <span className="text-slate-900">{item.quantity}</span></p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-black text-slate-900">
+                        {selectedOrder.type === 'request' ? 'QUOTE PENDING' : `$${(item.price * item.quantity).toFixed(2)}`}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className={`px-5 py-2 border rounded-full text-[10px] font-black uppercase tracking-widest italic flex items-center justify-center ${getStatusColor(selectedOrder.status)}`}>
-              {selectedOrder.status.replace('_', ' ')}
-            </div>
+
+            {/* Customization Dossier (Only for Requests) */}
+            {selectedOrder.type === 'request' && (
+              <div className="bg-[#141414] text-white rounded-[32px] p-8 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                  <Package className="w-32 h-32 rotate-12" />
+                </div>
+
+                <h3 className="text-xl font-black uppercase tracking-tighter italic text-orange-500 mb-8 flex items-center gap-3">
+                  <Trophy className="w-5 h-5" /> Your Customization Dossier
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                  <div className="space-y-6">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Team / Organization</p>
+                      <p className="text-lg font-black italic uppercase tracking-tighter">{selectedOrder.teamName || 'NOT SPECIFIED'}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Deployment Deadline</p>
+                      <p className="text-lg font-black italic uppercase tracking-tighter">
+                        {selectedOrder.expectedDeliveryDate ? new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString(undefined, { dateStyle: 'long' }) : 'TBD'}
+                      </p>
+                    </div>
+
+                    {selectedOrder.logoUrl && (
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Tactical Logo</p>
+                        <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                          <img src={selectedOrder.logoUrl} className="w-full h-32 object-contain rounded-xl" alt="Custom Logo" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Customization Intel</p>
+                      <p className="text-sm font-medium leading-relaxed text-slate-300 italic whitespace-pre-wrap">
+                        {selectedOrder.customizationDetails || 'No specific customization details provided.'}
+                      </p>
+                    </div>
+
+                    {selectedOrder.notes && (
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Your Notes</p>
+                        <p className="text-sm font-medium leading-relaxed text-slate-300 italic whitespace-pre-wrap">
+                          {selectedOrder.notes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tracking info if exists */}
+            {selectedOrder.trackingId && (
+              <div className="bg-orange-50 border border-orange-100 rounded-[32px] p-8 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <Truck className="w-6 h-6 text-orange-600" />
+                  <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900">Tracking Information</h3>
+                </div>
+                <p className="text-sm font-bold text-slate-700">{selectedOrder.carrier || 'Carrier'}</p>
+                <p className="text-xl font-black text-orange-600 mt-1">{selectedOrder.trackingId}</p>
+                <a
+                  href={selectedOrder.trackingUrl || `/account?tab=orders`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 flex items-center justify-center gap-2 bg-black text-white px-6 py-3 rounded-xl font-black uppercase italic tracking-widest text-xs hover:scale-105 transition-all"
+                >
+                  Track Package <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
-              {/* Items List */}
-              <div className="bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm space-y-6">
-                <h3 className="text-xl font-black uppercase tracking-tighter italic text-slate-900 border-b border-slate-50 pb-4">Items Ordered</h3>
-                <div className="space-y-6">
-                  {selectedOrder.items.map((item: any, idx: number) => (
-                    <div key={idx} className="flex gap-4 border-b border-slate-50 pb-6 last:border-0 last:pb-0">
-                      <div className="w-20 h-20 bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden shrink-0">
-                        <img src={item.imageUrl || '/placeholder.png'} alt={item.name} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-slate-900 truncate">{item.name}</p>
-                        {(item.size || item.color) && (
-                          <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-widest">
-                            {[item.color, item.size].filter(Boolean).join(' / ')}
-                          </p>
-                        )}
-                        <p className="text-xs text-slate-400 font-bold mt-1">Qty: <span className="text-slate-900">{item.quantity}</span></p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-black text-slate-900">
-                          {selectedOrder.type === 'request' ? 'QUOTE PENDING' : `$${(item.price * item.quantity).toFixed(2)}`}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+          <div className="space-y-6">
+            {/* Order Summary */}
+            {selectedOrder.type !== 'request' && (
+              <div className="bg-slate-50 rounded-[32px] p-8 space-y-4">
+                <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900 border-b border-slate-200 pb-4">Payment Summary</h3>
+                <div className="space-y-3 text-xs font-bold text-slate-500 uppercase tracking-widest">
+                  <div className="flex justify-between"><span>Subtotal</span><span className="text-slate-900">${selectedOrder.subtotal.toFixed(2)}</span></div>
+                  {selectedOrder.discountAmount > 0 && (
+                    <div className="flex justify-between text-green-600"><span>Discount</span><span>-${selectedOrder.discountAmount.toFixed(2)}</span></div>
+                  )}
+                  <div className="flex justify-between"><span>Shipping</span><span className="text-slate-900">${selectedOrder.shippingFee.toFixed(2)}</span></div>
+                  {selectedOrder.taxAmount > 0 && (
+                    <div className="flex justify-between"><span>Tax</span><span className="text-slate-900">${selectedOrder.taxAmount.toFixed(2)}</span></div>
+                  )}
+                  <div className="flex justify-between pt-4 border-t border-slate-200 items-center">
+                    <span className="text-base text-slate-900">Total</span>
+                    <span className="text-2xl font-black text-orange-600 italic">${selectedOrder.total.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* Customization Dossier (Only for Requests) */}
-              {selectedOrder.type === 'request' && (
-                <div className="bg-[#141414] text-white rounded-[32px] p-8 shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                    <Package className="w-32 h-32 rotate-12" />
-                  </div>
-                  
-                  <h3 className="text-xl font-black uppercase tracking-tighter italic text-orange-500 mb-8 flex items-center gap-3">
-                    <Trophy className="w-5 h-5" /> Your Customization Dossier
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
-                    <div className="space-y-6">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Team / Organization</p>
-                        <p className="text-lg font-black italic uppercase tracking-tighter">{selectedOrder.teamName || 'NOT SPECIFIED'}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Deployment Deadline</p>
-                        <p className="text-lg font-black italic uppercase tracking-tighter">
-                          {selectedOrder.expectedDeliveryDate ? new Date(selectedOrder.expectedDeliveryDate).toLocaleDateString(undefined, { dateStyle: 'long' }) : 'TBD'}
-                        </p>
-                      </div>
-
-                      {selectedOrder.logoUrl && (
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Tactical Logo</p>
-                          <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
-                            <img src={selectedOrder.logoUrl} className="w-full h-32 object-contain rounded-xl" alt="Custom Logo" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-6">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Customization Intel</p>
-                        <p className="text-sm font-medium leading-relaxed text-slate-300 italic whitespace-pre-wrap">
-                          {selectedOrder.customizationDetails || 'No specific customization details provided.'}
-                        </p>
-                      </div>
-                      
-                      {selectedOrder.notes && (
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Your Notes</p>
-                          <p className="text-sm font-medium leading-relaxed text-slate-300 italic whitespace-pre-wrap">
-                            {selectedOrder.notes}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+            {/* Shipping Address */}
+            <div className="bg-white border text-left border-slate-100 rounded-[32px] p-8 space-y-2">
+              <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900 border-b border-slate-50 pb-4 mb-4">Shipping To</h3>
+              <p className="text-sm font-black text-slate-900">{selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</p>
+              <p className="text-xs text-slate-500 font-bold leading-relaxed">
+                {selectedOrder.shippingAddress.address1} {selectedOrder.shippingAddress.address2}<br />
+                {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.postalCode}<br />
+                {selectedOrder.shippingAddress.country}
+              </p>
+              {selectedOrder.shippingAddress.phone && (
+                <p className="text-xs text-slate-500 font-bold mt-2">Phone: {selectedOrder.shippingAddress.phone}</p>
               )}
-              
-              {/* Tracking info if exists */}
-              {selectedOrder.trackingId && (
-                <div className="bg-orange-50 border border-orange-100 rounded-[32px] p-8 shadow-sm">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Truck className="w-6 h-6 text-orange-600" />
-                    <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900">Tracking Information</h3>
-                  </div>
-                  <p className="text-sm font-bold text-slate-700">{selectedOrder.carrier || 'Carrier'}</p>
-                  <p className="text-xl font-black text-orange-600 mt-1">{selectedOrder.trackingId}</p>
-                  <a 
-                    href={selectedOrder.trackingUrl || `/account?tab=orders`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 flex items-center justify-center gap-2 bg-black text-white px-6 py-3 rounded-xl font-black uppercase italic tracking-widest text-xs hover:scale-105 transition-all"
-                  >
-                    Track Package <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-6">
-              {/* Order Summary */}
-              {selectedOrder.type !== 'request' && (
-                <div className="bg-slate-50 rounded-[32px] p-8 space-y-4">
-                  <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900 border-b border-slate-200 pb-4">Payment Summary</h3>
-                  <div className="space-y-3 text-xs font-bold text-slate-500 uppercase tracking-widest">
-                    <div className="flex justify-between"><span>Subtotal</span><span className="text-slate-900">${selectedOrder.subtotal.toFixed(2)}</span></div>
-                    {selectedOrder.discountAmount > 0 && (
-                      <div className="flex justify-between text-green-600"><span>Discount</span><span>-${selectedOrder.discountAmount.toFixed(2)}</span></div>
-                    )}
-                    <div className="flex justify-between"><span>Shipping</span><span className="text-slate-900">${selectedOrder.shippingFee.toFixed(2)}</span></div>
-                    {selectedOrder.taxAmount > 0 && (
-                      <div className="flex justify-between"><span>Tax</span><span className="text-slate-900">${selectedOrder.taxAmount.toFixed(2)}</span></div>
-                    )}
-                    <div className="flex justify-between pt-4 border-t border-slate-200 items-center">
-                      <span className="text-base text-slate-900">Total</span>
-                      <span className="text-2xl font-black text-orange-600 italic">${selectedOrder.total.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Shipping Address */}
-              <div className="bg-white border text-left border-slate-100 rounded-[32px] p-8 space-y-2">
-                <h3 className="text-lg font-black uppercase tracking-tighter italic text-slate-900 border-b border-slate-50 pb-4 mb-4">Shipping To</h3>
-                <p className="text-sm font-black text-slate-900">{selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</p>
-                <p className="text-xs text-slate-500 font-bold leading-relaxed">
-                  {selectedOrder.shippingAddress.address1} {selectedOrder.shippingAddress.address2}<br/>
-                  {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.postalCode}<br/>
-                  {selectedOrder.shippingAddress.country}
-                </p>
-                {selectedOrder.shippingAddress.phone && (
-                  <p className="text-xs text-slate-500 font-bold mt-2">Phone: {selectedOrder.shippingAddress.phone}</p>
-                )}
-              </div>
             </div>
           </div>
         </div>
+      </div>
     );
   }
 
   return (
     <div className="space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">My Orders</h2>
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {['All', 'Pending', 'Shipped', 'Cancelled'].map(f => (
-            <button 
-              key={f} 
+            <button
+              key={f}
               onClick={() => setFilter(f)}
-              className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest italic transition-all shrink-0 border border-slate-100 ${
-                filter === f ? 'bg-black text-white border-black' : 'bg-white text-slate-600 hover:bg-slate-50'
-              }`}
+              className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest italic transition-all shrink-0 border border-slate-100 ${filter === f ? 'bg-black text-white border-black' : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
             >
               {f}
             </button>
           ))}
         </div>
       </div>
-      
+
       <div className="space-y-6">
         {isLoading ? (
           <div className="space-y-6">
@@ -380,7 +379,7 @@ const OrdersView = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                   <div className="flex -space-x-4">
                     {order.items.slice(0, 4).map((item: any, idx: number) => (
@@ -401,14 +400,14 @@ const OrdersView = () => {
                         <span>{order.carrier || 'Carrier'}: <span className="text-slate-900">{order.trackingId}</span></span>
                       </div>
                     )}
-                    <button 
+                    <button
                       onClick={() => setSelectedOrder(order)}
                       className="flex items-center justify-center w-full md:w-auto gap-2 border-2 border-slate-100 text-slate-700 px-6 py-3.5 rounded-2xl font-black uppercase italic tracking-widest text-[10px] hover:border-black hover:text-black transition-all"
                     >
                       View Details
                     </button>
                     {['shipped'].includes(order.status) && (
-                      <a 
+                      <a
                         href={order.trackingUrl || `/account?tab=orders`}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -438,9 +437,8 @@ const OrdersView = () => {
                     <button
                       key={i}
                       onClick={() => setPage(i + 1)}
-                      className={`w-12 h-12 rounded-2xl font-black italic transition-all ${
-                        page === i + 1 ? 'bg-black text-white' : 'bg-white text-slate-400 border border-slate-100'
-                      }`}
+                      className={`w-12 h-12 rounded-2xl font-black italic transition-all ${page === i + 1 ? 'bg-black text-white' : 'bg-white text-slate-400 border border-slate-100'
+                        }`}
                     >
                       {i + 1}
                     </button>
@@ -463,93 +461,93 @@ const OrdersView = () => {
 };
 
 const ProfileView = () => {
-    const { user, updateUser } = useAuth();
-    const [isUpdating, setIsUpdating] = useState(false);
-    const [form, setForm] = useState({
-        firstName: user?.name.split(' ')[0] || '',
-        lastName: user?.name.split(' ').slice(1).join(' ') || '',
-        phone: user?.phone || ''
-    });
+  const { user, updateUser } = useAuth();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [form, setForm] = useState({
+    firstName: user?.name.split(' ')[0] || '',
+    lastName: user?.name.split(' ').slice(1).join(' ') || '',
+    phone: user?.phone || ''
+  });
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsUpdating(true);
-        try {
-            const { data } = await apiClient.put('/api/auth/profile', {
-                name: `${form.firstName} ${form.lastName}`.trim(),
-                phone: form.phone
-            });
-            if (data.ok) {
-                updateUser(data.user);
-                toast.success("Personnel profile updated successfully.");
-            }
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || "Tactical update failed.");
-        } finally {
-            setIsUpdating(false);
-        }
-    };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdating(true);
+    try {
+      const { data } = await apiClient.put('/api/auth/profile', {
+        name: `${form.firstName} ${form.lastName}`.trim(),
+        phone: form.phone
+      });
+      if (data.ok) {
+        updateUser(data.user);
+        toast.success("Personnel profile updated successfully.");
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Tactical update failed.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
-    return (
-        <form onSubmit={handleSubmit} className="max-w-2xl space-y-12 text-left">
-            <div className="space-y-4 text-center md:text-left">
-                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Personal Info</h2>
-                <p className="text-slate-500 font-medium italic">Manage your profile information and how we contact you.</p>
-            </div>
+  return (
+    <form onSubmit={handleSubmit} className="max-w-2xl space-y-12 text-left">
+      <div className="space-y-4 text-center md:text-left">
+        <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Personal Info</h2>
+        <p className="text-slate-500 font-medium italic">Manage your profile information and how we contact you.</p>
+      </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">First Name</label>
-                    <input 
-                        type="text" 
-                        value={form.firstName}
-                        onChange={(e) => setForm(prev => ({ ...prev, firstName: e.target.value }))}
-                        required
-                        className="w-full bg-white border border-slate-100 rounded-2xl py-4 px-6 outline-none focus:border-orange-600 transition-all font-bold text-slate-900 shadow-sm" 
-                    />
-                </div>
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Last Name</label>
-                    <input 
-                        type="text" 
-                        value={form.lastName}
-                        onChange={(e) => setForm(prev => ({ ...prev, lastName: e.target.value }))}
-                        required
-                        className="w-full bg-white border border-slate-100 rounded-2xl py-4 px-6 outline-none focus:border-orange-600 transition-all font-bold text-slate-900 shadow-sm" 
-                    />
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Email Address (Identified)</label>
-                    <input 
-                        type="email" 
-                        value={user?.email || ''}
-                        disabled
-                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 outline-none font-bold text-slate-400 shadow-none cursor-not-allowed opacity-60" 
-                    />
-                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest italic mt-1">Email cannot be modified once identified in the tactical system.</p>
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Phone Number</label>
-                    <input 
-                        type="tel" 
-                        value={form.phone}
-                        onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
-                        placeholder="+1 (555) 000-0000"
-                        className="w-full bg-white border border-slate-100 rounded-2xl py-4 px-6 outline-none focus:border-orange-600 transition-all font-bold text-slate-900 shadow-sm" 
-                    />
-                </div>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">First Name</label>
+          <input
+            type="text"
+            value={form.firstName}
+            onChange={(e) => setForm(prev => ({ ...prev, firstName: e.target.value }))}
+            required
+            className="w-full bg-white border border-slate-100 rounded-2xl py-4 px-6 outline-none focus:border-orange-600 transition-all font-bold text-slate-900 shadow-sm"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Last Name</label>
+          <input
+            type="text"
+            value={form.lastName}
+            onChange={(e) => setForm(prev => ({ ...prev, lastName: e.target.value }))}
+            required
+            className="w-full bg-white border border-slate-100 rounded-2xl py-4 px-6 outline-none focus:border-orange-600 transition-all font-bold text-slate-900 shadow-sm"
+          />
+        </div>
+        <div className="md:col-span-2 space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Email Address (Identified)</label>
+          <input
+            type="email"
+            value={user?.email || ''}
+            disabled
+            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 outline-none font-bold text-slate-400 shadow-none cursor-not-allowed opacity-60"
+          />
+          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest italic mt-1">Email cannot be modified once identified in the tactical system.</p>
+        </div>
+        <div className="md:col-span-2 space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Phone Number</label>
+          <input
+            type="tel"
+            value={form.phone}
+            onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
+            placeholder="+1 (555) 000-0000"
+            className="w-full bg-white border border-slate-100 rounded-2xl py-4 px-6 outline-none focus:border-orange-600 transition-all font-bold text-slate-900 shadow-sm"
+          />
+        </div>
+      </div>
 
-            <button 
-                type="submit"
-                disabled={isUpdating}
-                className="bg-black text-white px-12 py-5 rounded-[30px] font-black uppercase italic tracking-tighter text-lg hover:scale-105 transition-all shadow-xl shadow-black/10 flex items-center gap-3 disabled:opacity-50"
-            >
-                {isUpdating && <Loader2 className="w-5 h-5 animate-spin" />}
-                Save Changes
-            </button>
-        </form>
-    );
+      <button
+        type="submit"
+        disabled={isUpdating}
+        className="bg-black text-white px-12 py-5 rounded-[30px] font-black uppercase italic tracking-tighter text-lg hover:scale-105 transition-all shadow-xl shadow-black/10 flex items-center gap-3 disabled:opacity-50"
+      >
+        {isUpdating && <Loader2 className="w-5 h-5 animate-spin" />}
+        Save Changes
+      </button>
+    </form>
+  );
 };
 
 const AddressesView = () => (
@@ -610,7 +608,7 @@ const WishlistView = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
           {items.map((item) => (
             <div key={item.productId} className="bg-white rounded-[40px] border border-slate-100 p-6 shadow-sm hover:shadow-xl transition-all group relative">
-              <button 
+              <button
                 onClick={() => toggleItem({
                   productId: item.productId,
                   name: item.name,
@@ -622,10 +620,10 @@ const WishlistView = () => {
                 <Heart className="w-5 h-5 fill-current" />
               </button>
               <div className="aspect-square rounded-3xl bg-slate-50 overflow-hidden mb-6 relative">
-                <img 
-                  src={item.imageUrl || 'https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png'} 
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                  alt={item.name} 
+                <img
+                  src={item.imageUrl || 'https://af1.groomyorlife.com/wp-content/uploads/2026/01/Background.png'}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  alt={item.name}
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
               </div>
@@ -636,7 +634,7 @@ const WishlistView = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-2xl font-black italic tracking-tighter text-slate-900">${item.price.toFixed(2)}</span>
-                  <button 
+                  <button
                     onClick={() => router.push(`/products/${item.productId}`)} // Ideally we'd have slug, but for now fallback to ID
                     className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center hover:bg-orange-600 transition-all rotate-[-5deg] hover:rotate-0"
                   >
@@ -656,7 +654,7 @@ const WishlistView = () => {
             <h3 className="text-xl font-black italic uppercase tracking-tighter text-slate-900">Your wishlist is empty</h3>
             <p className="text-slate-400 font-medium italic text-sm">Start adding some items you love!</p>
           </div>
-          <button 
+          <button
             onClick={() => router.push('/')}
             className="bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-xs hover:scale-105 transition-all shadow-xl shadow-black/10"
           >
@@ -669,118 +667,118 @@ const WishlistView = () => {
 };
 
 const SettingsView = () => {
-    const { user, refreshSession } = useAuth();
-    const [isUpdating, setIsUpdating] = useState(false);
-    const [passwords, setPasswords] = useState({
-        current: '',
-        new: '',
-        confirm: ''
-    });
+  const { user, refreshSession } = useAuth();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [passwords, setPasswords] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  });
 
-    const handlePasswordUpdate = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (passwords.new !== passwords.confirm) {
-            return toast.error("Tactical mismatch: New passwords do not match.");
-        }
-        if (passwords.new.length < 8) {
-            return toast.error("Defensive breach: Password must be at least 8 characters.");
-        }
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwords.new !== passwords.confirm) {
+      return toast.error("Tactical mismatch: New passwords do not match.");
+    }
+    if (passwords.new.length < 8) {
+      return toast.error("Defensive breach: Password must be at least 8 characters.");
+    }
 
-        setIsUpdating(true);
-        try {
-            const { data } = await apiClient.put('/api/auth/password', {
-                currentPassword: passwords.current,
-                newPassword: passwords.new
-            });
-            if (data.ok) {
-                await refreshSession(); // Re-sync session with new version
-                setPasswords({ current: '', new: '', confirm: '' });
-                toast.success("Security tokens rotated successfully. New password active.");
-            }
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || "Security update aborted.");
-        } finally {
-            setIsUpdating(false);
-        }
-    };
+    setIsUpdating(true);
+    try {
+      const { data } = await apiClient.put('/api/auth/password', {
+        currentPassword: passwords.current,
+        newPassword: passwords.new
+      });
+      if (data.ok) {
+        await refreshSession(); // Re-sync session with new version
+        setPasswords({ current: '', new: '', confirm: '' });
+        toast.success("Security tokens rotated successfully. New password active.");
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Security update aborted.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
-    return (
-        <div className="max-w-2xl space-y-12 text-left">
-            <div className="space-y-4">
-                <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Security & Settings</h2>
-                <p className="text-slate-500 font-medium italic">Control your account&apos;s security and notification preferences.</p>
+  return (
+    <div className="max-w-2xl space-y-12 text-left">
+      <div className="space-y-4">
+        <h2 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900">Security & Settings</h2>
+        <p className="text-slate-500 font-medium italic">Control your account&apos;s security and notification preferences.</p>
+      </div>
+
+      <div className="space-y-6">
+        <form onSubmit={handlePasswordUpdate} className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm space-y-8">
+          <h4 className="text-lg font-black italic uppercase tracking-tighter text-slate-900 flex items-center gap-3">
+            <Shield className="w-5 h-5 text-green-500" />
+            Password Management
+          </h4>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Current Password</label>
+              <input
+                type="password"
+                value={passwords.current}
+                onChange={(e) => setPasswords(prev => ({ ...prev, current: e.target.value }))}
+                placeholder="••••••••"
+                required
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 outline-none focus:border-orange-600 transition-all font-medium"
+              />
             </div>
-
-            <div className="space-y-6">
-                <form onSubmit={handlePasswordUpdate} className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm space-y-8">
-                    <h4 className="text-lg font-black italic uppercase tracking-tighter text-slate-900 flex items-center gap-3">
-                        <Shield className="w-5 h-5 text-green-500" />
-                        Password Management
-                    </h4>
-                    <div className="space-y-6">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Current Password</label>
-                            <input 
-                                type="password" 
-                                value={passwords.current}
-                                onChange={(e) => setPasswords(prev => ({ ...prev, current: e.target.value }))}
-                                placeholder="••••••••" 
-                                required
-                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 outline-none focus:border-orange-600 transition-all font-medium" 
-                            />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">New Password</label>
-                                <input 
-                                    type="password" 
-                                    value={passwords.new}
-                                    onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))}
-                                    placeholder="••••••••" 
-                                    required
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 outline-none focus:border-orange-600 transition-all font-medium" 
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Confirm New Password</label>
-                                <input 
-                                    type="password" 
-                                    value={passwords.confirm}
-                                    onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
-                                    placeholder="••••••••" 
-                                    required
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 outline-none focus:border-orange-600 transition-all font-medium" 
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    <button 
-                        type="submit"
-                        disabled={isUpdating || user?.provider === 'google'}
-                        className="bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-xs hover:scale-105 transition-all flex items-center gap-3 disabled:opacity-50"
-                    >
-                        {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
-                        {user?.provider === 'google' ? 'Managed via Google' : 'Update Password'}
-                    </button>
-                    {user?.provider === 'google' && (
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest italic">Security managed externally via Google OAuth.</p>
-                    )}
-                </form>
-
-                <div className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                            <h4 className="text-lg font-black italic uppercase tracking-tighter text-slate-900">Two-Factor Authentication</h4>
-                            <p className="text-slate-400 text-xs italic">Add an extra layer of security to your account.</p>
-                        </div>
-                        <button className="px-6 py-2 bg-slate-100 border border-slate-200 rounded-full text-[10px] font-black uppercase tracking-widest italic hover:bg-black hover:text-white transition-all">
-                            Enable
-                        </button>
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">New Password</label>
+                <input
+                  type="password"
+                  value={passwords.new}
+                  onChange={(e) => setPasswords(prev => ({ ...prev, new: e.target.value }))}
+                  placeholder="••••••••"
+                  required
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 outline-none focus:border-orange-600 transition-all font-medium"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={passwords.confirm}
+                  onChange={(e) => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
+                  placeholder="••••••••"
+                  required
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 outline-none focus:border-orange-600 transition-all font-medium"
+                />
+              </div>
             </div>
+          </div>
+          <button
+            type="submit"
+            disabled={isUpdating || user?.provider === 'google'}
+            className="bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-xs hover:scale-105 transition-all flex items-center gap-3 disabled:opacity-50"
+          >
+            {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
+            {user?.provider === 'google' ? 'Managed via Google' : 'Update Password'}
+          </button>
+          {user?.provider === 'google' && (
+            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest italic">Security managed externally via Google OAuth.</p>
+          )}
+        </form>
+
+        <div className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h4 className="text-lg font-black italic uppercase tracking-tighter text-slate-900">Two-Factor Authentication</h4>
+              <p className="text-slate-400 text-xs italic">Add an extra layer of security to your account.</p>
+            </div>
+            <button className="px-6 py-2 bg-slate-100 border border-slate-200 rounded-full text-[10px] font-black uppercase tracking-widest italic hover:bg-black hover:text-white transition-all">
+              Enable
+            </button>
+          </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
 // --- Main Account Page Component ---
@@ -805,11 +803,11 @@ export const AccountPage: React.FC = () => {
 
   const initials = user?.name
     ? user.name
-        .split(' ')
-        .map((part) => part[0])
-        .join('')
-        .slice(0, 2)
-        .toUpperCase()
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase()
     : 'AF';
 
   async function handleLogout() {
@@ -864,7 +862,7 @@ export const AccountPage: React.FC = () => {
     <div className="min-h-screen bg-[#FDFDFD] pt-8 pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col lg:flex-row gap-12">
-          
+
           {/* Sidebar / Mobile Nav */}
           <aside className="lg:w-80 shrink-0 space-y-8">
             <div className="bg-white rounded-[40px] p-4 lg:p-8 border border-slate-100 shadow-sm space-y-8 lg:sticky lg:top-32 overflow-hidden">
@@ -885,11 +883,10 @@ export const AccountPage: React.FC = () => {
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id as TabType)}
-                      className={`shrink-0 lg:w-full flex items-center justify-between p-3 lg:p-4 rounded-xl lg:rounded-2xl transition-all group ${
-                        activeTab === item.id 
-                          ? "bg-black text-white shadow-xl shadow-black/10 lg:translate-x-1" 
+                      className={`shrink-0 lg:w-full flex items-center justify-between p-3 lg:p-4 rounded-xl lg:rounded-2xl transition-all group ${activeTab === item.id
+                          ? "bg-black text-white shadow-xl shadow-black/10 lg:translate-x-1"
                           : "text-slate-500 hover:bg-slate-50 hover:text-black"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3 lg:gap-4">
                         <Icon className={`w-4 h-4 lg:w-5 lg:h-5 ${activeTab === item.id ? "text-orange-500" : "text-slate-400 group-hover:text-black"}`} />
@@ -900,7 +897,7 @@ export const AccountPage: React.FC = () => {
                   );
                 })}
                 <div className="hidden lg:block pt-4 mt-4 border-t border-slate-50">
-                  <button 
+                  <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-4 p-4 rounded-2xl text-red-500 hover:bg-red-50 transition-all font-bold uppercase tracking-widest text-[11px] italic"
                   >

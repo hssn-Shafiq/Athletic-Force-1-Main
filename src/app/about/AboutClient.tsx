@@ -3,12 +3,12 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { 
-  Target, 
-  Zap, 
-  ShieldCheck, 
-  Users, 
-  Trophy, 
+import {
+  Target,
+  Zap,
+  ShieldCheck,
+  Users,
+  Trophy,
   Rocket,
   ArrowRight,
   CheckCircle2,
@@ -55,9 +55,9 @@ export default function AboutClient() {
       {/* --- Tactical Hero Section --- */}
       <section className="relative min-h-[85vh] flex items-center pt-24 pb-24 md:pb-32 overflow-hidden bg-black">
         <div className="absolute inset-0 z-0">
-          <img 
-            src="/images/about/hero.png" 
-            alt="About AF1" 
+          <img
+            src="/images/about/hero.png"
+            alt="About AF1"
             className="w-full h-full object-cover opacity-60 scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-transparent" />
@@ -98,7 +98,7 @@ export default function AboutClient() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {STATS.map((stat, idx) => (
-              <motion.div 
+              <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -119,7 +119,7 @@ export default function AboutClient() {
       </section>
 
       {/* --- Our Mission Section --- */}
-      <section className="py-24 bg-[#f3f3f3]">
+      <section className="py-24 bg-[var(--color-page-background)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -182,7 +182,7 @@ export default function AboutClient() {
                       <p className="text-slate-300 leading-relaxed font-medium italic">{item.desc}</p>
                     </motion.div>
                   </div>
-                  
+
                   <div className="relative flex items-center justify-center">
                     <div className="w-16 h-16 bg-black border-4 border-[#FF5A2A] rounded-full z-10 flex items-center justify-center shadow-[0_0_20px_rgba(255,90,42,0.4)]">
                       <div className="w-3 h-3 bg-white rounded-full animate-ping" />
@@ -219,7 +219,7 @@ export default function AboutClient() {
       </section>
 
       {/* --- Latest Intelligence --- */}
-      <section className="py-24 bg-[#f3f3f3] border-t border-slate-200">
+      <section className="py-24 bg-[var(--color-page-background)] border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <LockerRoomSection />
         </div>
@@ -232,7 +232,7 @@ export default function AboutClient() {
             {/* Tactical Decorative Elements */}
             <div className="absolute top-0 right-0 w-96 h-96 bg-[#FF5A2A]/10 blur-[120px] -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/5 blur-[100px] translate-y-1/2 -translate-x-1/2" />
-            
+
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}

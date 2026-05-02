@@ -72,37 +72,41 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 md:-mt-14 relative z-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {categoryData.subCategories.map((sub, idx) => (
-            <motion.div
+            <Link
               key={sub}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.05 }}
-              className="group relative bg-white border border-slate-100 rounded-[28px] sm:rounded-[40px] p-6 sm:p-10 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden shadow-sm"
+              href={`/collections/${categoryId}/${sub.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-')}`}
             >
-              {/* Background Accent */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-[100px] flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-500">
-                <ChevronRight className="w-8 h-8 text-slate-200 group-hover:text-white transition-colors" />
-              </div>
-              
-              <div className="space-y-4">
-                <div className="text-xs font-black uppercase tracking-[0.2em] text-orange-600 italic">Sub-Collection</div>
-                <h3 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-slate-900 group-hover:text-orange-600 transition-colors">
-                  {sub}
-                </h3>
-                <p className="text-slate-400 text-sm font-medium leading-relaxed">
-                  Explore our premium {sub.toLowerCase()} gear optimized for high-intensity performance.
-                </p>
-                <div className="pt-6 flex items-center gap-3 text-sm font-black uppercase tracking-widest text-slate-900">
-                  <span>Explore Collection</span>
-                  <div className="w-8 h-0.5 bg-slate-200 group-hover:w-16 group-hover:bg-black transition-all" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.05 }}
+                className="group relative bg-white border border-slate-100 rounded-[28px] sm:rounded-[40px] p-6 sm:p-10 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden shadow-sm h-full"
+              >
+                {/* Background Accent */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-[100px] flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-500">
+                  <ChevronRight className="w-8 h-8 text-slate-200 group-hover:text-white transition-colors" />
                 </div>
-              </div>
+                
+                <div className="space-y-4">
+                  <div className="text-xs font-black uppercase tracking-[0.2em] text-orange-600 italic">Sub-Collection</div>
+                  <h3 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-slate-900 group-hover:text-orange-600 transition-colors">
+                    {sub}
+                  </h3>
+                  <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                    Explore our premium {sub.toLowerCase()} gear optimized for high-intensity performance.
+                  </p>
+                  <div className="pt-6 flex items-center gap-3 text-sm font-black uppercase tracking-widest text-slate-900">
+                    <span>Explore Collection</span>
+                    <div className="w-8 h-0.5 bg-slate-200 group-hover:w-16 group-hover:bg-black transition-all" />
+                  </div>
+                </div>
 
-              {/* Decorative Number */}
-              <div className="absolute -bottom-5 right-8 text-8xl font-black text-slate-50 italic pointer-events-none group-hover:text-orange-50 transition-colors">
-                {(idx + 1).toString().padStart(2, '0')}
-              </div>
-            </motion.div>
+                {/* Decorative Number */}
+                <div className="absolute -bottom-5 right-8 text-8xl font-black text-slate-50 italic pointer-events-none group-hover:text-orange-50 transition-colors">
+                  {(idx + 1).toString().padStart(2, '0')}
+                </div>
+              </motion.div>
+            </Link>
           ))}
         </div>
       </section>

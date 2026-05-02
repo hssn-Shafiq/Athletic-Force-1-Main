@@ -24,10 +24,10 @@ export default function TermsAndConditionsPage() {
   ];
 
   return (
-    <main className="bg-[#f3f3f3] min-h-screen pt-32 pb-20">
+    <main className="bg-[#FAFAFA] min-h-screen pt-10 pb-20">
       <div className="max-w-4xl mx-auto px-4">
         {/* Header Block */}
-        <div className="bg-[#FF5A2A] rounded-[40px] p-10 md:p-16 mb-10 relative overflow-hidden shadow-2xl shadow-[#FF5A2A]/20">
+        <div className="bg-[var(--color-accent)] rounded-[40px] p-10 md:p-16 mb-10 relative overflow-hidden ">
            <div className="absolute top-0 right-0 w-64 h-64 bg-black/10 blur-[100px] -translate-y-1/2 translate-x-1/2" />
            <div className="relative z-10">
               <div className="inline-flex items-center gap-2 text-black text-[10px] font-black uppercase tracking-[0.4em] italic mb-6">

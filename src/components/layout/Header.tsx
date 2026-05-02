@@ -2,15 +2,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-  Search, 
-  ShoppingCart, 
-  Heart, 
-  User, 
-  Menu, 
-  ChevronDown, 
+import {
+  Search,
+  ShoppingCart,
+  Heart,
+  User,
+  Menu,
+  ChevronDown,
   X,
-  LayoutDashboard 
+  LayoutDashboard
 } from 'lucide-react';
 import { MegaMenu } from './MegaMenu';
 import { CartSidebar } from './CartSidebar';
@@ -60,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
           getExploreProductsApi({ search: searchQuery, pageSize: 6 }),
           getPublicBlogPostsApi({ search: searchQuery, limit: 4 })
         ]);
-        
+
         setSearchResults({
           products: prodRes.ok ? prodRes.items : [],
           blogs: blogRes.ok ? blogRes.posts : []
@@ -168,13 +168,12 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
 
           {/* Search & Categories */}
           <div className="flex-1 max-w-2xl hidden md:flex items-center gap-3 relative" ref={searchRef}>
-            <button 
+            <button
               onClick={() => setIsMegaMenuOpen(!isMegaMenuOpen)}
-              className={`px-8 py-3.5 flex items-center gap-3 font-bold text-sm rounded-full transition-all ${
-                isMegaMenuOpen 
-                  ? "bg-orange-600 text-white shadow-lg shadow-orange-600/20" 
+              className={`px-8 py-3.5 flex items-center gap-3 font-bold text-sm rounded-full transition-all ${isMegaMenuOpen
+                  ? "bg-orange-600 text-white shadow-lg shadow-orange-600/20"
                   : "bg-black text-white hover:bg-slate-800"
-              }`}
+                }`}
             >
               <AnimatePresence mode="wait">
                 {isMegaMenuOpen ? (
@@ -191,9 +190,9 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
             </button>
             <div className="flex-1 flex items-center px-6 py-3.5 bg-[#F9F9F9] rounded-full border border-slate-100 focus-within:bg-white focus-within:border-slate-300 focus-within:shadow-sm transition-all group">
               <Search className={`w-5 h-5 mr-3 transition-colors ${isSearchActive ? 'text-orange-600' : 'text-slate-400'}`} />
-              <input 
-                type="text" 
-                placeholder="Identify gear or intel..." 
+              <input
+                type="text"
+                placeholder="Identify gear or intel..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchActive(true)}
@@ -226,7 +225,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
                     ) : (searchResults.products.length === 0 && searchResults.blogs.length === 0) ? (
                       <div className="text-center py-20">
                         <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                           <Search className="w-8 h-8 text-slate-200" />
+                          <Search className="w-8 h-8 text-slate-200" />
                         </div>
                         <p className="text-lg font-black italic uppercase text-slate-400 tracking-tight">No Matching Signal Detected</p>
                         <p className="text-xs text-slate-300 uppercase font-bold mt-2 tracking-widest">Adjust your parameters and retry</p>
@@ -244,11 +243,11 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
                               Full Armory View <ChevronDown className="w-3 h-3 -rotate-90 group-hover:translate-x-1 transition-transform" />
                             </Link>
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {searchResults.products.map(product => (
-                              <Link 
-                                key={product.id} 
+                              <Link
+                                key={product.id}
                                 href={`/products/${product.slug}`}
                                 onClick={() => { setIsSearchActive(false); setSearchQuery(""); }}
                                 className="group flex items-center gap-5 p-4 rounded-[24px] hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 hover:shadow-xl hover:shadow-black/5"
@@ -272,9 +271,9 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
                                   </div>
                                 </div>
                                 <div className="opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all">
-                                   <div className="w-8 h-8 rounded-full bg-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-600/30">
-                                      <ChevronDown className="w-4 h-4 -rotate-90" />
-                                   </div>
+                                  <div className="w-8 h-8 rounded-full bg-orange-600 text-white flex items-center justify-center shadow-lg shadow-orange-600/30">
+                                    <ChevronDown className="w-4 h-4 -rotate-90" />
+                                  </div>
                                 </div>
                               </Link>
                             ))}
@@ -289,11 +288,11 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
                               <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-900 italic">Tactical Intel</h3>
                             </div>
                           </div>
-                          
+
                           <div className="space-y-6">
                             {searchResults.blogs.map(post => (
-                              <Link 
-                                key={post.slug} 
+                              <Link
+                                key={post.slug}
                                 href={`/blog/${post.slug}`}
                                 onClick={() => { setIsSearchActive(false); setSearchQuery(""); }}
                                 className="group flex gap-4 items-start"
@@ -309,20 +308,20 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
                                     {post.title}
                                   </h4>
                                   <div className="flex items-center gap-2 text-[9px] text-slate-400 font-bold uppercase tracking-widest italic">
-                                     <span>{new Date(post.publishedAt || post.createdAt || "").toLocaleDateString()}</span>
-                                     <span>•</span>
-                                     <span>Read Intel</span>
+                                    <span>{new Date(post.publishedAt || post.createdAt || "").toLocaleDateString()}</span>
+                                    <span>•</span>
+                                    <span>Read Intel</span>
                                   </div>
                                 </div>
                               </Link>
                             ))}
                             {searchResults.blogs.length === 0 && (
                               <div className="py-10 text-center">
-                                 <p className="text-[10px] font-black text-slate-300 uppercase italic tracking-widest">No matching intel reports</p>
+                                <p className="text-[10px] font-black text-slate-300 uppercase italic tracking-widest">No matching intel reports</p>
                               </div>
                             )}
                             <Link href="/blog" onClick={() => setIsSearchActive(false)} className="block w-full py-4 bg-white border border-slate-200 rounded-2xl text-center text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white hover:border-black transition-all shadow-sm">
-                               Explore Full Journal
+                              Explore Full Journal
                             </Link>
                           </div>
                         </div>
@@ -344,7 +343,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
                 Admin Dashboard
               </Link>
             ) : null}
-            <button 
+            <button
               id="af1-header-cart-trigger"
               onClick={() => setIsCartOpen(true)}
               className="relative flex flex-col items-center group"
@@ -361,7 +360,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
               <div className="relative">
                 <Heart className="w-6 h-6 sm:w-7 sm:h-7 text-slate-900 group-hover:scale-110 transition-transform" />
                 {wishlistItems.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-[#FF7348] text-white text-[8px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center font-black border-2 border-white shadow-sm">
+                  <span className="absolute -top-1 -right-1 bg-[var(--color-accent)] text-white text-[8px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center font-black border-2 border-white shadow-sm">
                     {wishlistItems.length}
                   </span>
                 )}
@@ -458,13 +457,13 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
       <div className="md:hidden px-3 sm:px-4 pb-4 bg-white border-b border-slate-100 space-y-3 relative z-[101]">
         <div className="flex items-center border border-slate-100 rounded-full px-5 py-3 bg-[#F9F9F9] focus-within:bg-white focus-within:shadow-sm transition-all">
           <Search className="w-4 h-4 text-slate-400 mr-2" />
-          <input 
-            type="text" 
-            placeholder="Search for gear or intel..." 
+          <input
+            type="text"
+            placeholder="Search for gear or intel..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSearchActive(true)}
-            className="bg-transparent text-sm w-full outline-none font-medium" 
+            className="bg-transparent text-sm w-full outline-none font-medium"
           />
           {searchQuery && (
             <button onClick={() => setSearchQuery("")} className="ml-2">
@@ -497,8 +496,8 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
                       <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-400">Gear</h3>
                       <div className="space-y-2">
                         {searchResults.products.map(product => (
-                          <Link 
-                            key={product.id} 
+                          <Link
+                            key={product.id}
                             href={`/products/${product.slug}`}
                             onClick={() => { setIsSearchActive(false); setSearchQuery(""); }}
                             className="flex items-center gap-3 p-2 rounded-xl bg-slate-50 border border-slate-100"
@@ -520,8 +519,8 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
                       <h3 className="text-[9px] font-black uppercase tracking-widest text-slate-400">Intel</h3>
                       <div className="space-y-2">
                         {searchResults.blogs.map(post => (
-                          <Link 
-                            key={post.slug} 
+                          <Link
+                            key={post.slug}
                             href={`/blog/${post.slug}`}
                             onClick={() => { setIsSearchActive(false); setSearchQuery(""); }}
                             className="block p-3 rounded-xl bg-slate-50 border border-slate-100"

@@ -52,7 +52,7 @@ export default async function BlogSinglePage({ params }: BlogDetailProps) {
   }
 
   return (
-    <main className="bg-[#f3f3f3] min-h-screen pb-20">
+    <main className="bg-[var(--color-page-background)] min-h-screen pb-20">
       <article className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
         <Link href="/blog" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest italic text-slate-400 hover:text-black mb-8 transition-colors group">
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -64,10 +64,10 @@ export default async function BlogSinglePage({ params }: BlogDetailProps) {
           <div className="lg:col-span-8">
             {/* Feature Visual - Independent Block */}
             <div className="rounded-[32px] overflow-hidden border border-black/5 mb-10 shadow-xl shadow-black/[0.03]">
-              <img 
-                src={post.thumbnail} 
-                alt={post.title} 
-                className="w-full h-auto object-cover" 
+              <img
+                src={post.thumbnail}
+                alt={post.title}
+                className="w-full h-auto object-cover"
               />
             </div>
 

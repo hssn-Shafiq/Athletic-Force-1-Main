@@ -82,7 +82,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => 
                         </div>
                         {item.bundleId && (
                           <div className="flex items-center gap-1.5 mt-2">
-                            <div className="w-1 h-3 bg-[#FF7348] rounded-full"></div>
+                            <div className="w-1 h-3 bg-[var(--color-accent)] rounded-full"></div>
                             <span className="text-[10px] font-black uppercase text-[#FF7348] italic tracking-tight">Tactical Bundle</span>
                           </div>
                         )}

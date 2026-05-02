@@ -24,7 +24,7 @@ export default function PrivacyPolicyPage() {
   ];
 
   return (
-    <main className="bg-[#f3f3f3] min-h-screen pt-32 pb-20">
+    <main className="bg-[var(--color-page-background)] min-h-screen pt-10 pb-20">
       <div className="max-w-4xl mx-auto px-4">
         {/* Header Block */}
         <div className="bg-black rounded-[40px] p-10 md:p-16 mb-10 relative overflow-hidden shadow-2xl">

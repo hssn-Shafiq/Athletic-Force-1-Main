@@ -230,7 +230,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                   </span>
                 )}
                 {product.discount && (
-                  <span className="bg-[#FF7348] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                  <span className="bg-[var(--color-accent)] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
                     {product.discount}
                   </span>
                 )}
@@ -451,7 +451,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen,
                       onClick={handleAddToCart}
                       className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all duration-200 ${
                         effectiveSelectedSize && !isAddingToCart
-                          ? 'bg-black text-white hover:bg-[#FF7348] hover:scale-[1.02] shadow-lg'
+                          ? 'bg-black text-white hover:bg-[var(--color-accent)] hover:scale-[1.02] shadow-lg'
                           : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                       }`}
                     >
