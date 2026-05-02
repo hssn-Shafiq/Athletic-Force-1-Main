@@ -960,7 +960,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                     </div>
                   ))}
                 </div>
-                
+
                 {/* Mobile Slide Index */}
                 <div className="sm:hidden absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase">
                   {selectedIndex + 1} / {thumbnails.length}
@@ -972,9 +972,9 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
             {product.reviews.length > 0 && (() => {
               const latest = product.reviews[product.reviews.length - 1];
               const avatarUrl = latest.userAvatar?.url || (latest.photos?.length > 0 ? latest.photos[0].url : null);
-              
+
               return (
-                <div className="bg-slate-50 rounded-3xl p-5 sm:p-8 space-y-4 border border-slate-100">
+                <div className="hidden sm:block bg-slate-50 rounded-3xl p-5 sm:p-8 space-y-4 border border-slate-100">
                   <div className="flex justify-between items-start">
                     <div className="flex gap-3">
                       <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-slate-200 bg-white flex items-center justify-center shrink-0 shadow-sm">
@@ -1033,10 +1033,10 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                               {product.reviews.slice(0, 4).map((r: any, i) => {
                                 const avatarUrl = r.userAvatar?.url || (r.photos?.length > 0 ? r.photos[0].url : null);
                                 const initial = r.fullName.charAt(0);
-                                
+
                                 return (
-                                  <div 
-                                    key={i} 
+                                  <div
+                                    key={i}
                                     className="relative w-6 h-6 sm:w-10 sm:h-10 rounded-full border-2 border-white overflow-hidden bg-slate-100 flex items-center justify-center shadow-sm"
                                   >
                                     {avatarUrl ? (
@@ -1126,8 +1126,8 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                       const initial = typeof r === 'object' ? r.fullName.charAt(0) : '';
 
                       return (
-                        <div 
-                          key={i} 
+                        <div
+                          key={i}
                           className="w-5 h-5 sm:w-7 sm:h-7 rounded-full border-2 border-white overflow-hidden bg-slate-200 flex items-center justify-center shrink-0"
                         >
                           {avatarUrl ? (
@@ -1233,9 +1233,9 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                       <span>{selectedStock}</span>
                       <span className="text-sm mb-1">Left</span>
                     </div>
-                    
+
                     {selectedStock > 0 && selectedStock < 10 && (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, y: 10, scale: 0.9 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         className="bg-red-600 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest italic flex items-center gap-1.5 shadow-lg shadow-red-500/20"
@@ -1367,7 +1367,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                           <ul className="space-y-3">
                             {acc.content?.map((item, i) => (
                               <li key={i} className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                                <div className="w-1.5 h-1.5 rounded-full bg-[#FF7348]" />
+                                <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />
                                 {item}
                               </li>
                             ))}
@@ -1385,7 +1385,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
               <div className="pt-12 md:pt-16 space-y-8">
                 <div className="flex justify-between items-center gap-3">
                   <h3 className="text-xl sm:text-2xl font-black italic uppercase tracking-tighter text-slate-900">One-Time Tactical Offer</h3>
-                  <div className="bg-[#FF7348] text-white px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest italic animate-pulse">Save on Bundle</div>
+                  <div className="bg-[var(--color-accent)] text-white px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest italic animate-pulse">Save on Bundle</div>
                 </div>
 
                 {product.upsellProducts.map((upsell) => {
@@ -1438,7 +1438,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                         </div>
                         <button
                           onClick={() => handleUpsellBundleAction(upsell)}
-                          className="w-full sm:w-auto bg-black text-white px-10 py-5 rounded-[24px] font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 hover:bg-[#FF7348] transition-all shadow-2xl active:scale-95"
+                          className="w-full sm:w-auto bg-black text-white px-10 py-5 rounded-[24px] font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 hover:bg-[var(--color-accent)] transition-all shadow-2xl active:scale-95"
                         >
                           <ShoppingBag className="w-6 h-6" />
                           <span>Grab the Bundle</span>
@@ -1523,8 +1523,8 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                             const initial = typeof r === 'object' ? r.fullName.charAt(0) : '?';
 
                             return (
-                              <div 
-                                key={i} 
+                              <div
+                                key={i}
                                 className="relative w-7 h-7 rounded-full border-2 border-white overflow-hidden bg-slate-100 flex items-center justify-center shadow-sm"
                               >
                                 {avatarUrl ? (
@@ -1606,7 +1606,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
       {/* Tactical Sticky Action Bar (Universal) */}
       <AnimatePresence>
         {showStickyBar && product && (
-          <motion.div 
+          <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
@@ -1631,16 +1631,16 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 sm:gap-8 shrink-0">
-                <div className="text-right">
+              <div className="flex items-center justify-between w-full sm:w-auto gap-4 sm:gap-8 shrink-0">
+                <div className="text-left sm:text-right">
                   <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-[0.1em] leading-none mb-1">Deployment Cost</p>
-                  <div className="flex items-baseline gap-1 justify-end">
+                  <div className="flex items-baseline gap-1 justify-start sm:justify-end">
                     <p className="text-xl sm:text-2xl font-black italic tracking-tighter text-slate-900 leading-none">${displayPrice.toFixed(2)}</p>
                     <span className="text-[10px] font-bold text-slate-400">x{quantity}</span>
                   </div>
                 </div>
-                
-                <button 
+
+                <button
                   onClick={handleAddToCart}
                   className="bg-[#E5633D] text-white px-6 sm:px-12 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-xs sm:text-base flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-orange-500/20 hover:bg-orange-600"
                 >
@@ -1653,7 +1653,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* Dynamic spacing spacer to avoid content overlap at the very bottom */}
       <div className="h-20 sm:h-24 lg:hidden" />
     </div>

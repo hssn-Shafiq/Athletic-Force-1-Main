@@ -2,14 +2,14 @@
 "use client";
 
 import React, { useState } from 'react';
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  MoreVertical, 
-  Eye, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Search,
+  Filter,
+  Download,
+  MoreVertical,
+  Eye,
+  Clock,
+  CheckCircle2,
   AlertCircle,
   Mail,
   Phone,
@@ -52,12 +52,11 @@ export const AdminOrderList: React.FC = () => {
         </div>
         <div className="flex bg-slate-100 p-1 rounded-2xl">
           {(['all', 'direct', 'request'] as const).map(t => (
-            <button 
+            <button
               key={t}
               onClick={() => setActiveTab(t)}
-              className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all ${
-                activeTab === t ? "bg-black text-white shadow-lg" : "text-slate-400 hover:text-black"
-              }`}
+              className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all ${activeTab === t ? "bg-black text-white shadow-lg" : "text-slate-400 hover:text-black"
+                }`}
             >
               {t === 'all' ? 'All Units' : t === 'direct' ? 'Direct Orders' : 'Inquiry Requests'}
             </button>
@@ -70,7 +69,7 @@ export const AdminOrderList: React.FC = () => {
         {[
           { label: 'Unprocessed Requests', value: '12', color: 'bg-orange-600', icon: Mail },
           { label: 'Pending Shipments', value: '45', color: 'bg-black', icon: Clock },
-          { label: 'Revenue (MTD)', value: '$42,850', color: 'bg-[#FF7348]', icon: CheckCircle2 },
+          { label: 'Revenue (MTD)', value: '$42,850', color: 'bg-[var(--color-accent)]', icon: CheckCircle2 },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-[30px] border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-all">
             <div>
@@ -113,25 +112,23 @@ export const AdminOrderList: React.FC = () => {
                   </div>
                 </td>
                 <td className="px-8 py-6">
-                  <span className={`text-[10px] font-black uppercase tracking-widest italic ${
-                    order.type === 'Request' ? 'text-orange-600' : 'text-slate-500'
-                  }`}>
+                  <span className={`text-[10px] font-black uppercase tracking-widest italic ${order.type === 'Request' ? 'text-orange-600' : 'text-slate-500'
+                    }`}>
                     {order.type} Flow
                   </span>
                 </td>
                 <td className="px-8 py-6">
-                   <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <span className="font-black italic tracking-tighter text-slate-900">{order.total}</span>
                     {order.type === 'Request' && <ExternalLink className="w-3 h-3 text-slate-400" />}
-                   </div>
+                  </div>
                 </td>
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      order.status === 'Paid' ? 'bg-green-500' : 
-                      order.status === 'Shipped' ? 'bg-blue-500' : 
-                      'bg-orange-500 animate-pulse'
-                    }`} />
+                    <div className={`w-2 h-2 rounded-full ${order.status === 'Paid' ? 'bg-green-500' :
+                        order.status === 'Shipped' ? 'bg-blue-500' :
+                          'bg-orange-500 animate-pulse'
+                      }`} />
                     <span className="text-[10px] font-black uppercase tracking-widest italic">{order.status}</span>
                   </div>
                 </td>

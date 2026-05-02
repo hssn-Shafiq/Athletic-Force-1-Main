@@ -26,7 +26,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
   const { items } = useCart();
   const { toggleItem, isInWishlist } = useWishlist();
   const productHref = `/products/${product.slug ?? `${product.id}-${toSlug(product.title)}`}`;
-  
+
   // Assuming frontend mock `Product.id` maps to `productId` in cart
   const isInCart = items.some(i => i.productId === product.id);
   const isWishlisted = isInWishlist(product.id);
@@ -53,7 +53,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
             </span>
           )}
           {product.discount && (
-            <span className="bg-[#FF7348] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+            <span className="bg-[var(--color-accent)] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
               {product.discount}
             </span>
           )}
@@ -65,19 +65,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
         </div>
 
         {/* Wishlist Button */}
-        <button 
+        <button
           onClick={handleWishlistToggle}
-          className={`absolute top-3 right-3 z-10 bg-white/80 backdrop-blur-sm p-2 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 shadow-sm border border-slate-100 ${
-            isWishlisted ? 'text-red-500 bg-white opacity-100' : 'text-slate-400 hover:text-red-500'
-          }`}
+          className={`absolute top-3 right-3 z-10 bg-white/80 backdrop-blur-sm p-2 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 shadow-sm border border-slate-100 ${isWishlisted ? 'text-red-500 bg-white opacity-100' : 'text-slate-400 hover:text-red-500'
+            }`}
         >
           <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
         </button>
 
         {/* Main Image */}
         <Link href={productHref} aria-label={`Open ${product.title} details`} className="block h-full w-full">
-          <img 
-            src={product.image} 
+          <img
+            src={product.image}
             alt={product.title}
             loading="lazy"
             className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
@@ -86,7 +85,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
 
         {/* Hover Actions */}
         <div className="absolute inset-0 bg-black/5 flex items-end justify-center pb-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 gap-3">
-          <button 
+          <button
             onClick={() => onOpenQuickView(product)}
             className={`flex items-center gap-2 bg-white text-black px-6 py-3 rounded-2xl font-bold text-sm hover:bg-slate-100 transition-colors shadow-lg ${product.orderType === 'request' ? 'w-3/4 justify-center' : ''}`}
           >
@@ -94,7 +93,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
             <span>{product.orderType === 'request' ? 'View Details' : 'View'}</span>
           </button>
           {product.orderType !== 'request' && (
-            <button 
+            <button
               onClick={() => onOpenQuickView(product)}
               className="flex items-center gap-2 bg-[#141414] text-white px-6 py-3 rounded-2xl font-bold text-sm hover:bg-black transition-colors shadow-lg"
             >

@@ -4,7 +4,8 @@
   --background: #ffffff;
   --heading: #050505;
   --content: #9CA3AF;
-  --accent: #EF4444;
+  --accent: #DD6132;
+  --page-background:#FAFAFA;
 }
 
 @theme inline {
@@ -14,6 +15,7 @@
   --color-accent: var(--accent);
   --font-sans: var(--font-sora);
   --font-inter: var(--font-inter);
+  --color-page-background:var(--page-background);
 }
 
 body {
@@ -32,6 +34,15 @@ body {
 .blog-content-vault {
   line-height: 1.8;
   color: #374151; /* slate-700 */
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.blog-content-vault img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 1rem;
+  margin: 2rem 0;
 }
 
 .blog-content-vault h2,
@@ -100,4 +111,38 @@ body {
 
 .blog-content-vault tr:nth-child(even) {
   background-color: #fcfcfc;
+}
+
+/* Custom Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+/* Scrollbar Hide Utility - Tailwind 4 compatible */
+@utility scrollbar-hide {
+  &::-webkit-scrollbar {
+    display: none !important;
+  }
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Fade mask for horizontal scrolling */
+.scroll-fade-mask {
+  mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
 }

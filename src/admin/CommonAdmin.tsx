@@ -11,12 +11,12 @@ export { AdminCustomers, AdminEmails };
 
 export const AdminCollections: React.FC = () => (
   <div className="space-y-8">
-     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div className="space-y-1">
         <h1 className="text-4xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Tactical Collections</h1>
         <p className="text-slate-400 font-medium italic text-sm">Organizing assets into logical operational vectors.</p>
       </div>
-      <button className="bg-[#FF7348] text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-sm flex items-center gap-2 hover:scale-105 transition-all shadow-xl shadow-orange-600/20">
+      <button className="bg-[var(--color-accent)] text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-sm flex items-center gap-2 hover:scale-105 transition-all shadow-xl shadow-orange-600/20">
         <Plus className="w-5 h-5" />
         New Collection
       </button>
