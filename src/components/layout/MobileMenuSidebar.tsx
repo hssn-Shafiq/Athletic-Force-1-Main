@@ -118,23 +118,19 @@ export const MobileMenuSidebar: React.FC<MobileMenuSidebarProps> = ({ isOpen, on
                           className="overflow-hidden"
                         >
                           <div className="px-6 pb-3 space-y-1">
-                            <Link
-                              href={`/collections/${section.categoryId}`}
-                              onClick={onClose}
-                              className="block py-1.5 text-xs font-bold uppercase tracking-wider text-slate-900"
-                            >
-                              View All {title}
-                            </Link>
-                            {section.items.map((item) => (
-                              <button
-                                key={item}
-                                type="button"
-                                onClick={onClose}
-                                className="block w-full text-left py-1 text-xs font-medium text-slate-600"
-                              >
-                                {item}
-                              </button>
-                            ))}
+                            {section.items.map((item) => {
+                              const itemSlug = item.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-');
+                              return (
+                                <Link
+                                  key={item}
+                                  href={`/collections/${section.categoryId}/${itemSlug}`}
+                                  onClick={onClose}
+                                  className="block w-full text-left py-1.5 text-[13px] font-semibold text-slate-600 hover:text-orange-600 transition-colors uppercase tracking-tight"
+                                >
+                                  {item}
+                                </Link>
+                              );
+                            })}
                           </div>
                         </motion.div>
                       )}

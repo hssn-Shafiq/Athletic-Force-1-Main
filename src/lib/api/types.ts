@@ -238,6 +238,7 @@ export type ProductReview = {
 export type ProductImageAsset = {
   url: string;
   publicId: string;
+  alt?: string;
 };
 
 export type ProductUpsellOffer = {
@@ -291,10 +292,16 @@ export type AdminProduct = {
     weightKg?: number;
     hsCode?: string;
   };
+  brand?: string;
+  gtin?: string;
+  mpn?: string;
+  mainImageAlt?: string;
   seo?: {
     pageTitle?: string;
     metaDescription?: string;
+    keywords?: string[];
     urlHandle?: string;
+    canonicalUrl?: string;
   };
   pendingReviewsCount?: number;
   createdAt?: string;
@@ -354,8 +361,19 @@ export type PublicProduct = {
     globalStock: number;
   };
   tags?: string[];
+  brand?: string;
+  gtin?: string;
+  mpn?: string;
+  mainImageAlt?: string;
   collections: ProductCollectionOption[];
   orderType?: 'direct' | 'request';
+  seo?: {
+    pageTitle?: string;
+    metaDescription?: string;
+    keywords?: string[];
+    urlHandle?: string;
+    canonicalUrl?: string;
+  };
   createdAt?: string;
   updatedAt?: string;
 };
@@ -458,10 +476,16 @@ export type UpsertProductRequest = {
     weightKg?: number;
     hsCode?: string;
   };
+  brand?: string;
+  gtin?: string;
+  mpn?: string;
+  mainImageAlt?: string;
   seo?: {
     pageTitle?: string;
     metaDescription?: string;
+    keywords?: string[];
     urlHandle?: string;
+    canonicalUrl?: string;
   };
   variants: UpsertProductVariantRequest[];
   videoReviews: UpsertProductVideoReviewRequest[];
