@@ -277,7 +277,7 @@ export function useProductForm(productId?: string) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [benefits, setBenefits] = useState('');
-  const [faqs, setFaqs] = useState<ProductFormFaq[]>([]);
+  const [faqs, setFaqs] = useState<(ProductFormFaq & { id: string })[]>([]);
   const [upsellProductIds, setUpsellProductIds] = useState<string[]>([]);
   const [upsellOffers, setUpsellOffers] = useState<Record<string, number | undefined>>({});
   const [upsellOptions, setUpsellOptions] = useState<ProductUpsellOption[]>([]);
@@ -294,6 +294,17 @@ export function useProductForm(productId?: string) {
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
   const [mainImageUrl, setMainImageUrl] = useState('');
   const [mainImagePublicId, setMainImagePublicId] = useState('');
+
+  // SEO & Schema State
+  const [brand, setBrand] = useState('Athletic Force 1');
+  const [gtin, setGtin] = useState('');
+  const [mpn, setMpn] = useState('');
+  const [mainImageAlt, setMainImageAlt] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
+  const [seoKeywords, setSeoKeywords] = useState('');
+  const [canonicalUrl, setCanonicalUrl] = useState('');
+  const [seoManualEdit, setSeoManualEdit] = useState(false);
   const [galleryImageFiles, setGalleryImageFiles] = useState<File[]>([]);
   const [galleryImages, setGalleryImages] = useState<ProductMediaAsset[]>([]);
 
@@ -739,7 +750,7 @@ export function useProductForm(productId?: string) {
         setName(product.name || '');
         setDescription(product.description || '');
         setBenefits(product.benefits || '');
-        setFaqs((product.faqs || []).map((entry) => ({ question: entry.question || '', answer: entry.answer || '' })));
+        setFaqs((product.faqs || []).map((entry) => ({ id: makeId(), question: entry.question || '', answer: entry.answer || '' })));
         setUpsellProductIds(product.upsellProductIds || []);
         
         const offersMap: Record<string, number | undefined> = {};
@@ -765,6 +776,19 @@ export function useProductForm(productId?: string) {
           thumbnailPublicId: product.mainVideo?.thumbnailPublicId,
         });
         setSelectedCollectionIds(product.collectionIds || []);
+        
+        // SEO & Schema
+        setBrand(product.brand || 'Athletic Force 1');
+        setGtin(product.gtin || '');
+        setMpn(product.mpn || '');
+        setMainImageAlt(product.mainImageAlt || '');
+        setSeoTitle(product.seo?.pageTitle || '');
+        setSeoDescription(product.seo?.metaDescription || '');
+        setSeoKeywords((product.seo?.keywords || []).join(', '));
+        setCanonicalUrl(product.seo?.canonicalUrl || '');
+        if (product.seo?.pageTitle || product.seo?.metaDescription) {
+          setSeoManualEdit(true);
+        }
 
         const foundSizes = Array.from(new Set((product.variants || []).map((v) => v.size).filter(Boolean)));
         const foundColors = Array.from(new Set((product.variants || []).map((v) => v.color).filter(Boolean)));
@@ -1130,7 +1154,7 @@ export function useProductForm(productId?: string) {
   };
 
   const addFaq = () => {
-    setFaqs((prev) => [...prev, { question: '', answer: '' }]);
+    setFaqs((prev) => [...prev, { id: makeId(), question: '', answer: '' }]);
   };
 
   const updateFaq = (index: number, patch: Partial<ProductFormFaq>) => {
@@ -1624,6 +1648,19 @@ export function useProductForm(productId?: string) {
           allowBackorder: false,
           globalStock: toNumber(globalStock, 0),
         },
+        brand: brand.trim() || undefined,
+        gtin: gtin.trim() || undefined,
+        mpn: mpn.trim() || undefined,
+        mainImageAlt: mainImageAlt.trim() || undefined,
+        seo: {
+          pageTitle: seoTitle.trim() || undefined,
+          metaDescription: seoDescription.trim() || undefined,
+          keywords: seoKeywords.split(',').map(k => k.trim()).filter(Boolean),
+          canonicalUrl: canonicalUrl.trim() || undefined,
+        },
+
+
+
       };
 
       const response = await createAdminProductApi(payload);
@@ -1691,6 +1728,19 @@ export function useProductForm(productId?: string) {
           allowBackorder: false,
           globalStock: toNumber(globalStock, 0),
         },
+        brand: brand.trim() || undefined,
+        gtin: gtin.trim() || undefined,
+        mpn: mpn.trim() || undefined,
+        mainImageAlt: mainImageAlt.trim() || undefined,
+        seo: {
+          pageTitle: seoTitle.trim() || undefined,
+          metaDescription: seoDescription.trim() || undefined,
+          keywords: seoKeywords.split(',').map(k => k.trim()).filter(Boolean),
+          canonicalUrl: canonicalUrl.trim() || undefined,
+        },
+
+
+
       };
 
       const response = await updateAdminProductApi(productId, payload);
@@ -1704,6 +1754,22 @@ export function useProductForm(productId?: string) {
       setIsSubmitting(false);
     }
   }
+
+  const isProductComplete = useMemo(() => {
+    return Boolean(
+      name.trim() &&
+      description.trim() &&
+      (mainImageFile || mainImageUrl) &&
+      selectedCollectionIds.length > 0 &&
+      (orderType === 'request' || variants.length > 0)
+    );
+  }, [name, description, mainImageFile, mainImageUrl, selectedCollectionIds.length, orderType, variants.length]);
+
+  const selectedCollections = useMemo(() => {
+    return selectedCollectionIds
+      .map((id) => collections.find((c) => c.id === id))
+      .filter((c): c is ProductCollectionOption => Boolean(c));
+  }, [selectedCollectionIds, collections]);
 
   return {
     isEditMode,
@@ -1804,6 +1870,24 @@ export function useProductForm(productId?: string) {
     parentImageMap,
     setParentValueImage,
     setParentValueImageFromMedia,
+    brand,
+    setBrand,
+    gtin,
+    setGtin,
+    mpn,
+    setMpn,
+    mainImageAlt,
+    setMainImageAlt,
+    seoTitle,
+    setSeoTitle,
+    seoDescription,
+    setSeoDescription,
+    seoKeywords,
+    setSeoKeywords,
+    canonicalUrl,
+    setCanonicalUrl,
+    seoManualEdit,
+    setSeoManualEdit,
     addGlobalOptionDefinition,
     addOptionGroupToProduct,
     removeOptionGroupFromProduct,
@@ -1813,5 +1897,7 @@ export function useProductForm(productId?: string) {
     regenerateVariantsFromOptions: regenerateVariants,
     submitProduct,
     submitProductUpdate,
+    isProductComplete,
+    selectedCollections,
   };
 }

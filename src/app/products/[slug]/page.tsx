@@ -4,6 +4,8 @@ import Link from "next/link";
 import ProductSingleClient from "./ProductSingleClient";
 import { getExploreProductBySlugApi } from "@/lib/api/publicProducts";
 
+import { ProductSchema } from "@/components/seo/ProductSchema";
+
 type Props = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -14,6 +16,7 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { slug } = await params;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://athleticforce1.com';
 
   try {
     const response = await getExploreProductBySlugApi(slug);
@@ -26,20 +29,32 @@ export async function generateMetadata(
 
     const product = response.product;
     const previousImages = (await parent).openGraph?.images || [];
+    const canonical = product.seo?.canonicalUrl || `/products/${product.slug}`;
+
+    const cleanDescription = (product.seo?.metaDescription || product.description || '')
+      .replace(/<[^>]*>/g, '') // Strip tags
+      .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
+      .replace(/\s+/g, ' ')    // Normalize spaces
+      .trim()
+      .slice(0, 160);
 
     return {
-      title: `${product.name} | Athletic Force 1`,
-      description: product.description || `Explore ${product.name}, ratings, available sizes, and complete your order with Athletic Force 1.`,
+      title: product.seo?.pageTitle || `${product.name} | Athletic Force 1`,
+      description: cleanDescription || `Explore ${product.name} with Athletic Force 1.`,
+      alternates: {
+        canonical: `${baseUrl}${canonical}`,
+      },
+      keywords: product.seo?.keywords?.length ? product.seo.keywords : product.tags,
       openGraph: {
-        title: `${product.name} | Athletic Force 1`,
-        description: product.description || `Explore ${product.name} with Athletic Force 1.`,
-        images: product.mainImageUrl ? [product.mainImageUrl, ...previousImages] : previousImages,
+        title: product.seo?.pageTitle || `${product.name} | Athletic Force 1`,
+        description: cleanDescription,
+        images: product.mainImageUrl ? [{ url: product.mainImageUrl, alt: product.mainImageAlt || product.name }, ...previousImages] : previousImages,
         type: "website",
       },
       twitter: {
         card: "summary_large_image",
-        title: `${product.name} | Athletic Force 1`,
-        description: product.description,
+        title: product.seo?.pageTitle || `${product.name} | Athletic Force 1`,
+        description: cleanDescription,
         images: product.mainImageUrl ? [product.mainImageUrl] : [],
       }
     };
@@ -69,7 +84,12 @@ export default async function ProductSinglePage({ params }: Props) {
       );
     }
 
-    return <ProductSingleClient initialProduct={response.product} />;
+    return (
+      <>
+        <ProductSchema product={response.product} />
+        <ProductSingleClient initialProduct={response.product} />
+      </>
+    );
   } catch (error) {
     return <ProductSingleClient />; // Fallback to client-side fetch if server-side fails
   }
