@@ -277,7 +277,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
         toast.update(toastId, { render: `${uploaded.length} image${uploaded.length > 1 ? 's' : ''} uploaded.`, type: 'success', isLoading: false, autoClose: 2500 });
       }
       return uploaded;
-    } catch { 
+    } catch {
       toast.update(toastId, { render: 'Upload failed. Please retry.', type: 'error', isLoading: false, autoClose: 3000 });
       return null;
     }
@@ -405,11 +405,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
-                activeTab === tab.id
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${activeTab === tab.id
                   ? 'border-indigo-600 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               {tab.icon}{tab.label}
               {tab.badge ? <span className="ml-1 bg-indigo-100 text-indigo-700 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{tab.badge}</span> : null}
@@ -1667,7 +1666,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
                 </FieldSelect>
                 <label className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 transition-all cursor-pointer">
                   <Upload size={14} /> Upload
-                  <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple 
+                  <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple
                     onChange={(e) => {
                       void (async () => {
                         const files = e.target.files;
@@ -1767,7 +1766,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
                               </div>
                             </div>
                           </div>
-                          
+
                           {mediaTarget.type === 'gallery' && (
                             <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-100">
                               <p className="text-[10px] font-semibold text-indigo-700 uppercase tracking-wide mb-1">Gallery Mode</p>
@@ -1792,7 +1791,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
                       className="py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all">
                       Close
                     </button>
-                    <button type="button" 
+                    <button type="button"
                       onClick={() => {
                         if (mediaPreviewItem) {
                           applyMediaSelection(mediaPreviewItem);
