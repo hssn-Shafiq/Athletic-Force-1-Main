@@ -347,7 +347,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // --- Permission Matrix ---
   const canSeeInsights = isSuperAdmin || isManager || isSalesAdmin || isViewer;
-  const canSeeProducts = isSuperAdmin || isManager;
+  const canSeeProducts = isSuperAdmin || isManager || isSeoSpecialist;
   const canSeeOrders = isSuperAdmin || isSalesAdmin || isManager;
   const canSeeJournal = isSuperAdmin || isEditor || isManager || isSeoSpecialist;
   const canSeeInventory = isSuperAdmin || isSalesAdmin || isManager;
