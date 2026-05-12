@@ -366,6 +366,8 @@ export type PublicProduct = {
   mpn?: string;
   mainImageAlt?: string;
   collections: ProductCollectionOption[];
+  rating: number;
+  reviewCount: number;
   orderType?: 'direct' | 'request';
   seo?: {
     pageTitle?: string;

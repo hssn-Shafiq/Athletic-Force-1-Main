@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
 import { PublicProduct, CollectionHierarchy } from "@/lib/api/types";
 import { Search, SlidersHorizontal, ChevronDown, ChevronRight, ChevronLeft, Filter, X } from "lucide-react";
@@ -18,10 +18,6 @@ const ShopFeaturesFaqSection = dynamic(() => import("./components/ShopFeaturesFa
   loading: () => <div className="h-40 animate-pulse bg-slate-50 rounded-[40px] mt-12" />
 });
 
-const ShopRecentUpdatesSection = dynamic(() => import("./components/ShopRecentUpdatesSection").then(mod => mod.ShopRecentUpdatesSection), {
-  ssr: true,
-  loading: () => <div className="h-60 animate-pulse bg-slate-50 rounded-[40px] mt-12" />
-});
 import { getExploreProductsApi } from "@/lib/api/publicProducts";
 import { getCollectionHierarchyApi } from "@/lib/api/publicCollections";
 import { mapPublicProductToCard } from "@/lib/products/mapPublicProductToCard";
@@ -30,24 +26,53 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { LockerRoomSection } from "../home/components/LockerRoomSection";
 
-export default function ShopClient() {
+interface ShopClientProps {
+  initialProducts?: PublicProduct[];
+  initialHierarchy?: CollectionHierarchy[];
+}
+
+export default function ShopClient({ initialProducts = [], initialHierarchy = [] }: ShopClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const urlSearch = searchParams.get("search") || "";
+  
+  // URL Params Initialization
+  const urlCollection = searchParams.get("collection") || "ALL";
+  const urlCategory = searchParams.get("category") || "ALL";
+  const urlSearch = searchParams.get("q") || "";
+  const urlSort = searchParams.get("sort") || "newest";
+  const urlMaxPrice = searchParams.get("maxPrice") ? parseInt(searchParams.get("maxPrice")!) : 1400;
 
   // --- State Command Center ---
-  const [products, setProducts] = useState<PublicProduct[]>([]);
-  const [hierarchy, setHierarchy] = useState<CollectionHierarchy[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState<PublicProduct[]>(initialProducts);
+  const [hierarchy, setHierarchy] = useState<CollectionHierarchy[]>(initialHierarchy);
+  const [isLoading, setIsLoading] = useState(initialProducts.length === 0);
   const [searchQuery, setSearchQuery] = useState(urlSearch);
-  const [selectedParentSlug, setSelectedParentSlug] = useState<string>("ALL");
-  const [selectedSubSlug, setSelectedSubSlug] = useState<string>("ALL");
-  const [sortBy, setSortBy] = useState("newest");
-  const [priceRange, setPriceRange] = useState<number>(1400);
+  const [selectedParentSlug, setSelectedParentSlug] = useState<string>(urlCollection);
+  const [selectedSubSlug, setSelectedSubSlug] = useState<string>(urlCategory);
+  const [sortBy, setSortBy] = useState(urlSort);
+  const [priceRange, setPriceRange] = useState<number>(urlMaxPrice);
   const [quickViewProduct, setQuickViewProduct] = useState<PublicProduct | null>(null);
   const [expandedParents, setExpandedParents] = useState<string[]>([]);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+
+
+  // Tactical URL Synchronizer
+  const updateUrl = useCallback((updates: Record<string, string | number | undefined>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === undefined || value === "ALL" || value === "" || (key === "maxPrice" && value === 1400)) {
+        params.delete(key);
+      } else {
+        params.set(key, String(value));
+      }
+    });
+
+    const query = params.toString();
+    router.push(query ? `/shop?${query}` : '/shop', { scroll: false });
+  }, [router, searchParams]);
 
   // Close sort dropdown when clicking outside
   useEffect(() => {
@@ -60,20 +85,26 @@ export default function ShopClient() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Sync state with URL search if it changes
+  // Sync state when URL params change (e.g. browser back/forward)
   useEffect(() => {
-    if (urlSearch) {
-      setSearchQuery(urlSearch);
-    }
-  }, [urlSearch]);
+    setSearchQuery(searchParams.get("q") || "");
+    setSelectedParentSlug(searchParams.get("collection") || "ALL");
+    setSelectedSubSlug(searchParams.get("category") || "ALL");
+    setSortBy(searchParams.get("sort") || "newest");
+    setPriceRange(searchParams.get("maxPrice") ? parseInt(searchParams.get("maxPrice")!) : 1400);
+  }, [searchParams]);
 
   // --- Tactical Data Fetching ---
   const fetchShopData = useCallback(async () => {
     setIsLoading(true);
     try {
+      const activeCollection = selectedSubSlug === "ALL" 
+        ? (selectedParentSlug === "ALL" ? undefined : selectedParentSlug) 
+        : selectedSubSlug;
+
       const [productRes, hierarchyRes] = await Promise.all([
         getExploreProductsApi({
-          collection: selectedSubSlug === "ALL" ? (selectedParentSlug === "ALL" ? undefined : selectedParentSlug) : selectedSubSlug,
+          collection: activeCollection,
           search: searchQuery || undefined,
           maxPrice: priceRange,
           sortBy: (selectedSubSlug === "ALL" && !searchQuery) ? 'most-selling' : sortBy,
@@ -84,12 +115,18 @@ export default function ShopClient() {
       if (productRes.ok) setProducts(productRes.items as any);
       if (hierarchyRes.ok && hierarchyRes.hierarchy) {
         setHierarchy(hierarchyRes.hierarchy);
-        // Only expand the first targeted parent by default (Merchandise Priority)
+        // Expand relevant parents
         if (expandedParents.length === 0) {
+          const toExpand = [];
+          const active = hierarchyRes.hierarchy.find(h => h.slug === selectedParentSlug);
+          if (active) toExpand.push(active.id);
+          
           const merchandise = hierarchyRes.hierarchy.find(p =>
             p.slug.toLowerCase().includes("merchandise") || p.name.toLowerCase().includes("merchandise")
           );
-          if (merchandise) setExpandedParents([merchandise.id]);
+          if (merchandise && !toExpand.includes(merchandise.id)) toExpand.push(merchandise.id);
+          
+          if (toExpand.length > 0) setExpandedParents(toExpand);
           else if (hierarchyRes.hierarchy.length > 0) setExpandedParents([hierarchyRes.hierarchy[0].id]);
         }
       }
@@ -108,14 +145,39 @@ export default function ShopClient() {
     }
   }, [selectedSubSlug]);
 
+  const isInitialMount = useRef(true);
+
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     fetchShopData();
   }, [fetchShopData]);
 
+  // Debounced Search Sync to URL
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery !== urlSearch) {
+        updateUrl({ q: searchQuery });
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery, updateUrl, urlSearch]);
+
   // --- UI Logic ---
   const handleCollectionSelect = (parentSlug: string, subSlug: string = "ALL") => {
-    setSelectedParentSlug(parentSlug);
-    setSelectedSubSlug(subSlug);
+    updateUrl({
+      collection: parentSlug,
+      category: subSlug
+    });
+  };
+
+  const handlePriceChange = (val: number) => {
+    setPriceRange(val);
+    // Debounce price URL update
+    const timer = setTimeout(() => updateUrl({ maxPrice: val }), 500);
+    return () => clearTimeout(timer);
   };
 
   const toggleParent = (id: string, slug: string) => {
@@ -128,7 +190,6 @@ export default function ShopClient() {
 
   // Filter hierarchy for specific parents with robust matching & sorting
   const targetedHierarchy = useMemo(() => {
-    // Filter out Team Store and then sort
     return hierarchy
       .filter(h =>
         !h.name.toLowerCase().includes("team store") &&
@@ -151,7 +212,7 @@ export default function ShopClient() {
 
   const SidebarContent = () => (
     <div className="space-y-10">
-      {/* Search Box - Signal Identification (Desktop Only) */}
+      {/* Search Box */}
       <div className="hidden md:block">
         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 italic flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
@@ -169,7 +230,7 @@ export default function ShopClient() {
         </div>
       </div>
 
-      {/* Price Ceiling - Resource Allocation */}
+      {/* Pricing */}
       <div>
         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 italic flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-black" />
@@ -181,7 +242,7 @@ export default function ShopClient() {
             min="0"
             max="1400"
             value={priceRange}
-            onChange={(e) => setPriceRange(parseInt(e.target.value))}
+            onChange={(e) => handlePriceChange(parseInt(e.target.value))}
             className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-black"
           />
           <div className="mt-4 flex items-center justify-between">
@@ -193,7 +254,7 @@ export default function ShopClient() {
         </div>
       </div>
 
-      {/* Asset Sectors - Collection Hierarchy */}
+      {/* Asset Sectors */}
       <div>
         <div className="space-y-6">
           {targetedHierarchy.map((parent) => (
@@ -241,7 +302,10 @@ export default function ShopClient() {
 
       {/* Reset Control */}
       <button
-        onClick={() => { setPriceRange(1400); setSearchQuery(""); setSelectedSubSlug("ALL"); setIsSidebarOpen(false); }}
+        onClick={() => {
+          updateUrl({ collection: "ALL", category: "ALL", q: "", sort: "newest", maxPrice: 1400 });
+          setIsSidebarOpen(false);
+        }}
         className="w-full py-4 border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:bg-black hover:text-white hover:border-black transition-all group italic cursor-pointer"
       >
         Clear Filters
@@ -272,29 +336,23 @@ export default function ShopClient() {
           </div>
         </div>
 
-        {/* Main Layout Grid - Standardized with SubCollection design */}
+        {/* Main Layout Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-0 border border-slate-200 bg-[var(--color-page-background)] relative rounded-3xl md:rounded-[40px] overflow-hidden mb-20">
 
-          {/* Left Sidebar - Desktop Only */}
           <aside className="hidden md:block md:col-span-1 p-8 md:border-r border-slate-200 bg-white/40 backdrop-blur-xl">
             <SidebarContent />
           </aside>
 
-          {/* Mobile Sidebar Drawer */}
           <AnimatePresence>
             {isSidebarOpen && (
               <>
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   onClick={() => setIsSidebarOpen(false)}
                   className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] md:hidden"
                 />
                 <motion.div
-                  initial={{ x: "100%" }}
-                  animate={{ x: 0 }}
-                  exit={{ x: "100%" }}
+                  initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
                   transition={{ type: "spring", damping: 25, stiffness: 200 }}
                   className="fixed right-0 top-0 bottom-0 w-[85%] max-w-[400px] bg-white z-[101] md:hidden p-8 overflow-y-auto shadow-2xl"
                 >
@@ -310,10 +368,7 @@ export default function ShopClient() {
             )}
           </AnimatePresence>
 
-          {/* Right Content Area - Operational Theater */}
           <div className="md:col-span-3 bg-white min-h-[600px] md:min-h-[800px]">
-
-            {/* Operational Status Bar - Sticky with Sort & Mobile Search */}
             <div className="border-b border-slate-100 bg-white/90 backdrop-blur-md sticky top-0 z-30">
               <div className="px-4 md:px-8 py-5 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -324,7 +379,6 @@ export default function ShopClient() {
                 </div>
 
                 <div className="flex items-center gap-2 md:gap-3">
-                  {/* Mobile Filter Trigger */}
                   <button
                     onClick={() => setIsSidebarOpen(true)}
                     className="md:hidden h-10 px-4 bg-slate-50 text-black border border-slate-200 rounded-xl font-bold text-[10px] uppercase tracking-[0.2em] transition-all flex items-center gap-2 hover:bg-black hover:text-white"
@@ -354,11 +408,10 @@ export default function ShopClient() {
                           <button
                             key={option.value}
                             onClick={() => {
-                              setSortBy(option.value);
+                              updateUrl({ sort: option.value });
                               setIsSortOpen(false);
                             }}
-                            className={`w-full px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer ${sortBy === option.value ? 'bg-slate-50 text-[#FF7348]' : 'text-slate-600 hover:bg-slate-50 hover:text-black'
-                              }`}
+                            className={`w-full px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer ${sortBy === option.value ? 'bg-slate-50 text-[#FF7348]' : 'text-slate-600 hover:bg-slate-50 hover:text-black'}`}
                           >
                             {option.label}
                           </button>
@@ -369,13 +422,10 @@ export default function ShopClient() {
                 </div>
               </div>
 
-              {/* Mobile Search Bar - Directly below filters */}
               <div className="px-4 pb-4 md:hidden">
                 <div className="relative group">
                   <input
-                    type="text"
-                    placeholder="Identify gear..."
-                    value={searchQuery}
+                    type="text" placeholder="Identify gear..." value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full h-12 pl-4 pr-10 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none focus:ring-1 focus:ring-black transition-all font-bold placeholder:text-slate-300 shadow-sm"
                   />
@@ -384,10 +434,8 @@ export default function ShopClient() {
               </div>
             </div>
 
-            {/* Premium Category Navigation - Enhanced Scroller */}
             <div className="px-4 md:px-8 pt-2">
               <div className="relative group/tabs mb-4">
-                {/* Tactical Navigation Arrows - Hidden on small mobile if not needed, but keeping for carousel feel */}
                 <button
                   onClick={() => {
                     const el = document.getElementById('category-scroller');
@@ -408,28 +456,19 @@ export default function ShopClient() {
                   <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
                 </button>
 
-                {/* Indicators - Fades for better carousel feel */}
                 <div className="absolute left-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-r from-white to-transparent pointer-events-none z-10" />
                 <div className="absolute right-0 top-0 bottom-0 w-8 md:w-16 bg-gradient-to-l from-white to-transparent pointer-events-none z-10" />
 
-                <div
-                  id="category-scroller"
-                  className="overflow-x-auto scrollbar-hide scroll-smooth py-4 px-2"
-                >
+                <div id="category-scroller" className="overflow-x-auto scrollbar-hide scroll-smooth py-4 px-2">
                   <div className="flex flex-nowrap items-center gap-2 md:gap-3 px-4 md:px-12">
                     <button
-                      onClick={() => setSelectedSubSlug("ALL")}
+                      onClick={() => handleCollectionSelect("ALL", "ALL")}
                       data-active={selectedSubSlug === "ALL"}
                       className="relative px-8 py-3 rounded-full text-[11px] font-black uppercase italic tracking-[0.1em] transition-all whitespace-nowrap group overflow-hidden active:scale-95 flex items-center justify-center min-w-[100px]"
                     >
-                      {/* Rainbow Border Container */}
                       <div className={`absolute inset-0 bg-gradient-to-r from-[#8a2be2] via-[#ff7348] to-[#00b2ff] transition-opacity duration-300 ${selectedSubSlug === "ALL" ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`} />
-                      {/* Inner White Core */}
                       <div className="absolute inset-[1.5px] rounded-full bg-white" />
-                      {/* Gray Border for Inactive */}
-                      {selectedSubSlug !== "ALL" && (
-                        <div className="absolute inset-0 rounded-full border border-slate-200 group-hover:border-transparent transition-colors" />
-                      )}
+                      {selectedSubSlug !== "ALL" && <div className="absolute inset-0 rounded-full border border-slate-200 group-hover:border-transparent transition-colors" />}
                       <span className="relative z-10 text-black">ALL</span>
                     </button>
 
@@ -440,25 +479,18 @@ export default function ShopClient() {
                         data-active={selectedSubSlug === sub.slug}
                         className="relative px-8 py-3 rounded-full text-[11px] font-black uppercase italic tracking-[0.1em] transition-all whitespace-nowrap group overflow-hidden active:scale-95 flex items-center justify-center min-w-[140px]"
                       >
-                        {/* Rainbow Border Container */}
                         <div className={`absolute inset-0 bg-gradient-to-r from-[#8a2be2] via-[#ff7348] to-[#00b2ff] transition-opacity duration-300 ${selectedSubSlug === sub.slug ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`} />
-                        {/* Inner White Core */}
                         <div className="absolute inset-[1.5px] rounded-full bg-white" />
-                        {/* Gray Border for Inactive */}
-                        {selectedSubSlug !== sub.slug && (
-                          <div className="absolute inset-0 rounded-full border border-slate-200 group-hover:border-transparent transition-colors" />
-                        )}
+                        {selectedSubSlug !== sub.slug && <div className="absolute inset-0 rounded-full border border-slate-200 group-hover:border-transparent transition-colors" />}
                         <span className="relative z-10 text-black">{sub.name}</span>
                       </button>
                     ))}
-                    {/* Tactical Spacer - Ensures last tab isn't hidden by chevron */}
                     <div className="w-12 md:w-20 shrink-0" />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Tactical Grid Deployment */}
             <div className="p-8 pt-4">
               {isLoading ? (
                 <ShopSkeleton />
@@ -470,7 +502,7 @@ export default function ShopClient() {
                   <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-4 text-slate-900">Zero Gear Detected</h3>
                   <p className="text-sm text-slate-400 max-w-xs mx-auto font-medium mb-8">Try adjusting your filters or mission parameters.</p>
                   <button
-                    onClick={() => { setPriceRange(1400); setSearchQuery(""); setSelectedSubSlug("ALL"); }}
+                    onClick={() => updateUrl({ collection: "ALL", category: "ALL", q: "", sort: "newest", maxPrice: 1400 })}
                     className="px-12 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] italic hover:bg-orange-600 transition-all shadow-xl shadow-black/10 active:scale-95"
                   >
                     Reset Operational Area
@@ -493,8 +525,6 @@ export default function ShopClient() {
             </div>
           </div>
         </div>
-
-        {/* Dynamic Optimization Sections */}
         <ShopFeaturesFaqSection />
         <LockerRoomSection />
       </div >
@@ -505,8 +535,7 @@ export default function ShopClient() {
           isOpen={true}
           onClose={handleCloseQuickView}
         />
-      )
-      }
+      )}
     </main >
   );
 }
