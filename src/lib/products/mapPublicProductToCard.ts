@@ -13,11 +13,9 @@ export function mapPublicProductToCard(product: PublicProduct): Product {
   const regular = product.regularPrice ?? product.basePrice;
   const sale = product.salePrice ?? regular;
   const discount = regular > sale ? Math.round(((regular - sale) / regular) * 100) : 0;
-  const reviews = Array.isArray(product.reviews) ? product.reviews : [];
-  const reviewCount = reviews.length;
-  const rating = reviewCount
-    ? Number((reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviewCount).toFixed(1))
-    : 0;
+  
+  const rating = product.rating ?? 0;
+  const reviewCount = product.reviewCount ?? 0;
 
   const category =
     product.collections.find((entry) => entry.parentId)?.name ||

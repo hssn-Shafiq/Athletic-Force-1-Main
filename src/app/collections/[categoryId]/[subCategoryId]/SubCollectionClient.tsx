@@ -19,15 +19,21 @@ import { getCollectionHierarchyApi } from "@/lib/api/publicCollections";
 import { mapPublicProductToCard } from "@/lib/products/mapPublicProductToCard";
 import { ShopSkeleton } from "@/app/shop/components/ShopSkeleton";
 
-export default function SubCollectionClient() {
+interface SubCollectionClientProps {
+  initialProducts?: PublicProduct[];
+  initialHierarchy?: CollectionHierarchy[];
+}
+
+export default function SubCollectionClient({ initialProducts = [], initialHierarchy = [] }: SubCollectionClientProps) {
   const params = useParams();
   const parentSlug = params.categoryId as string;
   const subSlug = params.subCategoryId as string;
 
   // --- State Command Center ---
-  const [products, setProducts] = useState<PublicProduct[]>([]);
-  const [hierarchy, setHierarchy] = useState<CollectionHierarchy[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState<PublicProduct[]>(initialProducts);
+  const [hierarchy, setHierarchy] = useState<CollectionHierarchy[]>(initialHierarchy);
+  const [isLoading, setIsLoading] = useState(initialProducts.length === 0);
+  const [hasInitialData, setHasInitialData] = useState(initialProducts.length > 0);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [priceRange, setPriceRange] = useState<number>(1400);
@@ -82,6 +88,10 @@ export default function SubCollectionClient() {
   }, [subSlug, searchQuery, priceRange, sortBy, parentSlug]);
 
   useEffect(() => {
+    if (hasInitialData) {
+      setHasInitialData(false);
+      return;
+    }
     fetchSubCollectionData();
   }, [fetchSubCollectionData]);
 

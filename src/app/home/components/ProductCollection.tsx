@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -27,11 +28,22 @@ const ProductCardSkeleton: React.FC = () => (
   </div>
 );
 
-export const ProductCollection: React.FC = () => {
+interface ProductCollectionProps {
+  initialProducts?: any[];
+}
+
+export const ProductCollection: React.FC<ProductCollectionProps> = ({ initialProducts = [] }) => {
   const [activeTab, setActiveTab] = useState('Best Sellers');
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Map initial products immediately to avoid re-renders and map them once
+  const initialMapped = useMemo(() =>
+    initialProducts.map(mapPublicProductToCard),
+    [initialProducts]
+  );
+
+  const [products, setProducts] = useState<Product[]>(initialMapped);
+  const [isLoading, setIsLoading] = useState(initialMapped.length === 0);
 
   const handleOpenQuickView = (product: Product) => {
     setQuickViewProduct(product);
@@ -42,6 +54,12 @@ export const ProductCollection: React.FC = () => {
   };
 
   useEffect(() => {
+    // If we already have products from server, don't fetch on mount unless they are empty
+    if (initialMapped.length > 0) {
+      setIsLoading(false);
+      return;
+    }
+
     let isMounted = true;
 
     async function loadProducts() {
@@ -72,32 +90,34 @@ export const ProductCollection: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [initialMapped]);
 
   const tabs = ['All', 'Best Sellers', 'Merchandise', 'Accessories'];
 
   const filteredProducts = useMemo(() => {
-    const merchandiseProducts = products.filter((product) =>
-      (product.collections || []).some(
-        (entry) => entry.slug?.toLowerCase() === 'merchandise' || entry.name?.toLowerCase() === 'merchandise'
-      )
-    );
+    let result: Product[] = [];
 
     if (activeTab === 'Merchandise') {
-      return merchandiseProducts;
+      result = products.filter((product) =>
+        (product.collections || []).some(
+          (entry) => entry.slug?.toLowerCase() === 'merchandise' || entry.name?.toLowerCase() === 'merchandise'
+        )
+      );
+    } else if (activeTab === 'Accessories') {
+      result = products.filter((product) =>
+        (product.collections || []).some(
+          (entry) => entry.slug?.toLowerCase() === 'accessories' || entry.name?.toLowerCase() === 'accessories'
+        )
+      );
+    } else if (activeTab === 'Best Sellers') {
+      result = [...products].sort((a, b) => b.rating - a.rating);
+    } else {
+      // 'All' tab
+      result = products;
     }
 
-    if (activeTab === 'Accessories') {
-      return products.filter((product) => product.category?.toLowerCase().includes('accessories'));
-    }
-
-    if (activeTab === 'Best Sellers') {
-      return [...products]
-        .sort((a, b) => b.rating - a.rating)
-        .slice(0, 8);
-    }
-
-    return products;
+    // Limit to 8 products per tab as requested
+    return result.slice(0, 8);
   }, [activeTab, products]);
 
   return (
@@ -111,11 +131,10 @@ export const ProductCollection: React.FC = () => {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`shrink-0 whitespace-nowrap px-6 py-2 rounded-full text-xs font-bold transition-all ${
-                    activeTab === tab
+                  className={`shrink-0 whitespace-nowrap px-6 py-2 rounded-full text-xs font-bold transition-all ${activeTab === tab
                       ? 'bg-black text-white'
                       : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
-                  }`}
+                    }`}
                 >
                   {tab}
                 </button>

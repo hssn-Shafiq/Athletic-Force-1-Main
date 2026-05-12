@@ -45,6 +45,23 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<{ products: PublicProduct[], blogs: BlogPost[] }>({ products: [], blogs: [] });
+  const [hierarchy, setHierarchy] = useState<any[]>([]);
+
+  // --- Collection Hierarchy Intelligence ---
+  useEffect(() => {
+    const fetchHierarchy = async () => {
+      try {
+        const { getCollectionHierarchyApi } = await import('@/lib/api/publicCollections');
+        const res = await getCollectionHierarchyApi();
+        if (res.ok && res.hierarchy) {
+          setHierarchy(res.hierarchy);
+        }
+      } catch (err) {
+        console.error("Failed to fetch navigation intel:", err);
+      }
+    };
+    fetchHierarchy();
+  }, []);
 
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
@@ -444,14 +461,22 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
         {/* Mega Menu Overlay */}
         <AnimatePresence>
           {isMegaMenuOpen && (
-            <MegaMenu isOpen={isMegaMenuOpen} onClose={() => setIsMegaMenuOpen(false)} />
+            <MegaMenu 
+              isOpen={isMegaMenuOpen} 
+              onClose={() => setIsMegaMenuOpen(false)} 
+              hierarchy={hierarchy}
+            />
           )}
         </AnimatePresence>
       </header>
 
       {/* Cart Sidebar Overlay */}
       <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-      <MobileMenuSidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+      <MobileMenuSidebar 
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)} 
+        hierarchy={hierarchy}
+      />
 
       {/* Mobile Search - Only visible on small screens */}
       <div className="md:hidden px-3 sm:px-4 pb-4 bg-white border-b border-slate-100 space-y-3 relative z-[101]">

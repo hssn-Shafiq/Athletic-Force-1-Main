@@ -24,6 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 import dynamic from "next/dynamic";
 import { HeroSection } from "./home/components/HeroSection";
 import { PromoBanner } from "./home/components/PromoBanner";
+import { getPageContentApi } from "@/lib/api/pageContent";
 
 const TopCategories = dynamic(
   () => import("../components/sections/features/TopCategories").then((m) => m.TopCategories),
@@ -54,19 +55,29 @@ const LockerRoomSection = dynamic(
   }
 );
 
-export default function Home() {
+import { getExploreProductsApi } from "@/lib/api/publicProducts";
+
+export default async function Home() {
+  const [contentRes, productsRes] = await Promise.all([
+    getPageContentApi("home"),
+    getExploreProductsApi({ page: 1, pageSize: 40 })
+  ]);
+
+  const initialData = contentRes.ok ? contentRes.data : null;
+  const initialProducts = productsRes.items || [];
+
   return (
     <main className="font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8 lg:pt-4 pb-12 sm:pb-16 lg:pb-20">
         <div className="space-y-8 sm:space-y-12 lg:space-y-16">
-          <HeroSection />
-          <TopCategories />
-          <ProductCollection />
-          <PromoBanner />
+          <HeroSection initialSlides={initialData?.slides} />
+          <TopCategories initialData={initialData?.topCategories} />
+          <ProductCollection initialProducts={initialProducts} />
+          <PromoBanner initialData={initialData?.promo} />
           <ExploreCategories />
           <CategoriesTabs />
           <VideoSection />
-          <SocialFeedSection />
+          <SocialFeedSection initialData={initialData?.socialFeed} />
           <LockerRoomSection />
         </div>
       </div>

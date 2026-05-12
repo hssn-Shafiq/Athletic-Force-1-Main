@@ -37,8 +37,8 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ title, image }) => {
   );
 };
 
-export const TopCategories: React.FC = () => {
-  const categories = [
+export const TopCategories: React.FC<{ initialData?: CategoryCardProps[] }> = ({ initialData }) => {
+  const categories = initialData || [
     {
       title: "Custom Uniforms",
       image: "/after-hero-categories/Custom-Uniform.webp"
