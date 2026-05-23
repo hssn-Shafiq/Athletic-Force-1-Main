@@ -608,3 +608,58 @@ export type ToggleWishlistItemRequest = {
 export type SyncWishlistRequest = {
   guestItems: ApiWishlistItem[];
 };
+
+// ─── Nav Menu Types ───────────────────────────────────────────────────────────
+
+export type NavSubItem = {
+  _id?: string;
+  label: string;
+  href: string;
+  isActive: boolean;
+  sortOrder: number;
+};
+
+export type NavMenuItem = {
+  _id?: string;
+  label: string;
+  href?: string;
+  categoryId?: string;
+  isActive: boolean;
+  sortOrder: number;
+  subItems: NavSubItem[];
+};
+
+export type NavMenu = {
+  _id?: string;
+  id?: string;
+  key: string;
+  label: string;
+  items: NavMenuItem[];
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type NavMenuResponse = {
+  ok: boolean;
+  menu: NavMenu;
+};
+
+export type NavMenusResponse = {
+  ok: boolean;
+  menus: NavMenu[];
+};
+
+export type CreateNavMenuRequest = {
+  key: string;
+  label: string;
+  items?: Omit<NavMenuItem, '_id'>[];
+  isActive?: boolean;
+};
+
+export type UpdateNavMenuRequest = {
+  label?: string;
+  items?: Omit<NavMenuItem, '_id'>[];
+  isActive?: boolean;
+};
+

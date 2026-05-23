@@ -19,7 +19,6 @@ import {
   ClipboardList,
   Warehouse,
   Truck,
-  Tag,
   Mail,
   Globe,
   BookOpen,
@@ -30,7 +29,12 @@ import {
   Wand2,
   X,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Navigation,
+  MessageSquareDashed,
+  Tag,
+  FileText,
+  Store
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api/client';
@@ -347,16 +351,18 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   // --- Permission Matrix ---
-  const canSeeInsights = isSuperAdmin || isManager || isSalesAdmin || isViewer;
-  const canSeeProducts = isSuperAdmin || isManager;
-  const canSeeOrders = isSuperAdmin || isSalesAdmin || isManager;
-  const canSeeJournal = isSuperAdmin || isEditor || isManager || isSeoSpecialist;
-  const canSeeInventory = isSuperAdmin || isSalesAdmin || isManager;
-  const canSeeCustomers = isSuperAdmin || isSalesAdmin;
-  const canSeeEmails = isSuperAdmin;
-  const canSeeSettings = isSuperAdmin;
-  const canSeeSeo = isSuperAdmin || isSeoSpecialist;
+  const canSeeInsights = isSuperAdmin || isManager || isSalesAdmin || isViewer || isAdmin;
+  const canSeeProducts = isSuperAdmin || isManager || isAdmin;
+  const canSeeOrders = isSuperAdmin || isSalesAdmin || isManager || isAdmin;
+  const canSeeJournal = isSuperAdmin || isEditor || isManager || isSeoSpecialist || isAdmin;
+  const canSeeInventory = isSuperAdmin || isSalesAdmin || isManager || isAdmin;
+  const canSeeCustomers = isSuperAdmin || isSalesAdmin || isAdmin;
+  const canSeeEmails = isSuperAdmin || isAdmin;
+  const canSeeSettings = isSuperAdmin || isAdmin;
+  const canSeeSeo = isSuperAdmin || isSeoSpecialist || isAdmin;
   const canSeeStaff = isSuperAdmin;
+  const canSeeMarketing = isSuperAdmin || isManager || isAdmin;
+  const canSeePages = isSuperAdmin || isEditor || isManager || isAdmin;
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex">
@@ -444,12 +450,27 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
           {canSeeInventory && <SidebarItem icon={Warehouse} label="Inventory" href="/admin/inventory" isCollapsed={isSidebarCollapsed} />}
           {canSeeCustomers && <SidebarItem icon={Users} label="Customers" href="/admin/customers" isCollapsed={isSidebarCollapsed} />}
+          {canSeeCustomers && <SidebarItem icon={Store} label="Vendor Stores" href="/admin/vendor-stores" isCollapsed={isSidebarCollapsed} />}
           {canSeeEmails && <SidebarItem icon={Mail} label="Emails" href="/admin/emails" isCollapsed={isSidebarCollapsed} />}
 
           <div className={`pt-4 mt-4 border-t border-slate-50 space-y-1 ${isSidebarCollapsed ? "text-center" : ""}`}>
             {!isSidebarCollapsed && <p className="px-3 pb-1 text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Strategy</p>}
             {canSeeSeo && <SidebarItem icon={Globe} label="SEO Command" href="/admin/seo" isCollapsed={isSidebarCollapsed} />}
+            {canSeePages && (
+              <SidebarItem 
+                icon={FileText} 
+                label="Pages" 
+                isCollapsed={isSidebarCollapsed}
+                subItems={[
+                  { label: "All Pages", href: "/admin/pages" },
+                  { label: "Add Page", href: "/admin/pages/add" }
+                ]} 
+              />
+            )}
+            {canSeeMarketing && <SidebarItem icon={Tag} label="Discounts" href="/admin/discounts" isCollapsed={isSidebarCollapsed} />}
+            {canSeeMarketing && <SidebarItem icon={MessageSquareDashed} label="Popups & Offers" href="/admin/popups" isCollapsed={isSidebarCollapsed} />}
             {canSeeSettings && <SidebarItem icon={Truck} label="Shipping & Tax" href="/admin/settings/shipping-tax" isCollapsed={isSidebarCollapsed} />}
+            {canSeeSettings && <SidebarItem icon={Navigation} label="Nav Menu" href="/admin/nav-menu" isCollapsed={isSidebarCollapsed} />}
             {canSeeStaff && <SidebarItem icon={Users} label="Staff Management" href="/admin/users" isCollapsed={isSidebarCollapsed} />}
             <SidebarItem icon={Settings} label="Settings" href="/admin/settings" isCollapsed={isSidebarCollapsed} />
           </div>
