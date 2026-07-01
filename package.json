@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "axios": "^1.15.1",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.38.0",
@@ -23,7 +25,8 @@
     "react-toastify": "^11.0.5",
     "react-use": "^17.6.0",
     "recharts": "^3.8.1",
-    "styled-components": "^6.4.1"
+    "styled-components": "^6.4.1",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@tailwindcss/node": "^4.2.2",
