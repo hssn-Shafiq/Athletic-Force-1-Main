@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, ShoppingBag, Trash2, Plus, Minus } from 'lucide-react';
 import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
+import { UnlockedRewards } from '@/components/cart/UnlockedRewards';
 
 interface CartSidebarProps {
   isOpen: boolean;
@@ -122,6 +123,13 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => 
                   <p className="font-bold uppercase tracking-widest text-sm">Your cart is empty</p>
                 </div>
               )}
+
+              {/* Dynamic BOGO Unlocked Rewards Section */}
+              <UnlockedRewards onOpenQuickView={(product) => {
+                // In a real flow, this could open the quick view modal to select size/color.
+                // For now, it's just a prop requirement.
+                console.log("Quick view:", product);
+              }} />
             </div>
 
             {/* Footer */}

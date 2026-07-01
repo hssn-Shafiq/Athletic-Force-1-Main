@@ -35,7 +35,7 @@ const CATEGORY_ITEMS: CategoryItem[] = [
   {
     id: '4',
     title: "Band",
-    image: "/Categories/Band.webp",
+    image: "/Categories/Band.png",
     category: "Merchandise"
   },
   {

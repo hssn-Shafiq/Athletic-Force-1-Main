@@ -41,14 +41,14 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
       {/* Hero Section */}
       <section className="relative min-h-[72vh] md:min-h-[78vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-black">
-          <img 
-            src={categoryData.bgImage} 
-            alt={currentCategory} 
+          <img
+            src={categoryData.bgImage}
+            alt={currentCategory}
             className="w-full h-full object-cover opacity-50 blur-[2px]"
           />
           <div className="absolute inset-0 bg-linear-to-b from-black/60 via-transparent to-white" />
         </div>
-        
+
         <div className="relative z-10 max-w-4xl mx-auto px-4 text-center pt-20 pb-28 md:pt-24 md:pb-32">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -74,7 +74,20 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
           {categoryData.subCategories.map((sub, idx) => (
             <Link
               key={sub}
-              href={`/collections/${categoryId}/${sub.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-')}`}
+              href={`/collections/${categoryId}/${categoryId === 'accessories'
+                  ? `acc-${sub
+                    .toLowerCase()
+                    .trim()
+                    .replace(/[^a-z0-9\s-]/g, '')
+                    .replace(/\s+/g, '-')
+                    .replace(/-+/g, '-')}`
+                  : sub
+                    .toLowerCase()
+                    .trim()
+                    .replace(/[^a-z0-9\s-]/g, '')
+                    .replace(/\s+/g, '-')
+                    .replace(/-+/g, '-')
+                }`}
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -86,7 +99,7 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
                 <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-[100px] flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-500">
                   <ChevronRight className="w-8 h-8 text-slate-200 group-hover:text-white transition-colors" />
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="text-xs font-black uppercase tracking-[0.2em] text-orange-600 italic">Sub-Collection</div>
                   <h3 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-slate-900 group-hover:text-orange-600 transition-colors">
@@ -117,7 +130,7 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
           {/* Animated Background Gradients */}
           <div className="absolute top-[-20%] right-[-10%] w-125 h-125 bg-orange-600/20 blur-[120px] rounded-full group-hover:scale-110 transition-transform duration-1000" />
           <div className="absolute bottom-[-20%] left-[-10%] w-125 h-125 bg-red-600/10 blur-[120px] rounded-full group-hover:scale-110 transition-transform duration-1000" />
-          
+
           <div className="relative z-10 max-w-xl text-center lg:text-left space-y-6">
             <h2 className="text-3xl sm:text-4xl md:text-6xl font-black italic uppercase tracking-tighter text-white leading-tight">
               Ready to Gear Up Your Squad?
@@ -126,7 +139,7 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
               Special bulk pricing and rapid turnaround for team orders. Let&apos;s make your vision a reality.
             </p>
           </div>
-          
+
           <div className="relative z-10 flex flex-col sm:flex-row gap-6 w-full lg:w-auto">
             <button className="flex-1 lg:flex-none flex items-center justify-center gap-3 sm:gap-4 bg-white text-black px-6 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl sm:rounded-3xl font-black uppercase italic tracking-tighter text-base sm:text-lg lg:text-xl hover:scale-105 transition-all shadow-xl">
               <span>Contact Agent</span>

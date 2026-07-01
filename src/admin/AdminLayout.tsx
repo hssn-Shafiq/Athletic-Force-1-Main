@@ -12,6 +12,7 @@ import {
   Settings,
   ChevronDown,
   Box,
+  Boxes,
   Search,
   Bell,
   User,
@@ -19,7 +20,6 @@ import {
   ClipboardList,
   Warehouse,
   Truck,
-  Tag,
   Mail,
   Globe,
   BookOpen,
@@ -29,10 +29,14 @@ import {
   AlertTriangle,
   Wand2,
   X,
+  Tag,
+  Store,
   PanelLeftClose,
   PanelLeftOpen,
   Layout,
-  FileText
+  FileText,
+  MessageSquareDashed,
+  Navigation
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api/client';
@@ -357,6 +361,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   const canSeeSeo = isSuperAdmin || isSeoSpecialist;
   const canSeePages = isSuperAdmin || isSeoSpecialist || isEditor || isManager;
   const canSeeStaff = isSuperAdmin;
+  const canSeeMarketing = isSuperAdmin || isManager || isAdmin;
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex">
@@ -416,6 +421,15 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
             />
           )}
 
+          {(isSuperAdmin || isManager) && (
+            <SidebarItem
+              icon={Boxes}
+              label="3D Models"
+              isCollapsed={isSidebarCollapsed}
+              href="/admin/3d-models"
+            />
+          )}
+
           {canSeeOrders && (
             <SidebarItem
               icon={ClipboardList}
@@ -458,12 +472,16 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
           {canSeeInventory && <SidebarItem icon={Warehouse} label="Inventory" href="/admin/inventory" isCollapsed={isSidebarCollapsed} />}
           {canSeeCustomers && <SidebarItem icon={Users} label="Customers" href="/admin/customers" isCollapsed={isSidebarCollapsed} />}
+          {canSeeCustomers && <SidebarItem icon={Store} label="Vendor Stores" href="/admin/vendor-stores" isCollapsed={isSidebarCollapsed} />}
           {canSeeEmails && <SidebarItem icon={Mail} label="Emails" href="/admin/emails" isCollapsed={isSidebarCollapsed} />}
 
           <div className={`pt-4 mt-4 border-t border-slate-50 space-y-1 ${isSidebarCollapsed ? "text-center" : ""}`}>
             {!isSidebarCollapsed && <p className="px-3 pb-1 text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Strategy</p>}
             {canSeeSeo && <SidebarItem icon={Globe} label="SEO Command" href="/admin/seo" isCollapsed={isSidebarCollapsed} />}
+            {canSeeMarketing && <SidebarItem icon={Tag} label="Discounts" href="/admin/discounts" isCollapsed={isSidebarCollapsed} />}
+            {canSeeMarketing && <SidebarItem icon={MessageSquareDashed} label="Popups & Offers" href="/admin/popups" isCollapsed={isSidebarCollapsed} />}
             {canSeeSettings && <SidebarItem icon={Truck} label="Shipping & Tax" href="/admin/settings/shipping-tax" isCollapsed={isSidebarCollapsed} />}
+            {canSeeSettings && <SidebarItem icon={Navigation} label="Nav Menu" href="/admin/nav-menu" isCollapsed={isSidebarCollapsed} />}
             {canSeeStaff && <SidebarItem icon={Users} label="Staff Management" href="/admin/users" isCollapsed={isSidebarCollapsed} />}
             <SidebarItem icon={Settings} label="Settings" href="/admin/settings" isCollapsed={isSidebarCollapsed} />
           </div>

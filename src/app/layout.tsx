@@ -6,6 +6,7 @@ import "react-quill-new/dist/quill.snow.css";
 import { AppShell } from "../components/layout/AppShell";
 import { ToastProvider } from "../components/ui/ToastProvider";
 import { AppProviders } from "@/components/providers/AppProviders";
+import { PopupRenderer } from "@/components/layout/PopupRenderer";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -35,6 +36,7 @@ export default function RootLayout({
       <body className={`${sora.variable} ${inter.variable} antialiased`}>
         <AppProviders>
           <AppShell>{children}</AppShell>
+          <PopupRenderer />
         </AppProviders>
         <ToastProvider />
       </body>
