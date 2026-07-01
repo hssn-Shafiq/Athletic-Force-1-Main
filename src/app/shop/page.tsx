@@ -2,6 +2,19 @@
 import type { Metadata } from "next";
 import ShopClient from "./ShopClient";
 import { getPageMetaApi } from "@/lib/api/pageMeta";
+import { getExploreProductsApi } from "@/lib/api/publicProducts";
+import { getCollectionHierarchyApi } from "@/lib/api/publicCollections";
+import { Suspense } from "react";
+
+type PageProps = {
+  searchParams: Promise<{ 
+    collection?: string; 
+    category?: string; 
+    q?: string; 
+    sort?: string; 
+    maxPrice?: string; 
+  }>;
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
@@ -24,13 +37,36 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-import { Suspense } from "react";
+export default async function ShopPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  
+  // Extract tactical parameters from URL
+  const collection = params.category || params.collection;
+  const search = params.q;
+  const sortBy = params.sort || 'most-selling';
+  const maxPrice = params.maxPrice ? parseInt(params.maxPrice) : 1400;
 
-export default function ShopPage() {
+  // Prefetch data on the server based on URL parameters
+  const [productRes, hierarchyRes] = await Promise.all([
+    getExploreProductsApi({
+      collection: collection === "ALL" ? undefined : collection,
+      search: search || undefined,
+      maxPrice: maxPrice,
+      sortBy: sortBy,
+      pageSize: 40,
+    }),
+    getCollectionHierarchyApi()
+  ]);
+
+  const initialProducts = productRes.ok ? productRes.items : [];
+  const initialHierarchy = hierarchyRes.ok ? hierarchyRes.hierarchy : [];
+
   return (
     <Suspense fallback={<div className="min-h-screen bg-white" />}>
-      <ShopClient />
+      <ShopClient 
+        initialProducts={initialProducts as any} 
+        initialHierarchy={initialHierarchy as any} 
+      />
     </Suspense>
   );
 }
-

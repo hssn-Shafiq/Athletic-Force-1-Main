@@ -366,6 +366,8 @@ export type PublicProduct = {
   mpn?: string;
   mainImageAlt?: string;
   collections: ProductCollectionOption[];
+  rating: number;
+  reviewCount: number;
   orderType?: 'direct' | 'request';
   seo?: {
     pageTitle?: string;
@@ -539,6 +541,7 @@ export type ApiCartItem = {
   addedAt?: string;
   bundleId?: string;
   bundleName?: string;
+  isReward?: boolean;
 };
 
 export type ApiCart = {
@@ -566,6 +569,7 @@ export type AddToCartRequest = {
   size?: string;
   bundleId?: string;
   bundleName?: string;
+  isReward?: boolean;
 };
 
 export type UpdateCartQuantityRequest = {

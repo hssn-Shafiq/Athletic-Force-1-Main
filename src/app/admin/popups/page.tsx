@@ -11,6 +11,7 @@ import {
   type Popup, type PopupFormData, type PopupType, type PopupLayout
 } from '@/lib/api/popups';
 import { PopupPreview } from '@/admin/components/PopupPreview';
+import { apiClient } from '@/lib/api/client';
 
 // --- Pre-built templates ---
 const TEMPLATES: Partial<PopupFormData>[] = [
@@ -124,6 +125,7 @@ export default function AdminPopupsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [activeDiscounts, setActiveDiscounts] = useState<any[]>([]);
 
   const addToast = useCallback((type: 'success' | 'error', message: string) => {
     const id = ++toastId;
@@ -136,6 +138,8 @@ export default function AdminPopupsPage() {
     try {
       const res = await fetchAdminPopups();
       setPopups(res.popups);
+      const { data } = await apiClient.get('/api/discounts');
+      if (data.ok) setActiveDiscounts(data.discounts.filter((d: any) => d.isActive && !d.isAutomatic));
     } catch { addToast('error', 'Failed to load popups'); }
     finally { setIsLoading(false); }
   }, [addToast]);
@@ -392,7 +396,18 @@ export default function AdminPopupsPage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-1">Discount Code</label>
-                            <input value={editingPopup.discountCode || ''} onChange={e => setEditingPopup({ ...editingPopup, discountCode: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-orange-400 uppercase" />
+                            <select value={editingPopup.discountCode || ''} onChange={e => setEditingPopup({ ...editingPopup, discountCode: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-orange-400 uppercase">
+                              <option value="">-- None --</option>
+                              {activeDiscounts.map(d => {
+                                let label = '';
+                                if (d.type === 'percentage') label = d.value + '% Off';
+                                else if (d.type === 'fixed_amount') label = '$' + d.value + ' Off';
+                                else if (d.type === 'free_shipping') label = 'Free Shipping';
+                                else if (d.type === 'bogo') label = 'BOGO';
+                                else label = d.type;
+                                return <option key={d._id} value={d.code}>{d.code} - {label}</option>
+                              })}
+                            </select>
                           </div>
                           <div>
                             <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-1">Dismiss Button Label</label>

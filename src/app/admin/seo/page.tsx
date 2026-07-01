@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { Search, Edit3, Globe, Save, X, Layout } from "lucide-react";
 import { getAllPageMetasApi, updatePageMetaApi } from "@/lib/api/pageMeta";
+import { useRouter } from "next/navigation";
 
 const CORE_PAGES = [
   { key: "home", name: "Home Page", path: "/" },
@@ -14,6 +15,7 @@ const CORE_PAGES = [
 ];
 
 export default function AdminSEOPage() {
+  const router = useRouter();
   const [metas, setMetas] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -69,6 +71,15 @@ export default function AdminSEOPage() {
             SEO Command Center
           </h1>
           <p className="text-slate-500 text-sm mt-1 font-medium">Deploy tactical metadata across core website sectors</p>
+        </div>
+         <div className="flex gap-4">
+          <button
+            onClick={() => router.push('/admin/pages/home')}
+            className="px-6 py-4 rounded-2xl border border-slate-200 font-black uppercase italic tracking-widest text-[10px] text-white bg-black flex items-center gap-3 hover:bg-orange-500 hover:text-white cursor-pointer transition-all"
+          >
+            <Layout className="w-4 h-4" />
+            Manage Content
+          </button>
         </div>
       </div>
 

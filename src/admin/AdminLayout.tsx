@@ -5,13 +5,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  BarChart3, 
-  Package, 
-  Users, 
-  Settings, 
-  ChevronDown, 
-  Box, 
+import {
+  BarChart3,
+  Package,
+  Users,
+  Settings,
+  ChevronDown,
+  Box,
+  Boxes,
   Search,
   Bell,
   User,
@@ -28,13 +29,14 @@ import {
   AlertTriangle,
   Wand2,
   X,
+  Tag,
+  Store,
   PanelLeftClose,
   PanelLeftOpen,
-  Navigation,
-  MessageSquareDashed,
-  Tag,
+  Layout,
   FileText,
-  Store
+  MessageSquareDashed,
+  Navigation
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api/client';
@@ -68,13 +70,12 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, href, subI
   if (subItems) {
     return (
       <div className="space-y-1 relative" ref={itemRef}>
-        <button 
+        <button
           onClick={() => !isCollapsed && setIsOpen(!isOpen)}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={() => setIsHovered(false)}
-          className={`w-full flex items-center justify-between p-3 rounded-xl transition-all group ${
-            isActive ? "bg-orange-600 text-white shadow-lg shadow-orange-600/20" : "text-slate-500 hover:bg-slate-50 hover:text-black"
-          } ${isCollapsed ? "justify-center" : ""}`}
+          className={`w-full flex items-center justify-between p-3 rounded-xl transition-all group ${isActive ? "bg-orange-600 text-white shadow-lg shadow-orange-600/20" : "text-slate-500 hover:bg-slate-50 hover:text-black"
+            } ${isCollapsed ? "justify-center" : ""}`}
         >
           <div className="flex items-center gap-3">
             <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-slate-400 group-hover:text-black"}`} />
@@ -100,16 +101,15 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, href, subI
                   <p className="text-[10px] font-black uppercase tracking-widest italic opacity-60">Tactical Menu</p>
                   <p className="text-[11px] font-black uppercase tracking-tighter italic">{label}</p>
                 </div>
-                
+
                 {subItems ? (
                   <div className="p-1.5">
                     {subItems.map((sub) => (
                       <Link
                         key={sub.href}
                         href={sub.href}
-                        className={`block px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest italic transition-all hover:bg-orange-600 hover:text-white ${
-                          pathname === sub.href ? 'text-orange-500' : 'text-slate-300'
-                        }`}
+                        className={`block px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest italic transition-all hover:bg-orange-600 hover:text-white ${pathname === sub.href ? 'text-orange-500' : 'text-slate-300'
+                          }`}
                       >
                         {sub.label}
                       </Link>
@@ -131,7 +131,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, href, subI
 
         <AnimatePresence>
           {!isCollapsed && isOpen && (
-            <motion.div 
+            <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -159,9 +159,8 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, href, subI
         href={href!}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setIsHovered(false)}
-        className={`flex items-center gap-3 p-3 rounded-xl transition-all group ${
-          pathname === href ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-500 hover:bg-slate-50 hover:text-black'
-        } ${isCollapsed ? "justify-center" : ""}`}
+        className={`flex items-center gap-3 p-3 rounded-xl transition-all group ${pathname === href ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/20' : 'text-slate-500 hover:bg-slate-50 hover:text-black'
+          } ${isCollapsed ? "justify-center" : ""}`}
       >
         <Icon className={`w-5 h-5 shrink-0 ${pathname === href ? 'text-white' : 'text-slate-400 group-hover:text-black'}`} />
         {!isCollapsed && <span className="font-bold uppercase tracking-widest text-[11px] italic truncate">{label}</span>}
@@ -224,7 +223,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsSidebarOpen(false);
     }
   }, [pathname, isMobile]);
-  
+
   const userRoles = user?.roles || [];
   const isSuperAdmin = userRoles.includes('superadmin');
   const isManager = userRoles.includes('manager');
@@ -256,10 +255,10 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [notifications, setNotifications] = useState<{
     count: number;
-    details?: { 
-      orders: number; 
-      lowStock: number; 
-      outOfStock: number; 
+    details?: {
+      orders: number;
+      lowStock: number;
+      outOfStock: number;
       reviews: number;
       failedPayments: number;
       quotes: number;
@@ -285,10 +284,10 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const { data } = await apiClient.get('/api/orders/admin/notifications');
       if (data.ok) {
-        setNotifications({ 
-          count: data.pendingCount, 
+        setNotifications({
+          count: data.pendingCount,
           details: data.details,
-          recentOrders: data.recentOrders || [] 
+          recentOrders: data.recentOrders || []
         });
       }
     } catch (e) {
@@ -335,11 +334,11 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
       <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center px-6">
         <div className="rounded-[40px] border border-red-200 bg-red-50 p-12 text-center max-w-lg shadow-2xl shadow-red-100">
           <div className="w-20 h-20 bg-red-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
-             <Settings className="w-10 h-10 text-red-600" />
+            <Settings className="w-10 h-10 text-red-600" />
           </div>
           <h1 className="text-4xl font-black italic uppercase tracking-tighter text-red-700">Access Denied</h1>
           <p className="mt-4 text-sm font-bold text-red-800 uppercase tracking-widest opacity-60">Insufficient Tactical Clearance identified</p>
-          <button 
+          <button
             onClick={() => router.push('/')}
             className="mt-8 px-8 py-3 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-600/20"
           >
@@ -351,18 +350,18 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   // --- Permission Matrix ---
-  const canSeeInsights = isSuperAdmin || isManager || isSalesAdmin || isViewer || isAdmin;
-  const canSeeProducts = isSuperAdmin || isManager || isAdmin;
-  const canSeeOrders = isSuperAdmin || isSalesAdmin || isManager || isAdmin;
-  const canSeeJournal = isSuperAdmin || isEditor || isManager || isSeoSpecialist || isAdmin;
-  const canSeeInventory = isSuperAdmin || isSalesAdmin || isManager || isAdmin;
-  const canSeeCustomers = isSuperAdmin || isSalesAdmin || isAdmin;
-  const canSeeEmails = isSuperAdmin || isAdmin;
-  const canSeeSettings = isSuperAdmin || isAdmin;
-  const canSeeSeo = isSuperAdmin || isSeoSpecialist || isAdmin;
+  const canSeeInsights = isSuperAdmin || isManager || isSalesAdmin || isViewer;
+  const canSeeProducts = isSuperAdmin || isManager || isSeoSpecialist;
+  const canSeeOrders = isSuperAdmin || isSalesAdmin || isManager;
+  const canSeeJournal = isSuperAdmin || isEditor || isManager || isSeoSpecialist;
+  const canSeeInventory = isSuperAdmin || isSalesAdmin || isManager;
+  const canSeeCustomers = isSuperAdmin || isSalesAdmin;
+  const canSeeEmails = isSuperAdmin;
+  const canSeeSettings = isSuperAdmin;
+  const canSeeSeo = isSuperAdmin || isSeoSpecialist;
+  const canSeePages = isSuperAdmin || isSeoSpecialist || isEditor || isManager;
   const canSeeStaff = isSuperAdmin;
   const canSeeMarketing = isSuperAdmin || isManager || isAdmin;
-  const canSeePages = isSuperAdmin || isEditor || isManager || isAdmin;
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] flex">
@@ -380,11 +379,10 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
       </AnimatePresence>
 
       {/* Sidebar - Fixed Positioning */}
-      <aside className={`bg-white border-r border-slate-100 flex flex-col transition-all duration-300 z-50 fixed inset-y-0 left-0 ${
-        isSidebarOpen 
-          ? (isSidebarCollapsed ? "w-20 translate-x-0" : "w-72 translate-x-0") 
+      <aside className={`bg-white border-r border-slate-100 flex flex-col transition-all duration-300 z-50 fixed inset-y-0 left-0 ${isSidebarOpen
+          ? (isSidebarCollapsed ? "w-20 translate-x-0" : "w-72 translate-x-0")
           : "w-72 -translate-x-full lg:translate-x-0 lg:w-20"
-      }`}>
+        }`}>
         <div className={`p-8 flex items-center justify-between gap-3 ${isSidebarCollapsed ? "px-5" : ""}`}>
           <div className="flex items-center gap-3">
             <div className="bg-black text-white w-10 h-10 rounded-xl flex items-center justify-center shrink-0 rotate-[-5deg]">
@@ -397,9 +395,9 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
               </div>
             )}
           </div>
-          
+
           {/* Close button for mobile */}
-          <button 
+          <button
             onClick={() => setIsSidebarOpen(false)}
             className="lg:hidden p-2 hover:bg-slate-50 rounded-xl text-slate-400"
           >
@@ -409,42 +407,66 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto no-scrollbar">
           {canSeeInsights && <SidebarItem icon={BarChart3} label="Insights" href="/admin" isCollapsed={isSidebarCollapsed} />}
-          
+
           {canSeeProducts && (
-            <SidebarItem 
-              icon={Box} 
-              label="Products" 
+            <SidebarItem
+              icon={Box}
+              label="Products"
               isCollapsed={isSidebarCollapsed}
               subItems={[
                 { label: "All Products", href: "/admin/products" },
                 { label: "Add Product", href: "/admin/products/add" },
                 { label: "Collections", href: "/admin/collections" }
-              ]} 
+              ]}
+            />
+          )}
+
+          {(isSuperAdmin || isManager) && (
+            <SidebarItem
+              icon={Boxes}
+              label="3D Models"
+              isCollapsed={isSidebarCollapsed}
+              href="/admin/3d-models"
             />
           )}
 
           {canSeeOrders && (
-            <SidebarItem 
-              icon={ClipboardList} 
-              label="Orders" 
+            <SidebarItem
+              icon={ClipboardList}
+              label="Orders"
               isCollapsed={isSidebarCollapsed}
               subItems={[
                 { label: "Direct Orders", href: "/admin/orders" },
                 { label: "Request Orders", href: "/admin/orders/requests" }
-              ]} 
+              ]}
             />
           )}
 
           {canSeeJournal && (
-            <SidebarItem 
-              icon={BookOpen} 
-              label="Journal" 
+            <SidebarItem
+              icon={BookOpen}
+              label="Journal"
               isCollapsed={isSidebarCollapsed}
               subItems={[
                 { label: "Manage Blogs", href: "/admin/blog" },
                 { label: "Add Blog", href: "/admin/blog/add" },
                 { label: "Blog Categories", href: "/admin/blog/categories" }
-              ]} 
+              ]}
+            />
+          )}
+
+          {canSeePages && (
+            <SidebarItem
+              icon={Layout}
+              label="Pages"
+              isCollapsed={isSidebarCollapsed}
+              subItems={[
+                { label: "Home Page", href: "/admin/pages/home" },
+                { label: "About Page", href: "/admin/pages/about" },
+                { label: "Privacy Policy", href: "/admin/pages/legal/privacy" },
+                { label: "Terms & Conditions", href: "/admin/pages/legal/terms" },
+                { label: "SEO Meta", href: "/admin/seo" }
+              ]}
             />
           )}
 
@@ -456,17 +478,6 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           <div className={`pt-4 mt-4 border-t border-slate-50 space-y-1 ${isSidebarCollapsed ? "text-center" : ""}`}>
             {!isSidebarCollapsed && <p className="px-3 pb-1 text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Strategy</p>}
             {canSeeSeo && <SidebarItem icon={Globe} label="SEO Command" href="/admin/seo" isCollapsed={isSidebarCollapsed} />}
-            {canSeePages && (
-              <SidebarItem 
-                icon={FileText} 
-                label="Pages" 
-                isCollapsed={isSidebarCollapsed}
-                subItems={[
-                  { label: "All Pages", href: "/admin/pages" },
-                  { label: "Add Page", href: "/admin/pages/add" }
-                ]} 
-              />
-            )}
             {canSeeMarketing && <SidebarItem icon={Tag} label="Discounts" href="/admin/discounts" isCollapsed={isSidebarCollapsed} />}
             {canSeeMarketing && <SidebarItem icon={MessageSquareDashed} label="Popups & Offers" href="/admin/popups" isCollapsed={isSidebarCollapsed} />}
             {canSeeSettings && <SidebarItem icon={Truck} label="Shipping & Tax" href="/admin/settings/shipping-tax" isCollapsed={isSidebarCollapsed} />}
@@ -496,21 +507,20 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
       </aside>
 
       {/* Main Content Area - Dedicated Scroll Container */}
-      <div className={`flex-1 flex flex-col h-screen overflow-y-auto min-w-0 transition-all duration-300 ${
-        isSidebarOpen 
-          ? (isSidebarCollapsed ? "lg:ml-20" : "lg:ml-72") 
+      <div className={`flex-1 flex flex-col h-screen overflow-y-auto min-w-0 transition-all duration-300 ${isSidebarOpen
+          ? (isSidebarCollapsed ? "lg:ml-20" : "lg:ml-72")
           : "ml-0"
-      }`}>
+        }`}>
         {/* Topbar - Locked Tactical Header */}
         <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-40 shrink-0">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="lg:hidden p-2 hover:bg-slate-50 rounded-xl"
             >
               <Menu className="w-6 h-6" />
             </button>
-            <button 
+            <button
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
               className="hidden lg:flex p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-black transition-colors"
               title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
@@ -519,9 +529,9 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
             </button>
             <div className="relative group hidden md:block">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search analytics, products..." 
+              <input
+                type="text"
+                placeholder="Search analytics, products..."
                 className="bg-slate-50 border border-transparent focus:border-slate-200 focus:bg-white rounded-xl py-2 pl-12 pr-4 w-64 outline-none text-xs font-medium transition-all"
               />
             </div>
@@ -529,7 +539,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
           <div className="flex items-center gap-4">
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="relative p-2 hover:bg-slate-50 rounded-xl transition-colors inline-block pt-3"
               >
@@ -552,7 +562,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                     <div className="p-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                       <div className="flex items-center gap-2">
                         <h3 className="text-xs font-black uppercase tracking-widest italic text-slate-900">Tactical Notifications</h3>
-                        <button 
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
                             fetchNotifications(true);
@@ -565,113 +575,113 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                       </div>
                       <span className="text-[10px] font-black text-orange-600 bg-orange-100 px-2 py-1 rounded-md">{notifications.count} Active</span>
                     </div>
-                    
+
                     <div className="max-h-[450px] overflow-y-auto no-scrollbar">
                       {/* Alerts Summary */}
                       {notifications.details && (
                         <div className="p-4 bg-orange-50/30 border-b border-slate-50 space-y-2">
-                           {notifications.details.outOfStock > 0 && !dismissedKeys.has('outOfStock') && (
-                             <div className="group relative">
-                               <Link href="/admin/inventory" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-red-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
-                                    <span className="text-[10px] font-black uppercase tracking-tighter text-red-600">Critical: {notifications.details.outOfStock} Out of Stock</span>
-                                  </div>
-                                  <ChevronDown className="-rotate-90 w-3 h-3 text-red-400" />
-                               </Link>
-                               <button 
-                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('outOfStock'); }}
-                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-red-50 rounded-md text-red-300 hover:text-red-600 transition-all opacity-0 group-hover:opacity-100"
-                               >
-                                 <X className="w-3 h-3" />
-                               </button>
-                             </div>
-                           )}
-                           {notifications.details.lowStock > 0 && !dismissedKeys.has('lowStock') && (
-                             <div className="group relative">
-                               <Link href="/admin/inventory" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-orange-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-orange-600" />
-                                    <span className="text-[10px] font-black uppercase tracking-tighter text-orange-600">Warning: {notifications.details.lowStock} Low Stock</span>
-                                  </div>
-                                  <ChevronDown className="-rotate-90 w-3 h-3 text-orange-400" />
-                               </Link>
-                               <button 
-                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('lowStock'); }}
-                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-orange-50 rounded-md text-orange-300 hover:text-orange-600 transition-all opacity-0 group-hover:opacity-100"
-                               >
-                                 <X className="w-3 h-3" />
-                               </button>
-                             </div>
-                           )}
-                           {notifications.details.delays > 0 && !dismissedKeys.has('delays') && (
-                             <div className="group relative">
-                               <Link href="/admin/orders" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-orange-200 bg-orange-50/50 shadow-sm hover:scale-[1.02] transition-transform pr-10">
-                                  <div className="flex items-center gap-3">
-                                    <AlertTriangle className="w-3.5 h-3.5 text-orange-700" />
-                                    <span className="text-[10px] font-black uppercase tracking-tighter text-orange-700">Delayed: {notifications.details.delays} Orders {'>'} 48H</span>
-                                  </div>
-                                  <ChevronDown className="-rotate-90 w-3 h-3 text-orange-400" />
-                               </Link>
-                               <button 
-                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('delays'); }}
-                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-orange-100 rounded-md text-orange-400 hover:text-orange-700 transition-all opacity-0 group-hover:opacity-100"
-                               >
-                                 <X className="w-3 h-3" />
-                               </button>
-                             </div>
-                           )}
-                           {notifications.details.failedPayments > 0 && !dismissedKeys.has('failedPayments') && (
-                             <div className="group relative">
-                               <Link href="/admin/orders" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-red-200 bg-red-50/30 shadow-sm hover:scale-[1.02] transition-transform pr-10">
-                                  <div className="flex items-center gap-3">
-                                    <ShieldAlert className="w-3.5 h-3.5 text-red-700" />
-                                    <span className="text-[10px] font-black uppercase tracking-tighter text-red-700">Alert: {notifications.details.failedPayments} Failed Payments</span>
-                                  </div>
-                                  <ChevronDown className="-rotate-90 w-3 h-3 text-red-400" />
-                               </Link>
-                               <button 
-                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('failedPayments'); }}
-                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-red-100 rounded-md text-red-400 hover:text-red-700 transition-all opacity-0 group-hover:opacity-100"
-                               >
-                                 <X className="w-3 h-3" />
-                               </button>
-                             </div>
-                           )}
-                           {notifications.details.quotes > 0 && !dismissedKeys.has('quotes') && (
-                             <div className="group relative">
-                               <Link href="/admin/orders/requests" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-indigo-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
-                                  <div className="flex items-center gap-3">
-                                    <Wand2 className="w-3.5 h-3.5 text-indigo-600" />
-                                    <span className="text-[10px] font-black uppercase tracking-tighter text-indigo-600">Incoming: {notifications.details.quotes} Quote Requests</span>
-                                  </div>
-                                  <ChevronDown className="-rotate-90 w-3 h-3 text-indigo-400" />
-                               </Link>
-                               <button 
-                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('quotes'); }}
-                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-indigo-50 rounded-md text-indigo-300 hover:text-indigo-600 transition-all opacity-0 group-hover:opacity-100"
-                               >
-                                 <X className="w-3 h-3" />
-                               </button>
-                             </div>
-                           )}
-                           {notifications.details.reviews > 0 && !dismissedKeys.has('reviews') && (
-                             <div className="group relative">
-                               <Link href="/admin/products" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-blue-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-blue-600" />
-                                    <span className="text-[10px] font-black uppercase tracking-tighter text-blue-600">{notifications.details.reviews} New Reviews Pending</span>
-                                  </div>
-                                  <ChevronDown className="-rotate-90 w-3 h-3 text-blue-400" />
-                               </Link>
-                               <button 
-                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('reviews'); }}
-                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-blue-50 rounded-md text-blue-300 hover:text-blue-600 transition-all opacity-0 group-hover:opacity-100"
-                               >
-                                 <X className="w-3 h-3" />
-                               </button>
-                             </div>
-                           )}
+                          {notifications.details.outOfStock > 0 && !dismissedKeys.has('outOfStock') && (
+                            <div className="group relative">
+                              <Link href="/admin/inventory" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-red-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                                  <span className="text-[10px] font-black uppercase tracking-tighter text-red-600">Critical: {notifications.details.outOfStock} Out of Stock</span>
+                                </div>
+                                <ChevronDown className="-rotate-90 w-3 h-3 text-red-400" />
+                              </Link>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('outOfStock'); }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-red-50 rounded-md text-red-300 hover:text-red-600 transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                          {notifications.details.lowStock > 0 && !dismissedKeys.has('lowStock') && (
+                            <div className="group relative">
+                              <Link href="/admin/inventory" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-orange-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-2 h-2 rounded-full bg-orange-600" />
+                                  <span className="text-[10px] font-black uppercase tracking-tighter text-orange-600">Warning: {notifications.details.lowStock} Low Stock</span>
+                                </div>
+                                <ChevronDown className="-rotate-90 w-3 h-3 text-orange-400" />
+                              </Link>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('lowStock'); }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-orange-50 rounded-md text-orange-300 hover:text-orange-600 transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                          {notifications.details.delays > 0 && !dismissedKeys.has('delays') && (
+                            <div className="group relative">
+                              <Link href="/admin/orders" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-orange-200 bg-orange-50/50 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                <div className="flex items-center gap-3">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-orange-700" />
+                                  <span className="text-[10px] font-black uppercase tracking-tighter text-orange-700">Delayed: {notifications.details.delays} Orders {'>'} 48H</span>
+                                </div>
+                                <ChevronDown className="-rotate-90 w-3 h-3 text-orange-400" />
+                              </Link>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('delays'); }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-orange-100 rounded-md text-orange-400 hover:text-orange-700 transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                          {notifications.details.failedPayments > 0 && !dismissedKeys.has('failedPayments') && (
+                            <div className="group relative">
+                              <Link href="/admin/orders" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-red-200 bg-red-50/30 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                <div className="flex items-center gap-3">
+                                  <ShieldAlert className="w-3.5 h-3.5 text-red-700" />
+                                  <span className="text-[10px] font-black uppercase tracking-tighter text-red-700">Alert: {notifications.details.failedPayments} Failed Payments</span>
+                                </div>
+                                <ChevronDown className="-rotate-90 w-3 h-3 text-red-400" />
+                              </Link>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('failedPayments'); }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-red-100 rounded-md text-red-400 hover:text-red-700 transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                          {notifications.details.quotes > 0 && !dismissedKeys.has('quotes') && (
+                            <div className="group relative">
+                              <Link href="/admin/orders/requests" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-indigo-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                <div className="flex items-center gap-3">
+                                  <Wand2 className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span className="text-[10px] font-black uppercase tracking-tighter text-indigo-600">Incoming: {notifications.details.quotes} Quote Requests</span>
+                                </div>
+                                <ChevronDown className="-rotate-90 w-3 h-3 text-indigo-400" />
+                              </Link>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('quotes'); }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-indigo-50 rounded-md text-indigo-300 hover:text-indigo-600 transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                          {notifications.details.reviews > 0 && !dismissedKeys.has('reviews') && (
+                            <div className="group relative">
+                              <Link href="/admin/products" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-blue-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-2 h-2 rounded-full bg-blue-600" />
+                                  <span className="text-[10px] font-black uppercase tracking-tighter text-blue-600">{notifications.details.reviews} New Reviews Pending</span>
+                                </div>
+                                <ChevronDown className="-rotate-90 w-3 h-3 text-blue-400" />
+                              </Link>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('reviews'); }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-blue-50 rounded-md text-blue-300 hover:text-blue-600 transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -687,7 +697,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                       ) : (
                         notifications.recentOrders.filter(o => !dismissedKeys.has(o.id)).map((order) => (
                           <div key={order.id} className="group relative">
-                            <Link 
+                            <Link
                               href={`/admin/orders/${order.id}`}
                               onClick={() => {
                                 setIsDropdownOpen(false);
@@ -707,7 +717,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                               </p>
                               <p className="text-xs font-bold text-slate-500 mt-1">${order.total.toFixed(2)}</p>
                             </Link>
-                            <button 
+                            <button
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem(order.id); }}
                               className="absolute right-4 top-1/2 -translate-y-1/2 p-2 hover:bg-slate-200 rounded-xl text-slate-300 hover:text-slate-600 transition-all opacity-0 group-hover:opacity-100"
                             >
@@ -726,10 +736,10 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                 )}
               </AnimatePresence>
             </div>
-            
+
             <div className="hidden sm:flex items-center gap-3 bg-slate-50 px-3 lg:px-4 py-2 rounded-2xl border border-slate-100">
-               <ShieldAlert className="w-4 h-4 text-orange-600" />
-               <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 font-sora truncate max-w-[80px]">{getHighestRole()}</span>
+              <ShieldAlert className="w-4 h-4 text-orange-600" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 font-sora truncate max-w-[80px]">{getHighestRole()}</span>
             </div>
 
             <div className="h-8 w-[1px] bg-slate-100 mx-1 lg:mx-2 hidden xs:block" />
@@ -741,7 +751,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
               >
                 View Store
               </Link>
-              
+
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm font-sora group"

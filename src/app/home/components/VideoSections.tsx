@@ -1,24 +1,26 @@
-
 import React from 'react';
 import { Globe, Headphones, RotateCcw, ShieldCheck, Play } from 'lucide-react';
 
 interface FeatureItemProps {
-  icon: React.ElementType;
+  icon: React.ComponentType<any>;
   title: string;
   description: string;
 }
 
-const FeatureItem: React.FC<FeatureItemProps> = ({ icon: Icon, title, description }) => (
-  <div className="bg-[#F5F5F5] rounded-[24px] sm:rounded-[32px] p-5 sm:p-8 flex flex-col items-center text-center space-y-3 hover:bg-white hover:shadow-xl transition-all duration-300 group cursor-default">
-    <div className="text-slate-900 group-hover:scale-110 transition-transform duration-300">
-      <Icon className="w-6 h-6" strokeWidth={1.5} />
+const FeatureItem = ({ icon, title, description }: FeatureItemProps) => {
+  const Icon = icon as any;
+  return (
+    <div className="bg-[#F5F5F5] rounded-[24px] sm:rounded-[32px] p-5 sm:p-8 flex flex-col items-center text-center space-y-3 hover:bg-white hover:shadow-xl transition-all duration-300 group cursor-default">
+      <div className="text-slate-900 group-hover:scale-110 transition-transform duration-300">
+        <Icon className="w-6 h-6" strokeWidth={1.5} />
+      </div>
+      <div className="space-y-1">
+        <h4 className="font-bold text-xs uppercase tracking-wider text-slate-900">{title}</h4>
+        <p className="text-[10px] text-slate-500 font-medium">{description}</p>
+      </div>
     </div>
-    <div className="space-y-1">
-      <h4 className="font-bold text-xs uppercase tracking-wider text-slate-900">{title}</h4>
-      <p className="text-[10px] text-slate-500 font-medium">{description}</p>
-    </div>
-  </div>
-);
+  );
+};
 
 export const VideoSection: React.FC = () => {
   return (

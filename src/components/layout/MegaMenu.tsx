@@ -91,6 +91,7 @@ async function fetchHeaderMenu(): Promise<NavMenu> {
 interface MegaMenuProps {
   isOpen: boolean;
   onClose: () => void;
+  hierarchy: any[];
 }
 
 export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
@@ -145,9 +146,12 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
         {/* Scrollable Area */}
         <div className="flex-1 overflow-y-auto px-8 lg:px-20 py-5 scrollbar-thin scrollbar-track-slate-50 scrollbar-thumb-slate-200">
           <div className="max-w-7xl mx-auto">
-            <div className="mb-10">
-              <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600 mb-2 italic">Intelligence Hub</h2>
-              <p className="text-3xl font-black text-slate-900 italic uppercase tracking-tighter">Browse Gear Sectors</p>
+            <div className="mb-12">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-600 mb-2 italic flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse" />
+                Intelligence Hub
+              </h2>
+              <p className="text-4xl font-black text-slate-900 italic uppercase tracking-tighter">Browse Gear Sectors</p>
             </div>
 
             {/* Grid of categories */}

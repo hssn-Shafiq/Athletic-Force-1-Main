@@ -17,12 +17,19 @@ import {
 } from "lucide-react";
 import { LockerRoomSection } from "../home/components/LockerRoomSection";
 
-const STATS = [
+const FALLBACK_STATS = [
   { label: "Elite Squads", value: "500+", icon: <Users className="w-5 h-5" /> },
   { label: "Global Brands", value: "500+", icon: <ShieldCheck className="w-5 h-5" /> },
   { label: "Win Rate", value: "98%", icon: <Zap className="w-5 h-5" /> },
   { label: "Ops Support", value: "24/7", icon: <CheckCircle2 className="w-5 h-5" /> },
 ];
+
+const STAT_ICONS: Record<string, any> = {
+  "Elite Squads": <Users className="w-5 h-5" />,
+  "Global Brands": <ShieldCheck className="w-5 h-5" />,
+  "Win Rate": <Zap className="w-5 h-5" />,
+  "Ops Support": <CheckCircle2 className="w-5 h-5" />,
+};
 
 const VALUES = [
   {
@@ -42,14 +49,22 @@ const VALUES = [
   },
 ];
 
-const TIMELINE = [
+const FALLBACK_TIMELINE = [
   { year: "2018", title: "The Inception", desc: "Athletic Force 1 is born from a garage with a single mission: to revolutionize custom athletic gear." },
   { year: "2020", title: "The Expansion", desc: "We scaled our manufacturing capabilities and partnered with our first 100 professional squads." },
   { year: "2022", title: "The Evolution", desc: "Launched our tactical digital platform, bringing elite design tools to every coach and athlete." },
   { year: "2024", title: "The Dominance", desc: "Now the industry standard for premium, high-speed custom uniforms across all major sports." },
 ];
 
-export default function AboutClient() {
+export default function AboutClient({ initialData }: { initialData?: any }) {
+  const stats = initialData?.stats?.map((s: any) => ({
+    ...s,
+    icon: STAT_ICONS[s.label] || <Users className="w-5 h-5" />
+  })) || FALLBACK_STATS;
+
+  const timeline = initialData?.timeline || FALLBACK_TIMELINE;
+  const heroTitle = initialData?.heroTitle || "About Athletic Force 1";
+  const missionText = initialData?.mission || "We don't just make uniforms. We forge identity. Athletic Force 1 was founded on the belief that every team deserves gear as elite as their ambition.";
   return (
     <main className="bg-white overflow-x-hidden">
       {/* --- Tactical Hero Section --- */}
@@ -72,11 +87,19 @@ export default function AboutClient() {
             >
               <p className="text-[#FF5A2A] font-black uppercase tracking-[0.5em] italic mb-6">Established 2018</p>
               <h1 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter text-white leading-[0.9] mb-8">
-                About <br />
-                <span className="text-transparent border-t border-b border-white/20 px-2 bg-clip-text bg-gradient-to-r from-white to-white/40">Athletic Force 1</span>
+                {heroTitle.split(' ').map((word: string, i: number) => (
+                  <React.Fragment key={i}>
+                    {word === 'Force' ? <br /> : ''}
+                    {word === 'Athletic' || word === 'Force' || word === '1' ? (
+                      <span className="text-transparent border-t border-b border-white/20 px-2 bg-clip-text bg-gradient-to-r from-white to-white/40">{word} </span>
+                    ) : (
+                      word + ' '
+                    )}
+                  </React.Fragment>
+                ))}
               </h1>
               <p className="text-lg md:text-xl text-slate-300 font-medium leading-relaxed mb-10 max-w-2xl italic">
-                We don't just make uniforms. We forge identity. Athletic Force 1 was founded on the belief that every team deserves gear as elite as their ambition.
+                {missionText}
               </p>
               <div className="flex flex-wrap gap-5">
                 <Link href="/shop" className="bg-[#FF5A2A] text-white px-10 py-5 rounded-2xl font-black uppercase italic tracking-widest hover:scale-105 transition-all shadow-xl shadow-[#FF5A2A]/20 flex items-center gap-3">
@@ -97,7 +120,7 @@ export default function AboutClient() {
       <section className="bg-white pt-32 pb-16 md:pt-40 md:pb-24 border-y border-slate-100">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {STATS.map((stat, idx) => (
+            {stats.map((stat: any, idx: number) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
@@ -170,7 +193,7 @@ export default function AboutClient() {
             <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/10 hidden md:block" />
 
             <div className="space-y-24">
-              {TIMELINE.map((item, idx) => (
+              {timeline.map((item: any, idx: number) => (
                 <div key={item.year} className={`flex flex-col md:flex-row items-center gap-12 ${idx % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"}`}>
                   <div className={`flex-1 text-center md:px-12 ${idx % 2 === 0 ? "md:text-right" : "md:text-left"}`}>
                     <motion.div

@@ -11,10 +11,10 @@ interface Slide {
   subtitle: string;
 }
 
-export const HeroSection: React.FC = () => {
+export const HeroSection: React.FC<{ initialSlides?: Slide[] }> = ({ initialSlides }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  const slides: Slide[] = [
+  const slides: Slide[] = initialSlides || [
     {
       image: "/Hero-Images/hero-1.webp",
       title: "ATHLETIC FORCE 1",
