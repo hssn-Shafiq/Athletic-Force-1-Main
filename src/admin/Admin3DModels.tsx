@@ -356,7 +356,7 @@ function ModelScene({
 interface DrawRect { x: number; y: number; w: number; h: number; }
 
 interface DrawZoneOverlayProps {
-  canvasRef: React.RefObject<HTMLDivElement>;
+  canvasRef: React.RefObject<HTMLDivElement | null>;
   isDrawing: boolean;
   onRectDrawn: (rect: DrawRect) => void;
   onCancel: () => void;
