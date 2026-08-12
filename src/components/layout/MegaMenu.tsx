@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { X } from 'lucide-react';
 import { fetchPublicNavMenu } from '@/lib/api/navMenu';
+import { getPublicVendorStoresApi } from '@/lib/api/publicVendorStores';
 import type { NavMenu, NavMenuItem } from '@/lib/api/types';
 
 // ─── Static fallback (used if the API has no menu yet) ───────────────────────
@@ -77,11 +78,50 @@ const FALLBACK_MENU: NavMenu = {
 // ─── Separate async fetch function ───────────────────────────────────────────
 async function fetchHeaderMenu(): Promise<NavMenu> {
   try {
-    const res = await fetchPublicNavMenu('header');
-    if (res.ok && res.menu && res.menu.items.length > 0) {
-      return res.menu;
+    const [navRes, vendorRes] = await Promise.allSettled([
+      fetchPublicNavMenu('header'),
+      getPublicVendorStoresApi(),
+    ]);
+
+    let baseMenu: NavMenu = FALLBACK_MENU;
+    if (navRes.status === 'fulfilled' && navRes.value.ok && navRes.value.menu && navRes.value.menu.items.length > 0) {
+      baseMenu = navRes.value.menu;
     }
-    return FALLBACK_MENU;
+
+    const approvedStores = vendorRes.status === 'fulfilled' && vendorRes.value.ok ? vendorRes.value.stores : [];
+
+    if (approvedStores.length > 0) {
+      const updatedItems = baseMenu.items.map((item) => {
+        if (item.categoryId === 'team-store' || item.label.toLowerCase() === 'team store') {
+          const existingSubItems = item.subItems || [];
+
+          // Map approved stores to subItems format
+          const dynamicSubItems = approvedStores.map((store, index) => ({
+            label: store.storeName,
+            href: `/team/${store.slug}`,
+            isActive: true,
+            sortOrder: existingSubItems.length + index,
+          }));
+
+          // Deduplicate by href
+          const seenHrefs = new Set(existingSubItems.map((s) => s.href.toLowerCase()));
+          const uniqueDynamic = dynamicSubItems.filter((s) => !seenHrefs.has(s.href.toLowerCase()));
+
+          return {
+            ...item,
+            subItems: [...existingSubItems, ...uniqueDynamic],
+          };
+        }
+        return item;
+      });
+
+      return {
+        ...baseMenu,
+        items: updatedItems,
+      };
+    }
+
+    return baseMenu;
   } catch {
     return FALLBACK_MENU;
   }
@@ -157,7 +197,9 @@ export const MegaMenu: React.FC<MegaMenuProps> = ({ isOpen, onClose }) => {
             {/* Grid of categories */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-12 gap-y-16">
               {activeItems.map((item) => {
-                const allHref = item.categoryId
+                const allHref = (item.categoryId === 'team-store' || item.label.toLowerCase() === 'team store')
+                  ? '/team-stores'
+                  : item.categoryId
                   ? `/collections/${item.categoryId}`
                   : item.href || '#';
 

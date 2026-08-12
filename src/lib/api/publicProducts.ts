@@ -10,16 +10,27 @@ export async function getExploreProductsApi(params?: {
   maxPrice?: number;
   sortBy?: string;
 }) {
-  const { data } = await apiClient.get<PublicProductsResponse>('/api/products/explore', {
-    params,
-  });
-
-  return data;
+  try {
+    const { data } = await apiClient.get<PublicProductsResponse>('/api/products/explore', {
+      params,
+    });
+    return data;
+  } catch (err: any) {
+    const message = err?.response?.data?.message || err?.message || 'Failed to fetch products';
+    console.error('[getExploreProductsApi]', message);
+    return { ok: false, items: [], total: 0, page: 1, pageSize: params?.pageSize ?? 40 } as unknown as PublicProductsResponse;
+  }
 }
 
 export async function getExploreProductBySlugApi(slug: string) {
-  const { data } = await apiClient.get<PublicProductResponse>(`/api/products/explore/${encodeURIComponent(slug)}`);
-  return data;
+  try {
+    const { data } = await apiClient.get<PublicProductResponse>(`/api/products/explore/${encodeURIComponent(slug)}`);
+    return data;
+  } catch (err: any) {
+    const message = err?.response?.data?.message || err?.message || 'Failed to fetch product';
+    console.error('[getExploreProductBySlugApi]', message);
+    return null;
+  }
 }
 
 export async function submitProductReviewApi(productId: string, formData: FormData, onUploadProgress?: (progressEvent: any) => void) {

@@ -21,7 +21,7 @@ export async function generateMetadata(
   try {
     const response = await getExploreProductBySlugApi(slug);
 
-    if (!response.ok || !response.product) {
+    if (!response || !response.ok || !response.product) {
       return {
         title: "Product Not Found | Athletic Force 1"
       };
@@ -70,7 +70,7 @@ export default async function ProductSinglePage({ params }: Props) {
 
   try {
     const response = await getExploreProductBySlugApi(slug);
-    if (!response.ok || !response.product) {
+    if (!response || !response.ok || !response.product) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-white p-6">
           <div className="text-center space-y-4">
