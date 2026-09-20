@@ -6,6 +6,7 @@ export type AuthUser = {
   phone?: string;
   avatarUrl?: string;
   roles: string[];
+  vendorStoreId?: string;
   provider?: 'local' | 'google';
   isEmailVerified?: boolean;
   lastLoginAt?: string;
@@ -246,8 +247,32 @@ export type ProductUpsellOffer = {
   bundlePrice?: number;
 };
 
+export type MockupZone = {
+  zoneId: string;
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation?: number;
+};
+
+export type ProductMockup = {
+  viewName: string;
+  color?: string;
+  baseImageUrl: string;
+  baseImagePublicId: string;
+  printZones: MockupZone[];
+  renderedImageUrl?: string;
+  renderedImagePublicId?: string;
+};
+
 export type AdminProduct = {
   id: string;
+  isMasterProduct?: boolean;
+  parentProductId?: string;
+  vendorStoreId?: string;
+  mockups?: ProductMockup[];
   name: string;
   slug: string;
   description?: string;
@@ -503,6 +528,10 @@ export type UpsertProductRequest = {
   mainImageFile?: File;
   mainVideoThumbnailFile?: File;
   galleryImageFiles?: File[];
+  isMasterProduct?: boolean;
+  parentProductId?: string;
+  vendorStoreId?: string;
+  mockups?: ProductMockup[];
 };
 
 export type CreateProductRequest = UpsertProductRequest;

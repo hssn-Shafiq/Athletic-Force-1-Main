@@ -19,6 +19,8 @@ import {
   UpsertProductReviewRequest,
   UpsertProductVariantRequest,
   UpsertProductVideoReviewRequest,
+  MockupZone,
+  ProductMockup,
 } from '@/lib/api/types';
 import { getApiErrorMessage } from '@/lib/api/errors';
 
@@ -307,6 +309,9 @@ export function useProductForm(productId?: string) {
   const [seoManualEdit, setSeoManualEdit] = useState(false);
   const [galleryImageFiles, setGalleryImageFiles] = useState<File[]>([]);
   const [galleryImages, setGalleryImages] = useState<ProductMediaAsset[]>([]);
+
+  // 2D Mockup Templates & Print Zones
+  const [mockups, setMockups] = useState<ProductMockup[]>([]);
 
   const [variants, setVariants] = useState<ProductFormVariant[]>([]);
   const [videoReviews, setVideoReviews] = useState<ProductFormVideoReview[]>([]);
@@ -776,6 +781,7 @@ export function useProductForm(productId?: string) {
           thumbnailPublicId: product.mainVideo?.thumbnailPublicId,
         });
         setSelectedCollectionIds(product.collectionIds || []);
+        setMockups(product.mockups || []);
         
         // SEO & Schema
         setBrand(product.brand || 'Athletic Force 1');
@@ -988,6 +994,10 @@ export function useProductForm(productId?: string) {
             photoFiles: [],
           }))
         );
+
+        if (Array.isArray(product.mockups)) {
+          setMockups(product.mockups);
+        }
       } catch (error) {
         toast.error(getApiErrorMessage(error, 'Unable to load product details.'));
       } finally {
@@ -1658,9 +1668,7 @@ export function useProductForm(productId?: string) {
           keywords: seoKeywords.split(',').map(k => k.trim()).filter(Boolean),
           canonicalUrl: canonicalUrl.trim() || undefined,
         },
-
-
-
+        mockups,
       };
 
       const response = await createAdminProductApi(payload);
@@ -1738,9 +1746,7 @@ export function useProductForm(productId?: string) {
           keywords: seoKeywords.split(',').map(k => k.trim()).filter(Boolean),
           canonicalUrl: canonicalUrl.trim() || undefined,
         },
-
-
-
+        mockups,
       };
 
       const response = await updateAdminProductApi(productId, payload);
@@ -1899,5 +1905,103 @@ export function useProductForm(productId?: string) {
     submitProductUpdate,
     isProductComplete,
     selectedCollections,
+    mockups,
+    setMockups,
+    addMockup: (viewName = 'front', color?: string) => {
+      setMockups((prev) => {
+        const existingSameView = prev.find((m) => m.viewName.toLowerCase() === viewName.toLowerCase() && m.printZones.length > 0);
+        const defaultZones: MockupZone[] = existingSameView
+          ? existingSameView.printZones.map((z) => ({
+              ...z,
+              zoneId: `zone_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            }))
+          : [
+              {
+                zoneId: `zone_${Date.now()}`,
+                label: viewName.toLowerCase().includes('back') ? 'Back Print Logo' : 'Front Chest Logo',
+                x: 35,
+                y: 28,
+                width: 30,
+                height: 24,
+                rotation: 0,
+              },
+            ];
+
+        return [
+          ...prev,
+          {
+            viewName,
+            color: color || '',
+            baseImageUrl: '',
+            baseImagePublicId: '',
+            printZones: defaultZones,
+          },
+        ];
+      });
+    },
+    removeMockup: (index: number) => {
+      setMockups((prev) => prev.filter((_, i) => i !== index));
+    },
+    updateMockup: (index: number, patch: Partial<ProductMockup>) => {
+      setMockups((prev) => prev.map((m, i) => (i === index ? { ...m, ...patch } : m)));
+    },
+    copyPrintZonesToMatchingViews: (sourceMockupIndex: number) => {
+      setMockups((prev) => {
+        const source = prev[sourceMockupIndex];
+        if (!source || !source.printZones.length) return prev;
+        return prev.map((m, i) => {
+          if (i === sourceMockupIndex) return m;
+          if (m.viewName.toLowerCase() === source.viewName.toLowerCase()) {
+            return {
+              ...m,
+              printZones: source.printZones.map((z) => ({
+                ...z,
+                zoneId: `zone_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+              })),
+            };
+          }
+          return m;
+        });
+      });
+    },
+    addPrintZoneToMockup: (mockupIndex: number) => {
+      setMockups((prev) =>
+        prev.map((m, i) => {
+          if (i !== mockupIndex) return m;
+          const newZone: MockupZone = {
+            zoneId: `zone_${Date.now()}`,
+            label: `Print Zone ${m.printZones.length + 1}`,
+            x: 30,
+            y: 30,
+            width: 40,
+            height: 30,
+            rotation: 0,
+          };
+          return { ...m, printZones: [...m.printZones, newZone] };
+        })
+      );
+    },
+    updatePrintZoneInMockup: (mockupIndex: number, zoneIndex: number, patch: Partial<MockupZone>) => {
+      setMockups((prev) =>
+        prev.map((m, i) => {
+          if (i !== mockupIndex) return m;
+          return {
+            ...m,
+            printZones: m.printZones.map((z, zi) => (zi === zoneIndex ? { ...z, ...patch } : z)),
+          };
+        })
+      );
+    },
+    removePrintZoneFromMockup: (mockupIndex: number, zoneIndex: number) => {
+      setMockups((prev) =>
+        prev.map((m, i) => {
+          if (i !== mockupIndex) return m;
+          return {
+            ...m,
+            printZones: m.printZones.filter((_, zi) => zi !== zoneIndex),
+          };
+        })
+      );
+    },
   };
 }

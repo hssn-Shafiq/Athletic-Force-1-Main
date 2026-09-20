@@ -51,7 +51,7 @@ export const PromoBanner: React.FC<{ initialData?: { text: string, link: string 
           <div className="hidden lg:block absolute right-0 top-0 bottom-0 w-1/2">
             <div className="absolute inset-0 bg-linear-to-r from-black via-black/20 to-transparent z-10"></div>
             <Image
-              src="https://af1.groomyorlife.com/wp-content/uploads/2026/01/image-3-e1767615776259.png"
+              src="/shop-hero.png"
               alt="Team Sports"
               fill
               sizes="50vw"

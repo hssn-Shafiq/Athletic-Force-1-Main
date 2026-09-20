@@ -588,7 +588,9 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
 
         if (!productData) {
           const response = await getExploreProductBySlugApi(slug);
-          productData = response.product;
+          if (response && response.product) {
+            productData = response.product;
+          }
         }
 
         if (!mounted) return;

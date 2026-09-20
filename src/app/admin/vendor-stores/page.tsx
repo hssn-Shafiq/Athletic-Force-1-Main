@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
 import { 
   Store, Search, Eye, Edit, ChevronLeft, ChevronRight, 
-  CheckCircle, XCircle, Clock, PauseCircle, Trash2, Filter, Loader2
+  CheckCircle, XCircle, Clock, PauseCircle, Trash2, Filter, Loader2,
+  Percent
 } from 'lucide-react';
 import { 
   adminGetVendorStoresApi, 
@@ -112,6 +113,13 @@ export default function AdminVendorStoresPage() {
             Command Center / Ecosystem Partners
           </p>
         </div>
+
+        <Link
+          href="/admin/vendor-stores/commissions"
+          className="flex items-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-indigo-600/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <Percent className="w-4 h-4" /> Platform Profits &amp; Commissions
+        </Link>
       </div>
 
       {/* Status Cards */}
@@ -141,6 +149,14 @@ export default function AdminVendorStoresPage() {
           onClick={() => { setStatusFilter('approved'); setPage(1); }}
         />
         <StatusCard 
+          title="Paused" 
+          count={data?.counts?.paused || 0} 
+          icon={PauseCircle} 
+          colorClass="bg-slate-700 border-slate-700"
+          active={statusFilter === 'paused'}
+          onClick={() => { setStatusFilter('paused'); setPage(1); }}
+        />
+        <StatusCard 
           title="Rejected" 
           count={data?.counts?.rejected || 0} 
           icon={XCircle} 
@@ -148,48 +164,40 @@ export default function AdminVendorStoresPage() {
           active={statusFilter === 'rejected'}
           onClick={() => { setStatusFilter('rejected'); setPage(1); }}
         />
-        <StatusCard 
-          title="Paused" 
-          count={data?.counts?.paused || 0} 
-          icon={PauseCircle} 
-          colorClass="bg-slate-500 border-slate-500"
-          active={statusFilter === 'paused'}
-          onClick={() => { setStatusFilter('paused'); setPage(1); }}
-        />
       </div>
 
-      {/* Toolbar */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm">
+      {/* Search & Filters */}
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm">
         <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
-            type="text" 
-            placeholder="Search stores, vendors, emails..." 
+            type="text"
+            placeholder="Search stores, vendors..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-100 focus:border-orange-200 focus:bg-white rounded-2xl py-3 pl-12 pr-4 outline-none text-xs font-bold italic transition-all placeholder:text-slate-400"
+            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold uppercase tracking-wider outline-none focus:border-black transition-colors"
           />
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as 'new'|'old')}
-            className="bg-slate-50 border border-slate-100 rounded-2xl py-3 px-4 text-xs font-bold uppercase tracking-widest italic outline-none focus:border-orange-200"
+
+        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+          <button
+            onClick={() => setSort(s => s === 'new' ? 'old' : 'new')}
+            className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-100 transition-colors flex items-center gap-2"
           >
-            <option value="new">Newest First</option>
-            <option value="old">Oldest First</option>
-          </select>
+            Sort: {sort === 'new' ? 'Newest' : 'Oldest'}
+          </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-[32px] border border-slate-100 shadow-xl overflow-hidden">
+      {/* Stores Table */}
+      <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Store Details</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Status</th>
+                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Commission</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Submitted</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic text-right">Actions</th>
               </tr>
@@ -197,13 +205,13 @@ export default function AdminVendorStoresPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="p-12 text-center">
+                  <td colSpan={5} className="p-12 text-center">
                     <Loader2 className="w-8 h-8 text-orange-500 animate-spin mx-auto" />
                   </td>
                 </tr>
               ) : data?.items.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="p-12 text-center text-slate-400 font-bold italic">
+                  <td colSpan={5} className="p-12 text-center text-slate-400 font-bold italic">
                     No vendor stores found.
                   </td>
                 </tr>
@@ -227,6 +235,17 @@ export default function AdminVendorStoresPage() {
                     </td>
                     <td className="p-6">
                       {getStatusBadge(store.status)}
+                    </td>
+                    <td className="p-6">
+                      {store.isCommissionActive && (store.commissionRate ?? 0) > 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-full text-[10px] font-black uppercase tracking-wider">
+                          <Percent className="w-2.5 h-2.5" /> {store.commissionRate}% Cut
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-wider">
+                          0% Free
+                        </span>
+                      )}
                     </td>
                     <td className="p-6 text-xs font-bold text-slate-500 italic">
                       {new Date(store.createdAt).toLocaleDateString()}

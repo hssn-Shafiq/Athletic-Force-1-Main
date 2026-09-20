@@ -4,7 +4,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ChevronRight, ChevronDown } from 'lucide-react';
+import { X, ChevronRight, ChevronDown, Store, LayoutDashboard } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MobileMenuSidebarProps {
   isOpen: boolean;
@@ -14,6 +15,17 @@ interface MobileMenuSidebarProps {
 
 export const MobileMenuSidebar: React.FC<MobileMenuSidebarProps> = ({ isOpen, onClose, hierarchy }) => {
   const [openSection, setOpenSection] = useState<string | null>(null);
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  const isAdminUser = Boolean(
+    user?.roles?.some((role) => ['superadmin', 'manager', 'sales_admin', 'editor', 'seo_specialist'].includes(role) || role === 'admin')
+  );
+
+  const isVendorUser = Boolean(
+    user?.roles?.some((r) => r.toLowerCase().includes('vendor')) ||
+    Boolean(user?.vendorStoreId) ||
+    user?.roles?.includes('superadmin')
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -48,32 +60,79 @@ export const MobileMenuSidebar: React.FC<MobileMenuSidebarProps> = ({ isOpen, on
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-            className="fixed inset-y-0 left-0 z-[140] w-[85vw] max-w-sm bg-white border-r border-slate-200 overflow-y-auto rounded-r-[32px] shadow-2xl"
+            className="fixed inset-y-0 left-0 z-[140] w-[85vw] max-w-sm bg-white border-r border-slate-200 overflow-y-auto rounded-r-[32px] shadow-2xl flex flex-col justify-between"
           >
-            <div className="flex items-center justify-between px-6 py-6 border-b border-slate-100">
-              <div className="flex flex-col">
-                <h2 className="text-xl font-black italic uppercase tracking-tighter text-slate-900">Tactical Menu</h2>
-                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mt-0.5">Navigation Hub</p>
+            <div>
+              <div className="flex items-center justify-between px-6 py-6 border-b border-slate-100">
+                <div className="flex flex-col">
+                  <h2 className="text-xl font-black italic uppercase tracking-tighter text-slate-900">Tactical Menu</h2>
+                  <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mt-0.5">Navigation Hub</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close menu"
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-800 hover:bg-black hover:text-white transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close menu"
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-800 hover:bg-black hover:text-white transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="divide-y divide-slate-100 px-2 py-4">
-              <Link
-                href="/"
-                onClick={onClose}
-                className="flex items-center gap-3 px-4 py-4 text-sm font-black uppercase italic tracking-widest text-slate-900 hover:bg-slate-50 rounded-2xl transition-all"
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-                Home Base
-              </Link>
+              {/* Vendor & Admin Portals (Mobile Quick Access) */}
+              {isAuthenticated && !isLoading && (isVendorUser || isAdminUser) && (
+                <div className="p-3 bg-slate-50 border-b border-slate-100 space-y-2">
+                  {isVendorUser && (
+                    <Link
+                      href="/vendor/dashboard"
+                      onClick={onClose}
+                      className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white border border-slate-800 shadow-md group hover:border-[#FF7348] transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-[#FF7348]/20 flex items-center justify-center text-[#FF7348] group-hover:scale-110 transition-transform">
+                          <Store className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-black uppercase italic tracking-wider text-white">Vendor Dashboard</span>
+                            <span className="text-[8px] font-black uppercase tracking-widest bg-[#FF7348] text-black px-1.5 py-0.5 rounded">Store</span>
+                          </div>
+                          <p className="text-[10px] font-medium text-slate-400 mt-0.5">Manage products & orders</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#FF7348] group-hover:translate-x-1 transition-all" />
+                    </Link>
+                  )}
+
+                  {isAdminUser && (
+                    <Link
+                      href="/admin"
+                      onClick={onClose}
+                      className="flex items-center justify-between p-3 rounded-2xl bg-orange-600 text-white shadow-md group hover:bg-orange-700 transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-white">
+                          <LayoutDashboard className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-black uppercase italic tracking-wider text-white">Admin Dashboard</span>
+                          <p className="text-[10px] font-medium text-orange-100">Site control panel</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-orange-200 group-hover:translate-x-1 transition-all" />
+                    </Link>
+                  )}
+                </div>
+              )}
+
+              <div className="divide-y divide-slate-100 px-2 py-3">
+                <Link
+                  href="/"
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-4 py-3.5 text-sm font-black uppercase italic tracking-widest text-slate-900 hover:bg-slate-50 rounded-2xl transition-all"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
+                  Home Base
+                </Link>
 
               {hierarchy.map((category) => {
                 const expanded = openSection === category.id;
@@ -148,6 +207,7 @@ export const MobileMenuSidebar: React.FC<MobileMenuSidebarProps> = ({ isOpen, on
                   Custom Uniform Request
                 </Link>
               </div>
+            </div>
             </div>
 
             <div className="mt-auto p-8 bg-slate-50/50">
