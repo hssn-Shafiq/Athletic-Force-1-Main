@@ -36,7 +36,8 @@ import {
   Layout,
   FileText,
   MessageSquareDashed,
-  Navigation
+  Navigation,
+  Percent
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api/client';
@@ -473,6 +474,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           {canSeeInventory && <SidebarItem icon={Warehouse} label="Inventory" href="/admin/inventory" isCollapsed={isSidebarCollapsed} />}
           {canSeeCustomers && <SidebarItem icon={Users} label="Customers" href="/admin/customers" isCollapsed={isSidebarCollapsed} />}
           {canSeeCustomers && <SidebarItem icon={Store} label="Vendor Stores" href="/admin/vendor-stores" isCollapsed={isSidebarCollapsed} />}
+          {canSeeCustomers && <SidebarItem icon={Percent} label="Commissions & Profit" href="/admin/vendor-stores/commissions" isCollapsed={isSidebarCollapsed} />}
           {canSeeEmails && <SidebarItem icon={Mail} label="Emails" href="/admin/emails" isCollapsed={isSidebarCollapsed} />}
 
           <div className={`pt-4 mt-4 border-t border-slate-50 space-y-1 ${isSidebarCollapsed ? "text-center" : ""}`}>

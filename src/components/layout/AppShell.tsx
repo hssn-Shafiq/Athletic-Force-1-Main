@@ -12,9 +12,10 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const isAdminRoute = pathname.startsWith('/admin');
+  const isVendorRoute = pathname.startsWith('/vendor');
   const isAuthRoute = pathname === '/login' || pathname === '/register';
 
-  if (isAdminRoute || isAuthRoute) {
+  if (isAdminRoute || isVendorRoute || isAuthRoute) {
     return <>{children}</>;
   }
 

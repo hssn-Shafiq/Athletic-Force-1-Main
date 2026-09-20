@@ -9,12 +9,13 @@ import {
   Loader2, ImageIcon, Video, Tag, Package, BarChart3, Globe,
   ChevronDown, Check, Upload, Info, Eye, EyeOff, Grid3X3,
   Layers, Link2, Palette, ShoppingBag, MessageSquare, Play,
-  AlertCircle, Sparkles, LayoutGrid, List
+  AlertCircle, Sparkles, LayoutGrid, List, Copy, CheckCheck, SlidersHorizontal
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useProductForm } from './hooks/useProductForm';
 import { listAdminMedia, signAdminMediaUpload, uploadImageWithSignature, type AdminMediaItem } from '@/lib/api/media';
 import { ProductMediaAsset } from '@/lib/api/types';
+import { MediaLibraryModal } from './components/MediaLibraryModal';
 
 const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
 
@@ -149,6 +150,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
     toggleOptionValueSelection, addOptionValue, updateOptionValueColor,
     regenerateVariantsFromOptions: regenerateVariants, submitProduct, submitProductUpdate,
     isProductComplete, selectedCollections,
+    mockups, addMockup, removeMockup, updateMockup, copyPrintZonesToMatchingViews,
+    addPrintZoneToMockup, updatePrintZoneInMockup, removePrintZoneFromMockup,
   } = useProductForm(resolvedProductId);
 
   /* ── local state ── */
@@ -179,8 +182,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
   const [newValueByGroupId, setNewValueByGroupId] = useState<Record<string, string>>({});
   const [newColorByGroupId, setNewColorByGroupId] = useState<Record<string, string>>({});
   const [openChildDropdownByParent, setOpenChildDropdownByParent] = useState<Record<string, boolean>>({});
-  const [activeTab, setActiveTab] = useState<'details' | 'media' | 'variants' | 'pricing' | 'reviews' | 'seo'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'media' | 'mockups' | 'variants' | 'pricing' | 'reviews' | 'seo'>('details');
   const [bulkPanelOpen, setBulkPanelOpen] = useState(false);
+  const [mockupMediaModalIndex, setMockupMediaModalIndex] = useState<number | null>(null);
 
   useEffect(() => { mediaTargetRef.current = mediaTarget; }, [mediaTarget]);
 
@@ -227,6 +231,83 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
     });
     return Array.from(map.entries()).map(([colorKey, value]) => ({ colorKey, colorLabel: value.colorLabel, items: value.items }));
   }, [variants]);
+
+  /* ── 2D mockup color helpers ── */
+  const [activeMockupColorTab, setActiveMockupColorTab] = useState<string>('all');
+
+  const mockupAvailableColors = useMemo(() => {
+    const colorSet = new Set<string>();
+    const colorHexMap = new Map<string, string>();
+
+    optionGroups.forEach((g) => {
+      if (g.isColor || g.key.toLowerCase().includes('color') || g.key.toLowerCase().includes('colour')) {
+        g.values.forEach((v) => {
+          if (v.label?.trim()) {
+            colorSet.add(v.label.trim());
+            if (v.colorHex) colorHexMap.set(v.label.trim().toLowerCase(), v.colorHex);
+          }
+        });
+      }
+    });
+
+    variants.forEach((v) => {
+      const c = (v.color || '').trim();
+      if (c && c.toLowerCase() !== 'default') {
+        colorSet.add(c);
+        if (v.colorHex && !colorHexMap.has(c.toLowerCase())) {
+          colorHexMap.set(c.toLowerCase(), v.colorHex);
+        }
+      }
+    });
+
+    return Array.from(colorSet).map((name) => ({
+      name,
+      colorHex: colorHexMap.get(name.toLowerCase()),
+    }));
+  }, [optionGroups, variants]);
+
+  const mockupCountsByColor = useMemo(() => {
+    const counts = new Map<string, number>();
+    mockups.forEach((m) => {
+      const c = (m.color || '').trim().toLowerCase();
+      counts.set(c, (counts.get(c) || 0) + 1);
+    });
+    return counts;
+  }, [mockups]);
+
+  const filteredMockupEntries = useMemo(() => {
+    return mockups
+      .map((mockup, index) => ({ mockup, index }))
+      .filter(({ mockup }) => {
+        if (activeMockupColorTab === 'all') return true;
+        if (activeMockupColorTab === '__unassigned__') return !mockup.color;
+        return (mockup.color || '').trim().toLowerCase() === activeMockupColorTab.toLowerCase();
+      });
+  }, [mockups, activeMockupColorTab]);
+
+  const applyZonePreset = (
+    mockupIndex: number,
+    zoneIndex: number,
+    preset: { x: number; y: number; width: number; height: number; label?: string }
+  ) => {
+    updatePrintZoneInMockup(mockupIndex, zoneIndex, {
+      x: preset.x,
+      y: preset.y,
+      width: preset.width,
+      height: preset.height,
+      ...(preset.label ? { label: preset.label } : {}),
+    });
+    toast.info(`Applied "${preset.label || 'preset'}" placement.`);
+  };
+
+  const handleSyncPrintZones = (mockupIndex: number) => {
+    const currentMockup = mockups[mockupIndex];
+    if (!currentMockup) return;
+    copyPrintZonesToMatchingViews(mockupIndex);
+    toast.success(
+      `Print zones from "${currentMockup.viewName}" copied to all matching ${currentMockup.viewName} views across all colors!`
+    );
+  };
 
   /* ── media helpers ── */
   async function fetchMedia(params: { search?: string; sort?: 'new' | 'old'; cursor?: string; append?: boolean }) {
@@ -319,9 +400,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
   const confirmLeaveCreateFlow = () => { if (!hasUnsavedCreateChanges) return true; return window.confirm('You have unsaved changes. Leave this page?'); };
 
   /* ── tabs config ── */
-  const tabs: Array<{ id: 'details' | 'media' | 'pricing' | 'variants' | 'reviews' | 'seo'; label: string; icon: React.ReactNode; badge?: string | number }> = [
+  const tabs: Array<{ id: 'details' | 'media' | 'mockups' | 'pricing' | 'variants' | 'reviews' | 'seo'; label: string; icon: React.ReactNode; badge?: string | number }> = [
     { id: 'details', label: 'Details', icon: <Package size={14} /> },
     { id: 'media', label: 'Media', icon: <ImageIcon size={14} /> },
+    { id: 'mockups', label: '2D Mockups', icon: <Layers size={14} />, badge: mockups.length || undefined },
     { id: 'pricing', label: 'Pricing', icon: <Tag size={14} /> },
     { id: 'variants', label: 'Variants', icon: <Grid3X3 size={14} />, badge: variants.length || undefined },
     { id: 'reviews', label: 'Reviews', icon: <MessageSquare size={14} />, badge: (reviews.length + videoReviews.length) || undefined },
@@ -725,6 +807,623 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
                     Next: Pricing <ChevronRight size={16} />
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* ══ 2D MOCKUPS TAB ══ */}
+            {activeTab === 'mockups' && (
+              <div className="space-y-5">
+                <SectionCard>
+                  <SectionHeader
+                    icon={<Layers size={14} />}
+                    title="2D Mockup Templates & Print Zones"
+                    subtitle="Garment templates mapped to colorways. Each color mockup applies across all size variations."
+                    action={
+                      <div className="flex items-center gap-2">
+                        {mockups.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const frontMockupIdx = mockups.findIndex(
+                                (m) => m.viewName.toLowerCase() === 'front' && m.printZones.length > 0
+                              );
+                              if (frontMockupIdx >= 0) {
+                                handleSyncPrintZones(frontMockupIdx);
+                              } else {
+                                toast.warn('Configure at least one Front View with print zones first.');
+                              }
+                            }}
+                            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
+                            title="Copy print zones from the primary Front view to all other Front views"
+                          >
+                            <Copy size={13} />
+                            <span>Sync Front Zones</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const targetColor =
+                              activeMockupColorTab !== 'all' && activeMockupColorTab !== '__unassigned__'
+                                ? activeMockupColorTab
+                                : (mockupAvailableColors[0]?.name || '');
+                            addMockup('front', targetColor);
+                          }}
+                          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-all shadow-xs cursor-pointer active:scale-95"
+                        >
+                          <Plus size={14} /> Add Mockup View
+                        </button>
+                      </div>
+                    }
+                  />
+
+                  <div className="p-6 space-y-6">
+                    {/* Information Banner */}
+                    <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl px-5 py-4 flex items-start gap-3.5">
+                      <Sparkles size={18} className="text-indigo-600 mt-0.5 shrink-0" />
+                      <div className="text-xs text-indigo-900 space-y-1">
+                        <p className="font-bold uppercase tracking-wider text-[11px] text-indigo-700">
+                          Color-Based Mockup Automation
+                        </p>
+                        <p className="text-indigo-800/90 leading-relaxed">
+                          You only need to upload mockups <strong>once per color</strong> (e.g., Black, White, Navy). Size variants (S, M, L, XL, 2XL) will automatically inherit their respective color template without repetitive setup.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Color Filter & Navigation Tabs */}
+                    {mockupAvailableColors.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                            Filter by Colorway:
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-medium">
+                            {mockupAvailableColors.length} color variation(s) detected from product variants
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {/* All Colors Tab */}
+                          <button
+                            type="button"
+                            onClick={() => setActiveMockupColorTab('all')}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border ${
+                              activeMockupColorTab === 'all'
+                                ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <span>All Colors</span>
+                            <span
+                              className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                activeMockupColorTab === 'all' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600'
+                              }`}
+                            >
+                              {mockups.length}
+                            </span>
+                          </button>
+
+                          {/* Individual Color Tabs */}
+                          {mockupAvailableColors.map((colorObj) => {
+                            const count = mockupCountsByColor.get(colorObj.name.toLowerCase()) || 0;
+                            const isActive = activeMockupColorTab.toLowerCase() === colorObj.name.toLowerCase();
+
+                            return (
+                              <button
+                                key={colorObj.name}
+                                type="button"
+                                onClick={() => setActiveMockupColorTab(colorObj.name)}
+                                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border ${
+                                  isActive
+                                    ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+                                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                {colorObj.colorHex ? (
+                                  <span
+                                    className="w-3.5 h-3.5 rounded-full border border-black/20 shrink-0 shadow-2xs"
+                                    style={{ backgroundColor: colorObj.colorHex }}
+                                  />
+                                ) : (
+                                  <span className="w-3.5 h-3.5 rounded-full bg-gray-300 shrink-0" />
+                                )}
+                                <span>{colorObj.name}</span>
+
+                                {count > 0 ? (
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-0.5 ${
+                                      isActive
+                                        ? 'bg-emerald-500/30 text-emerald-200'
+                                        : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    }`}
+                                  >
+                                    <Check size={10} strokeWidth={3} />
+                                    <span>{count}</span>
+                                  </span>
+                                ) : (
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                      isActive
+                                        ? 'bg-amber-500/30 text-amber-200'
+                                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    }`}
+                                  >
+                                    Missing
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+
+                          {/* Unassigned / Default Tab if any exists */}
+                          {mockupCountsByColor.get('') ? (
+                            <button
+                              type="button"
+                              onClick={() => setActiveMockupColorTab('__unassigned__')}
+                              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border ${
+                                activeMockupColorTab === '__unassigned__'
+                                  ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+                                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <span>Default / Unassigned</span>
+                              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600">
+                                {mockupCountsByColor.get('')}
+                              </span>
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Empty State: No Mockups At All */}
+                    {!mockups.length ? (
+                      <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                        <Layers size={36} className="mx-auto text-gray-300 mb-3" />
+                        <p className="text-sm font-bold text-gray-800">No Mockup Views Configured</p>
+                        <p className="text-xs text-gray-500 mt-1 mb-5 max-w-md mx-auto leading-relaxed">
+                          Add blank garment templates for this product (e.g. Front View in Black or White). You only need 1 mockup per color — sizes will automatically inherit it.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const firstColor = mockupAvailableColors[0]?.name || '';
+                            addMockup('front', firstColor);
+                          }}
+                          className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-all inline-flex items-center gap-2 shadow-sm active:scale-95"
+                        >
+                          <Plus size={15} /> Add First Mockup View
+                        </button>
+                      </div>
+                    ) : filteredMockupEntries.length === 0 ? (
+                      /* Empty State: Filtered Color has no mockups */
+                      <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/30">
+                        <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                          No mockups for &quot;{activeMockupColorTab}&quot;
+                        </p>
+                        <p className="text-xs text-gray-400 mb-4">
+                          Upload a blank {activeMockupColorTab} template so vendor logos can be placed on it.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => addMockup('front', activeMockupColorTab)}
+                          className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-all inline-flex items-center gap-2 shadow-sm"
+                        >
+                          <Plus size={14} /> Add {activeMockupColorTab} Mockup View
+                        </button>
+                      </div>
+                    ) : (
+                      /* List of Filtered Mockup Cards */
+                      <div className="space-y-6">
+                        {filteredMockupEntries.map(({ mockup, index: mIndex }) => (
+                          <div
+                            key={mIndex}
+                            className="bg-gray-50/80 border border-gray-200 rounded-2xl p-5 md:p-6 space-y-5 shadow-xs transition-all hover:border-gray-300"
+                          >
+                            {/* Mockup Card Header */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-200">
+                              <div className="flex items-center gap-3">
+                                <span className="w-7 h-7 rounded-xl bg-indigo-600 text-white text-xs font-black flex items-center justify-center shrink-0 shadow-xs">
+                                  {mIndex + 1}
+                                </span>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-gray-900">
+                                      {mockup.viewName} View
+                                    </h4>
+                                    {mockup.color ? (
+                                      <span className="px-2 py-0.5 rounded-md bg-gray-900 text-white text-[10px] font-bold uppercase tracking-wider">
+                                        Color: {mockup.color}
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 rounded-md bg-gray-200 text-gray-700 text-[10px] font-bold uppercase tracking-wider">
+                                        All / Default
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-gray-400 font-medium">
+                                    {mockup.printZones.length} Print Zone(s) • Applies to all sizes with this colorway
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Top Selectors & Controls */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                {/* Color Assignment Selector */}
+                                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-gray-200 shadow-2xs">
+                                  <Palette size={12} className="text-gray-400 shrink-0" />
+                                  <select
+                                    value={mockup.color || ''}
+                                    onChange={(e) => updateMockup(mIndex, { color: e.target.value })}
+                                    className="text-xs font-bold text-gray-700 bg-transparent outline-none cursor-pointer"
+                                  >
+                                    <option value="">All / Default Color</option>
+                                    {mockupAvailableColors.map((c) => (
+                                      <option key={c.name} value={c.name}>
+                                        Color: {c.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                {/* View Name Selector */}
+                                <select
+                                  value={mockup.viewName}
+                                  onChange={(e) => updateMockup(mIndex, { viewName: e.target.value })}
+                                  className="px-2.5 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-700 bg-white outline-none shadow-2xs cursor-pointer"
+                                >
+                                  <option value="front">Front View</option>
+                                  <option value="back">Back View</option>
+                                  <option value="left">Left Sleeve / Side</option>
+                                  <option value="right">Right Sleeve / Side</option>
+                                  <option value="flat">Flat Lay</option>
+                                </select>
+
+                                {/* Sync Zones to other colors button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleSyncPrintZones(mIndex)}
+                                  className="p-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-2xs cursor-pointer"
+                                  title={`Copy print zones from this ${mockup.viewName} to all other ${mockup.viewName} mockups`}
+                                >
+                                  <Copy size={14} />
+                                </button>
+
+                                {/* Delete View Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => removeMockup(mIndex)}
+                                  className="p-1.5 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
+                                  title="Delete View"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Mockup Card Body: Left Visual Preview, Right Zone Coordinates */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                              {/* Left: Template Image Input & Real-time Visual Overlay */}
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <Label required>Blank Garment Image ({mockup.color || 'Default'})</Label>
+                                  {mockup.baseImageUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        updateMockup(mIndex, {
+                                          baseImageUrl: '',
+                                          baseImagePublicId: '',
+                                        })
+                                      }
+                                      className="text-[10px] font-bold text-red-500 hover:text-red-700 transition-colors cursor-pointer"
+                                    >
+                                      Clear Image
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="flex gap-2 items-center">
+                                  <FieldInput
+                                    value={mockup.baseImageUrl}
+                                    onChange={(e) =>
+                                      updateMockup(mIndex, {
+                                        baseImageUrl: e.target.value,
+                                        baseImagePublicId: mockup.baseImagePublicId || `mockup_${Date.now()}`,
+                                      })
+                                    }
+                                    placeholder="Select from Media Library or paste image URL..."
+                                    className="text-xs font-mono flex-1 bg-white"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setMockupMediaModalIndex(mIndex)}
+                                    className="px-3.5 py-2.5 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-bold shrink-0 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                                    title="Open Media Library to select or upload a mockup image"
+                                  >
+                                    <ImageIcon size={14} />
+                                    <span>Library</span>
+                                  </button>
+                                </div>
+
+                                {/* Real-time Visualizer of Print Zone bounding box */}
+                                <div className="relative w-full aspect-square bg-white rounded-2xl border border-gray-200 overflow-hidden flex items-center justify-center group shadow-xs">
+                                  {mockup.baseImageUrl ? (
+                                    <>
+                                      <img
+                                        src={mockup.baseImageUrl}
+                                        alt={`${mockup.viewName} ${mockup.color || ''}`}
+                                        className="w-full h-full object-contain pointer-events-none select-none"
+                                      />
+                                      {mockup.printZones.map((zone, zIndex) => (
+                                        <div
+                                          key={zone.zoneId || zIndex}
+                                          style={{
+                                            left: `${zone.x}%`,
+                                            top: `${zone.y}%`,
+                                            width: `${zone.width}%`,
+                                            height: `${zone.height}%`,
+                                            transform: `rotate(${zone.rotation || 0}deg)`,
+                                          }}
+                                          className="absolute border-2 border-dashed border-red-500 bg-red-500/20 rounded-lg flex flex-col items-center justify-center p-1 pointer-events-none transition-all shadow-sm"
+                                        >
+                                          <span className="text-[9px] font-black uppercase text-red-700 bg-white/95 px-1.5 py-0.5 rounded shadow-xs truncate max-w-full">
+                                            {zone.label || `Zone ${zIndex + 1}`}
+                                          </span>
+                                          <span className="text-[8px] font-mono text-red-800 font-bold mt-0.5">
+                                            {zone.width}% × {zone.height}%
+                                          </span>
+                                        </div>
+                                      ))}
+
+                                      {/* Change Image Floating Action */}
+                                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                        <button
+                                          type="button"
+                                          onClick={() => setMockupMediaModalIndex(mIndex)}
+                                          className="px-3 py-1.5 bg-black/80 hover:bg-black text-white rounded-xl text-[10px] font-bold backdrop-blur-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                                        >
+                                          <ImageIcon size={12} /> Change Image
+                                        </button>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="text-center p-6 text-gray-400 flex flex-col items-center justify-center">
+                                      <ImageIcon size={36} className="mx-auto mb-2 opacity-30 text-gray-400" />
+                                      <p className="text-xs font-bold text-gray-700 mb-1">
+                                        No Garment Image Selected
+                                      </p>
+                                      <p className="text-[11px] text-gray-400 mb-3 max-w-[220px]">
+                                        Choose a blank garment photo for{' '}
+                                        <span className="font-bold text-gray-600">{mockup.color || 'this view'}</span>.
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={() => setMockupMediaModalIndex(mIndex)}
+                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                                      >
+                                        <Upload size={13} />
+                                        Select from Media Library
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Right: Print Zone Coordinates & 1-Click Placement Presets */}
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <Label>Logo Print Area (Zones)</Label>
+                                  <button
+                                    type="button"
+                                    onClick={() => addPrintZoneToMockup(mIndex)}
+                                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Plus size={12} /> Add Extra Zone
+                                  </button>
+                                </div>
+
+                                <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1">
+                                  {mockup.printZones.map((zone, zIndex) => (
+                                    <div
+                                      key={zone.zoneId || zIndex}
+                                      className="bg-white border border-gray-200 rounded-2xl p-4 space-y-3.5 shadow-2xs"
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <input
+                                          type="text"
+                                          value={zone.label}
+                                          onChange={(e) =>
+                                            updatePrintZoneInMockup(mIndex, zIndex, { label: e.target.value })
+                                          }
+                                          placeholder="Zone Label (e.g. Chest Logo)"
+                                          className="text-xs font-bold text-gray-800 border-b border-gray-200 pb-0.5 outline-none focus:border-indigo-500 w-full"
+                                        />
+                                        {mockup.printZones.length > 1 && (
+                                          <button
+                                            type="button"
+                                            onClick={() => removePrintZoneFromMockup(mIndex, zIndex)}
+                                            className="text-gray-400 hover:text-red-600 p-1 cursor-pointer"
+                                            title="Remove Zone"
+                                          >
+                                            <Trash2 size={12} />
+                                          </button>
+                                        )}
+                                      </div>
+
+                                      {/* 1-Click Quick Presets for non-technical admins */}
+                                      <div className="space-y-1.5">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1">
+                                          <SlidersHorizontal size={10} /> Quick Placement Presets:
+                                        </span>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {mockup.viewName.toLowerCase().includes('back') ? (
+                                            <>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  applyZonePreset(mIndex, zIndex, {
+                                                    label: 'Back Center',
+                                                    x: 25,
+                                                    y: 22,
+                                                    width: 50,
+                                                    height: 42,
+                                                  })
+                                                }
+                                                className="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 text-[10px] font-bold text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-colors cursor-pointer"
+                                              >
+                                                Back Center
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  applyZonePreset(mIndex, zIndex, {
+                                                    label: 'Back Collar / Yoke',
+                                                    x: 40,
+                                                    y: 12,
+                                                    width: 20,
+                                                    height: 14,
+                                                  })
+                                                }
+                                                className="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 text-[10px] font-bold text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-colors cursor-pointer"
+                                              >
+                                                Back Collar
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  applyZonePreset(mIndex, zIndex, {
+                                                    label: 'Full Back Graphic',
+                                                    x: 20,
+                                                    y: 18,
+                                                    width: 60,
+                                                    height: 58,
+                                                  })
+                                                }
+                                                className="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 text-[10px] font-bold text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-colors cursor-pointer"
+                                              >
+                                                Full Back
+                                              </button>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  applyZonePreset(mIndex, zIndex, {
+                                                    label: 'Center Chest',
+                                                    x: 30,
+                                                    y: 24,
+                                                    width: 40,
+                                                    height: 32,
+                                                  })
+                                                }
+                                                className="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 text-[10px] font-bold text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-colors cursor-pointer"
+                                              >
+                                                Center Chest
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  applyZonePreset(mIndex, zIndex, {
+                                                    label: 'Left Pocket',
+                                                    x: 56,
+                                                    y: 22,
+                                                    width: 20,
+                                                    height: 18,
+                                                  })
+                                                }
+                                                className="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 text-[10px] font-bold text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-colors cursor-pointer"
+                                              >
+                                                Left Pocket
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  applyZonePreset(mIndex, zIndex, {
+                                                    label: 'Full Front',
+                                                    x: 22,
+                                                    y: 18,
+                                                    width: 56,
+                                                    height: 56,
+                                                  })
+                                                }
+                                                className="px-2 py-1 rounded-lg bg-gray-50 border border-gray-200 text-[10px] font-bold text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-colors cursor-pointer"
+                                              >
+                                                Full Front
+                                              </button>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Precise Percentage Inputs */}
+                                      <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                                        <div>
+                                          <span className="text-gray-500 font-semibold text-[10px]">Left X (%):</span>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={zone.x}
+                                            onChange={(e) =>
+                                              updatePrintZoneInMockup(mIndex, zIndex, { x: Number(e.target.value) })
+                                            }
+                                            className="w-full mt-0.5 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-800 outline-none focus:border-indigo-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500 font-semibold text-[10px]">Top Y (%):</span>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={zone.y}
+                                            onChange={(e) =>
+                                              updatePrintZoneInMockup(mIndex, zIndex, { y: Number(e.target.value) })
+                                            }
+                                            className="w-full mt-0.5 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-800 outline-none focus:border-indigo-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500 font-semibold text-[10px]">Width (%):</span>
+                                          <input
+                                            type="number"
+                                            min="1"
+                                            max="100"
+                                            value={zone.width}
+                                            onChange={(e) =>
+                                              updatePrintZoneInMockup(mIndex, zIndex, { width: Number(e.target.value) })
+                                            }
+                                            className="w-full mt-0.5 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-800 outline-none focus:border-indigo-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500 font-semibold text-[10px]">Height (%):</span>
+                                          <input
+                                            type="number"
+                                            min="1"
+                                            max="100"
+                                            value={zone.height}
+                                            onChange={(e) =>
+                                              updatePrintZoneInMockup(mIndex, zIndex, { height: Number(e.target.value) })
+                                            }
+                                            className="w-full mt-0.5 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold text-gray-800 outline-none focus:border-indigo-500"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </SectionCard>
               </div>
             )}
 
@@ -1811,6 +2510,24 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 2D Mockup Media Library Selector */}
+      <MediaLibraryModal
+        isOpen={mockupMediaModalIndex !== null}
+        onClose={() => setMockupMediaModalIndex(null)}
+        onSelect={(item) => {
+          if (mockupMediaModalIndex !== null) {
+            updateMockup(mockupMediaModalIndex, {
+              baseImageUrl: item.secureUrl,
+              baseImagePublicId: item.publicId,
+            });
+            setMockupMediaModalIndex(null);
+            toast.success('Mockup template applied from Media Library.');
+          }
+        }}
+        folder="af1/products"
+        title="2D Mockup Template Library"
+      />
 
     </div>
   );

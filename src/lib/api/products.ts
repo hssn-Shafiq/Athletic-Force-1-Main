@@ -83,6 +83,10 @@ function buildProductFormData(payload: Partial<UpsertProductRequest> & { removeM
     ...(payload.mainVideo !== undefined ? { mainVideo: payload.mainVideo } : {}),
     ...(payload.galleryImages !== undefined ? { galleryImages: payload.galleryImages } : {}),
     ...(payload.removeMainImage !== undefined ? { removeMainImage: payload.removeMainImage } : {}),
+    ...(payload.isMasterProduct !== undefined ? { isMasterProduct: payload.isMasterProduct } : {}),
+    ...(payload.parentProductId !== undefined ? { parentProductId: payload.parentProductId } : {}),
+    ...(payload.vendorStoreId !== undefined ? { vendorStoreId: payload.vendorStoreId } : {}),
+    ...(payload.mockups !== undefined ? { mockups: payload.mockups } : {}),
   };
 
   formData.append('payload', JSON.stringify(bodyPayload));

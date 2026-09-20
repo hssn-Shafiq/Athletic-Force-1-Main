@@ -1,11 +1,22 @@
 import { apiClient } from './client';
 
+export interface VendorSelectedProductConfig {
+  productId: string;
+  selectedColors: string[];
+  customColors?: string[];
+  selectedSizes?: string[];
+}
+
 export interface SubmitVendorStorePayload {
   storeName: string;
   vendorName: string;
   email: string;
+  phone?: string;
+  address?: string;
+  productNamePrefix: string;
   collectionSlugs: string[];
   productIds: string[];
+  selectedProducts?: VendorSelectedProductConfig[];
   /** Base64 data-URL of the logo image, e.g. "data:image/png;base64,..." */
   logoBase64?: string | null;
 }
@@ -23,15 +34,24 @@ export interface SubmitVendorStoreResponse {
 
 export interface MyVendorStore {
   id: string;
+  _id?: string;
   storeName: string;
   vendorName: string;
   email: string;
+  phone?: string;
+  address?: string;
+  productNamePrefix?: string;
   status: 'pending' | 'approved' | 'rejected' | 'paused';
   logoUrl?: string;
   collectionSlugs: string[];
+  productIds: string[];
+  selectedProducts?: VendorSelectedProductConfig[];
   products: { _id: string; name: string; mainImageUrl: string; }[];
   rejectionReason?: string;
   allowedResubmission?: boolean;
+  commissionRate?: number;
+  isCommissionActive?: boolean;
+  commissionNotes?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -119,3 +139,129 @@ export async function adminDeleteVendorStoreApi(id: string) {
   const { data } = await apiClient.delete<{ ok: boolean }>(`/api/admin/vendor-stores/${id}`);
   return data;
 }
+
+export interface MockupConfigPayload {
+  viewName: string;
+  color?: string;
+  baseImageUrl: string;
+  baseImagePublicId?: string;
+  printZones: any[];
+  renderedImageUrl?: string;
+  renderedImagePublicId?: string;
+  logoTransform?: {
+    logoUrl: string;
+    xPercent: number;
+    yPercent: number;
+    scaleX: number;
+    scaleY: number;
+    rotation: number;
+  };
+}
+
+export interface ApproveAndGenerateProductItem {
+  masterProductId: string;
+  customName: string;
+  basePrice?: number;
+  mockups: MockupConfigPayload[];
+}
+
+export interface ApproveAndGeneratePayload {
+  productNamePrefix?: string;
+  commissionRate?: number;
+  isCommissionActive?: boolean;
+  commissionNotes?: string;
+  products: ApproveAndGenerateProductItem[];
+}
+
+export async function adminUploadMockupRenderApi(payload: { storeSlug: string; imageBase64: string }) {
+  const { data } = await apiClient.post<{ ok: boolean; url: string; publicId: string }>(
+    '/api/admin/vendor-stores/upload-mockup-render',
+    payload
+  );
+  return data;
+}
+
+export async function adminApproveAndGenerateProductsApi(id: string, payload: ApproveAndGeneratePayload) {
+  const { data } = await apiClient.post<{ ok: boolean; message: string; createdCount: number; store: MyVendorStore }>(
+    `/api/admin/vendor-stores/${id}/approve-and-generate`,
+    payload
+  );
+  return data;
+}
+
+export async function adminUpdateStoreCommissionApi(
+  id: string,
+  payload: {
+    commissionRate: number;
+    isCommissionActive: boolean;
+    commissionNotes?: string;
+  }
+) {
+  const { data } = await apiClient.patch<{
+    ok: boolean;
+    message: string;
+    store: {
+      id: string;
+      storeName: string;
+      commissionRate: number;
+      isCommissionActive: boolean;
+      commissionNotes?: string;
+    };
+  }>(`/api/admin/vendor-stores/${id}/commission`, payload);
+  return data;
+}
+
+export interface CommissionStoreBreakdown {
+  storeId: string;
+  storeName: string;
+  vendorName: string;
+  email: string;
+  logoUrl?: string;
+  status: string;
+  commissionRate: number;
+  isCommissionActive: boolean;
+  orderCount: number;
+  grossSales: number;
+  platformProfit: number;
+  vendorPayout: number;
+  lastOrderAt: string | null;
+}
+
+export interface CommissionTimelinePoint {
+  date: string;
+  platformProfit: number;
+  grossSales: number;
+  vendorPayout: number;
+  orders: number;
+}
+
+export interface CommissionAnalyticsResponse {
+  ok: boolean;
+  timeframe: {
+    range: string;
+    start: string;
+    end: string;
+  };
+  totals: {
+    totalGrossSales: number;
+    totalPlatformProfit: number;
+    totalVendorPayouts: number;
+    totalOrders: number;
+    totalItems: number;
+  };
+  timeline: CommissionTimelinePoint[];
+  stores: CommissionStoreBreakdown[];
+}
+
+export async function adminGetCommissionAnalyticsApi(params?: {
+  range?: string;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const { data } = await apiClient.get<CommissionAnalyticsResponse>(
+    '/api/admin/vendor-stores/commissions/analytics',
+    { params }
+  );
+  return data;
+}
+

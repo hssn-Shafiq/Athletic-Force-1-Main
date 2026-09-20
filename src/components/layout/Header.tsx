@@ -10,7 +10,8 @@ import {
   Menu,
   ChevronDown,
   X,
-  LayoutDashboard
+  LayoutDashboard,
+  Store,
 } from 'lucide-react';
 import { MegaMenu } from './MegaMenu';
 import { CartSidebar } from './CartSidebar';
@@ -120,7 +121,15 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
     };
   }, []);
 
-  const isAdminUser = Boolean(user?.roles?.some((role) => role !== 'customer'));
+  const isAdminUser = Boolean(
+    user?.roles?.some((role) => ['superadmin', 'manager', 'sales_admin', 'editor', 'seo_specialist'].includes(role) || role === 'admin')
+  );
+
+  const isVendorUser = Boolean(
+    user?.roles?.some((r) => r.toLowerCase().includes('vendor')) ||
+    Boolean(user?.vendorStoreId) ||
+    user?.roles?.includes('superadmin')
+  );
 
   const userInitial = user?.name?.trim()?.charAt(0)?.toUpperCase() ?? 'U';
 
@@ -141,7 +150,16 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
           <div className="min-w-0 flex-1">
             <span>Get <span className="text-orange-500 font-bold">20% Off</span> on Every Customized Uniform</span>
           </div>
-          <div className="hidden sm:flex items-center space-x-4 md:space-x-6 shrink-0">
+          <div className="hidden sm:flex items-center space-x-3 md:space-x-5 shrink-0">
+            {!isLoading && isAuthenticated && isVendorUser ? (
+              <Link
+                href="/vendor/dashboard"
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 hover:bg-[#FF7348] text-white hover:text-black font-black text-[10px] uppercase tracking-widest transition-all group"
+              >
+                <Store className="w-3 h-3 text-[#FF7348] group-hover:text-black" />
+                <span>Vendor Portal</span>
+              </Link>
+            ) : null}
             <button className="flex items-center uppercase tracking-widest font-bold text-[10px] whitespace-nowrap">
               USD <ChevronDown className="w-3 h-3 ml-1 text-slate-400" />
             </button>
@@ -351,7 +369,18 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
           </div>
 
           {/* Action Icons */}
-          <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-10">
+          <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-6 lg:space-x-8">
+            {!isLoading && isAuthenticated && isVendorUser ? (
+              <Link
+                href="/vendor/dashboard"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-full bg-slate-950 text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#FF7348] hover:text-white transition-all shadow-sm border border-slate-800 hover:border-[#FF7348] group"
+                title="Go to Vendor Dashboard"
+              >
+                <Store className="w-3.5 h-3.5 text-[#FF7348] group-hover:scale-110 transition-transform" />
+                <span className="hidden sm:inline">Vendor Dashboard</span>
+                <span className="sm:hidden">Vendor</span>
+              </Link>
+            ) : null}
             {!isLoading && isAuthenticated && isAdminUser ? (
               <Link
                 href="/admin"
@@ -420,11 +449,27 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
                       <p className="text-xs text-slate-500 truncate">{user?.email}</p>
                     </div>
 
+                    {isVendorUser && (
+                      <Link
+                        href="/vendor/dashboard"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="flex items-center justify-between px-3 py-2.5 text-sm font-bold text-slate-900 rounded-xl hover:bg-orange-50 hover:text-orange-600 transition-colors group mt-1"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Store className="w-4 h-4 text-[#FF7348] group-hover:scale-110 transition-transform" />
+                          <span>Vendor Dashboard</span>
+                        </div>
+                        <span className="text-[9px] font-black uppercase tracking-widest bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                          Store
+                        </span>
+                      </Link>
+                    )}
+
                     {isAdminUser && (
                       <Link
                         href="/admin"
                         onClick={() => setIsProfileMenuOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2.5 text-sm font-bold text-orange-600 rounded-xl hover:bg-orange-50 transition-colors"
+                        className="flex items-center gap-2 px-3 py-2.5 text-sm font-bold text-orange-600 rounded-xl hover:bg-orange-50 transition-colors mt-1"
                       >
                         <LayoutDashboard className="w-4 h-4" />
                         Admin Dashboard

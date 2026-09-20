@@ -6,14 +6,16 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, Store, Mail, User, Tag, Package, CheckCircle, 
   XCircle, Clock, PauseCircle, Save, Loader2, Image as ImageIcon,
-  ChevronDown, X, Search as SearchIcon, Plus
+  ChevronDown, X, Search as SearchIcon, Plus, Sparkles, Percent
 } from 'lucide-react';
 import { 
   adminGetVendorStoreApi, 
   adminUpdateVendorStoreStatusApi, 
   adminUpdateVendorStoreApi,
+  adminUpdateStoreCommissionApi,
   AdminVendorStoreDetail
 } from '@/lib/api/vendorStores';
+import { VendorStoreApprovalModal } from '@/admin/components/VendorStoreApprovalModal';
 import { getCollectionHierarchyApi } from '@/lib/api/publicCollections';
 import { getExploreProductsApi } from '@/lib/api/publicProducts';
 import type { CollectionHierarchy } from '@/lib/api/types';
@@ -32,14 +34,23 @@ export default function AdminVendorStoreDetailPage({ params }: { params: Promise
   const [loading, setLoading] = useState(true);
   
   // Status Modal
+  const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [allowedResubmission, setAllowedResubmission] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
 
+  // Commission Edit Modal State
+  const [commissionModalOpen, setCommissionModalOpen] = useState(false);
+  const [modalCommissionRate, setModalCommissionRate] = useState<number>(15);
+  const [modalIsCommissionActive, setModalIsCommissionActive] = useState<boolean>(true);
+  const [modalCommissionNotes, setModalCommissionNotes] = useState<string>('');
+  const [savingCommission, setSavingCommission] = useState(false);
+
   // Edit State
   const [editStoreName, setEditStoreName] = useState('');
   const [editVendorName, setEditVendorName] = useState('');
+  const [editProductNamePrefix, setEditProductNamePrefix] = useState('');
   const [editLogoBase64, setEditLogoBase64] = useState<string | null>(null);
   const [selectedCollectionSlugs, setSelectedCollectionSlugs] = useState<string[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<CachedProduct[]>([]);
@@ -73,14 +84,43 @@ export default function AdminVendorStoreDetailPage({ params }: { params: Promise
         // Init edit state
         setEditStoreName(res.store.storeName);
         setEditVendorName(res.store.vendorName);
+        setEditProductNamePrefix(res.store.productNamePrefix || '');
         setSelectedCollectionSlugs(res.store.collectionSlugs);
         setSelectedProducts(res.store.products.map(p => ({ id: p._id, name: p.name })));
+        if (res.store.commissionRate !== undefined) setModalCommissionRate(res.store.commissionRate);
+        if (res.store.isCommissionActive !== undefined) setModalIsCommissionActive(res.store.isCommissionActive);
+        if (res.store.commissionNotes !== undefined) setModalCommissionNotes(res.store.commissionNotes);
       }
     } catch (err) {
       console.error(err);
       alert('Failed to fetch store details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveCommission = async () => {
+    setSavingCommission(true);
+    try {
+      const res = await adminUpdateStoreCommissionApi(id, {
+        commissionRate: modalCommissionRate,
+        isCommissionActive: modalIsCommissionActive,
+        commissionNotes: modalCommissionNotes,
+      });
+      if (res?.ok) {
+        setStore((prev) => prev ? {
+          ...prev,
+          commissionRate: res.store.commissionRate,
+          isCommissionActive: res.store.isCommissionActive,
+          commissionNotes: res.store.commissionNotes,
+        } : null);
+        setCommissionModalOpen(false);
+      }
+    } catch (err: any) {
+      console.error('Failed to update commission:', err);
+      alert(err?.response?.data?.message || 'Failed to update commission settings');
+    } finally {
+      setSavingCommission(false);
     }
   };
 
@@ -170,6 +210,7 @@ export default function AdminVendorStoreDetailPage({ params }: { params: Promise
       await adminUpdateVendorStoreApi(id, {
         storeName: editStoreName,
         vendorName: editVendorName,
+        productNamePrefix: editProductNamePrefix,
         collectionSlugs: selectedCollectionSlugs,
         productIds: selectedProducts.map(p => p.id),
         logoBase64: editLogoBase64 || undefined
@@ -259,6 +300,24 @@ export default function AdminVendorStoreDetailPage({ params }: { params: Promise
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between ml-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
+                      Product Name Prefix (Pattern: AF1 [Prefix] Product)
+                    </label>
+                    <span className="text-[9px] font-bold text-orange-600 uppercase italic">
+                      Preview: AF1 {editProductNamePrefix.trim() || 'Prefix'} HS Hoodie
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={editProductNamePrefix}
+                    onChange={e => setEditProductNamePrefix(e.target.value)}
+                    placeholder="e.g. Eagles"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold italic outline-none focus:border-orange-400"
+                  />
+                </div>
+
                 {/* Collections */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic ml-2">Assigned Collections</label>
@@ -321,9 +380,29 @@ export default function AdminVendorStoreDetailPage({ params }: { params: Promise
                   <div>
                     <h1 className="text-3xl font-black uppercase tracking-tighter italic">{store.storeName}</h1>
                     <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">{store.vendorName}</p>
-                    <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full">
-                      <Mail className="w-3 h-3 text-slate-400" />
-                      <span className="text-[10px] font-bold text-slate-600">{store.email}</span>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full">
+                        <Mail className="w-3 h-3 text-slate-400" />
+                        <span className="text-[10px] font-bold text-slate-600">{store.email}</span>
+                      </div>
+                      {store.productNamePrefix && (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-50 border border-orange-200/60 rounded-full">
+                          <Tag className="w-3 h-3 text-[#FF7348]" />
+                          <span className="text-[10px] font-bold text-orange-700 uppercase tracking-wider">
+                            Pattern: AF1 {store.productNamePrefix} [Product]
+                          </span>
+                        </div>
+                      )}
+                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border ${
+                        store.isCommissionActive
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          : 'bg-slate-100 border-slate-200 text-slate-600'
+                      }`}>
+                        <Percent className="w-3 h-3 text-emerald-600" />
+                        <span className="text-[10px] font-black uppercase tracking-wider">
+                          Commission: {store.isCommissionActive ? `${store.commissionRate || 0}%` : 'Disabled'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -358,7 +437,16 @@ export default function AdminVendorStoreDetailPage({ params }: { params: Promise
 
                 {/* Product Images Preview */}
                 <div className="pt-6 border-t border-slate-100">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic mb-4">Portfolio Preview ({store.products.length})</p>
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
+                      {store.status === 'approved' ? 'Branded Store Products' : 'Requested Products (Catalog Templates)'} ({store.products.length})
+                    </p>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                      store.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'
+                    }`}>
+                      {store.status === 'approved' ? 'Vendor Catalog' : 'Form Selection'}
+                    </span>
+                  </div>
                   <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2">
                     {store.products.map(p => (
                       <Link href={`/admin/products/${p._id}`} key={p._id} className="flex items-center gap-4 p-3 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-slate-100 hover:border-slate-200 transition-colors group">
@@ -394,43 +482,280 @@ export default function AdminVendorStoreDetailPage({ params }: { params: Promise
               <div className="space-y-3">
                 {store.status === 'pending' && (
                   <>
-                    <button onClick={() => handleStatusChange('approved')} disabled={statusLoading} className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
-                      <CheckCircle className="w-4 h-4"/> Approve Store
+                    <button
+                      onClick={() => setApprovalModalOpen(true)}
+                      disabled={statusLoading}
+                      className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4 text-emerald-100" /> Review Mockups &amp; Approve
                     </button>
-                    <button onClick={() => setRejectModalOpen(true)} disabled={statusLoading} className="w-full py-4 bg-white text-red-500 border border-red-200 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-50 transition-all flex items-center justify-center gap-2">
-                      <XCircle className="w-4 h-4"/> Reject Store
+                    <button
+                      onClick={() => setRejectModalOpen(true)}
+                      disabled={statusLoading}
+                      className="w-full py-4 bg-white text-red-500 border border-red-200 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+                    >
+                      <XCircle className="w-4 h-4" /> Reject Store
                     </button>
                   </>
                 )}
 
                 {store.status === 'approved' && (
                   <>
-                    <button onClick={() => handleStatusChange('paused')} disabled={statusLoading} className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-black shadow-lg transition-all flex items-center justify-center gap-2">
-                      <PauseCircle className="w-4 h-4"/> Pause Store
+                    <button
+                      onClick={() => setApprovalModalOpen(true)}
+                      disabled={statusLoading}
+                      className="w-full py-4 bg-orange-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-orange-600 shadow-lg shadow-orange-500/20 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4 text-orange-200" /> Re-align Mockups &amp; Regenerate
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange('paused')}
+                      disabled={statusLoading}
+                      className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-black shadow-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <PauseCircle className="w-4 h-4" /> Pause Store
                     </button>
                   </>
                 )}
 
                 {store.status === 'rejected' && (
                   <>
-                    <button onClick={() => handleStatusChange('approved')} disabled={statusLoading} className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
-                      <CheckCircle className="w-4 h-4"/> Re-Approve Store
+                    <button
+                      onClick={() => setApprovalModalOpen(true)}
+                      disabled={statusLoading}
+                      className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" /> Review Mockups &amp; Re-Approve
                     </button>
                   </>
                 )}
 
                 {store.status === 'paused' && (
                   <>
-                    <button onClick={() => handleStatusChange('approved')} disabled={statusLoading} className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
-                      <CheckCircle className="w-4 h-4"/> Reactivate Store
+                    <button
+                      onClick={() => handleStatusChange('approved')}
+                      disabled={statusLoading}
+                      className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" /> Reactivate Store
                     </button>
                   </>
                 )}
               </div>
             </div>
+
+            {/* Platform Commission Card */}
+            <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm relative overflow-hidden">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <Percent className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-900">Platform Commission</h3>
+                    <p className="text-[11px] font-bold text-slate-400">Revenue split per sale</p>
+                  </div>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                  store.isCommissionActive && (store.commissionRate ?? 0) > 0
+                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                }`}>
+                  {store.isCommissionActive && (store.commissionRate ?? 0) > 0
+                    ? `${store.commissionRate}% Active`
+                    : '0% Free'}
+                </span>
+              </div>
+
+              <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-2xl p-5 border border-slate-100 mb-5">
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Take Rate</span>
+                  <span className="text-2xl font-black italic tracking-tight text-slate-900">
+                    {store.isCommissionActive ? `${store.commissionRate ?? 0}%` : '0%'}
+                  </span>
+                </div>
+                <p className="text-xs font-semibold text-slate-500 leading-relaxed">
+                  {store.isCommissionActive && (store.commissionRate ?? 0) > 0 ? (
+                    <>Platform deducts <strong className="text-indigo-600">{store.commissionRate}%</strong> from each completed item sale. Vendor nets <strong className="text-slate-800">{100 - (store.commissionRate ?? 0)}%</strong>.</>
+                  ) : (
+                    <>Store is currently <strong className="text-emerald-600">0% Commission-Free</strong>. Vendor keeps 100% of product sale revenue.</>
+                  )}
+                </p>
+                {store.commissionNotes && (
+                  <div className="mt-3 pt-3 border-t border-slate-200/60 text-[11px] text-slate-500 italic">
+                    <span className="font-bold text-slate-700 not-italic">Note: </span>
+                    {store.commissionNotes}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => {
+                  setModalCommissionRate(store.commissionRate ?? 0);
+                  setModalIsCommissionActive(store.isCommissionActive ?? false);
+                  setModalCommissionNotes(store.commissionNotes || '');
+                  setCommissionModalOpen(true);
+                }}
+                className="w-full py-3.5 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-black transition-all shadow-md flex items-center justify-center gap-2"
+              >
+                <Percent className="w-3.5 h-3.5" /> Adjust Commission Rate
+              </button>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Edit Commission Modal */}
+      <AnimatePresence>
+        {commissionModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setCommissionModalOpen(false)} 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 10 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.95, opacity: 0, y: 10 }} 
+              className="relative bg-white w-full max-w-lg rounded-[32px] p-8 shadow-2xl border border-slate-100"
+            >
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <Percent className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900">Commission Settings</h3>
+                    <p className="text-xs text-slate-400 font-semibold">{store?.storeName}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setCommissionModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Active Toggle */}
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div>
+                    <div className="text-xs font-black uppercase tracking-wider text-slate-800">Charge Platform Commission</div>
+                    <div className="text-[11px] text-slate-400 font-semibold">Enable or disable commission collection for this store</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setModalIsCommissionActive(!modalIsCommissionActive)}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${
+                      modalIsCommissionActive ? 'bg-indigo-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span 
+                      className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${
+                        modalIsCommissionActive ? 'translate-x-6' : 'translate-x-0'
+                      }`} 
+                    />
+                  </button>
+                </div>
+
+                {modalIsCommissionActive && (
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Commission Rate (%)</label>
+                        <span className="text-lg font-black italic text-indigo-600">{modalCommissionRate}%</span>
+                      </div>
+                      <input 
+                        type="range"
+                        min="0"
+                        max="50"
+                        step="1"
+                        value={modalCommissionRate}
+                        onChange={(e) => setModalCommissionRate(Number(e.target.value))}
+                        className="w-full accent-indigo-600 cursor-pointer"
+                      />
+                      <div className="flex gap-2 mt-3">
+                        {[0, 10, 15, 20, 25].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setModalCommissionRate(preset)}
+                            className={`flex-1 py-2 rounded-xl text-xs font-black uppercase transition-all ${
+                              modalCommissionRate === preset
+                                ? 'bg-indigo-600 text-white shadow-sm'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            {preset === 0 ? '0% Free' : `${preset}%`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Live Preview */}
+                    <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-2">Earnings Split on a $100.00 Sale</div>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="p-2.5 bg-white rounded-xl border border-indigo-100">
+                          <span className="text-[10px] text-slate-400 block uppercase font-bold">Platform Profit</span>
+                          <span className="text-base font-black text-indigo-600">${modalCommissionRate.toFixed(2)}</span>
+                        </div>
+                        <div className="p-2.5 bg-white rounded-xl border border-indigo-100">
+                          <span className="text-[10px] text-slate-400 block uppercase font-bold">Vendor Payout</span>
+                          <span className="text-base font-black text-slate-800">${(100 - modalCommissionRate).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes */}
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block">
+                    Internal Commission Notes (Optional)
+                  </label>
+                  <textarea
+                    value={modalCommissionNotes}
+                    onChange={(e) => setModalCommissionNotes(e.target.value)}
+                    placeholder="e.g. Approved with standard 15% rate on launch promotion..."
+                    rows={3}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-xs font-semibold outline-none focus:border-indigo-400"
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCommissionModalOpen(false)}
+                    className="flex-1 py-3.5 text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 rounded-2xl transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveCommission}
+                    disabled={savingCommission}
+                    className="flex-1 py-3.5 bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    {savingCommission ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                      </>
+                    ) : (
+                      'Save Commission'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Reject Modal */}
       <AnimatePresence>
@@ -459,6 +784,16 @@ export default function AdminVendorStoreDetailPage({ params }: { params: Promise
           </div>
         )}
       </AnimatePresence>
+
+      {/* 2D Mockup Review & Approval Modal */}
+      {store && (
+        <VendorStoreApprovalModal
+          isOpen={approvalModalOpen}
+          onClose={() => setApprovalModalOpen(false)}
+          store={store}
+          onApproved={fetchStore}
+        />
+      )}
     </div>
   );
 }
