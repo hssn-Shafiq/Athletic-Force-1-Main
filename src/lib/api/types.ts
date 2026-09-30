@@ -273,6 +273,9 @@ export type AdminProduct = {
   parentProductId?: string;
   vendorStoreId?: string;
   mockups?: ProductMockup[];
+  is3dModal?: boolean;
+  Is3dModal?: boolean;
+  modalId?: string | null;
   name: string;
   slug: string;
   description?: string;
@@ -532,6 +535,9 @@ export type UpsertProductRequest = {
   parentProductId?: string;
   vendorStoreId?: string;
   mockups?: ProductMockup[];
+  is3dModal?: boolean;
+  Is3dModal?: boolean;
+  modalId?: string | null;
 };
 
 export type CreateProductRequest = UpsertProductRequest;

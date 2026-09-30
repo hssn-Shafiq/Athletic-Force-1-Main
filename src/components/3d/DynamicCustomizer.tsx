@@ -491,7 +491,7 @@ export function DynamicCustomizer({ modelUrl }: DynamicCustomizerProps) {
                 />
               </Center>
             </Bounds>
-            <OrbitControls makeDefault enablePan={false} minPolarAngle={0} maxPolarAngle={Math.PI / 1.8} />
+            <OrbitControls makeDefault enablePan={false} />
           </Suspense>
         </Canvas>
 

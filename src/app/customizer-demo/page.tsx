@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Box, ChevronDown, RefreshCw } from 'lucide-react';
+import { Box, ChevronDown, RefreshCw, CheckCircle2, Sparkles, Layers, Palette, Type, Image as ImageIcon } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 
 const SmartCustomizer = dynamic(
@@ -11,10 +11,15 @@ const SmartCustomizer = dynamic(
 
 function CanvasLoader() {
   return (
-    <div className="w-full h-[750px] bg-[#0a0a0f] rounded-2xl flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-10 h-10 border-4 border-white/10 border-t-orange-500 rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-white/40 text-xs uppercase tracking-widest font-bold">Initialising 3D Engine...</p>
+    <div className="w-full h-[780px] bg-[#0a0a0f] rounded-3xl flex items-center justify-center border border-white/10">
+      <div className="text-center space-y-4">
+        <div className="w-12 h-12 border-4 border-white/10 border-t-[#FF7348] rounded-full animate-spin mx-auto" />
+        <div>
+          <p className="text-white text-sm font-black uppercase tracking-widest">
+            Loading 3D Garment Studio...
+          </p>
+          <p className="text-white/40 text-xs mt-1">Preparing high-resolution meshes & graphics</p>
+        </div>
       </div>
     </div>
   );
@@ -33,6 +38,7 @@ export default function CustomizerDemoPage() {
   const [selectedId, setSelectedId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [savedDesign, setSavedDesign] = useState<any>(null);
 
   const selectedModel = models.find((m) => m.id === selectedId) ?? null;
 
@@ -55,21 +61,27 @@ export default function CustomizerDemoPage() {
     }
   };
 
-  useEffect(() => { fetchModels(); }, []);
+  useEffect(() => {
+    fetchModels();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#f8f8fb] py-12 px-6">
+    <div className="min-h-screen bg-[#07080b] py-12 px-4 sm:px-6 lg:px-8 text-white">
       <div className="max-w-7xl mx-auto space-y-8">
-
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end gap-6 justify-between">
+        <div className="flex flex-col md:flex-row md:items-end gap-6 justify-between border-b border-white/10 pb-6">
           <div>
-            <p className="text-xs font-black uppercase tracking-[.3em] text-orange-500 mb-2">Live Preview</p>
-            <h1 className="text-5xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#FF7348] italic">
+                Interactive 3D Studio
+              </span>
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-black italic uppercase tracking-tighter text-white mt-1">
               3D Gear Customizer
             </h1>
-            <p className="text-slate-400 font-medium max-w-xl text-base mt-3">
-              Select a model configured in the admin panel to preview its print zones and colour customization.
+            <p className="text-slate-400 font-medium max-w-2xl text-sm mt-2">
+              Live customer preview terminal. Test real-time team logos, player names, numbers, and fabric color customization on active 3D models.
             </p>
           </div>
 
@@ -79,19 +91,24 @@ export default function CustomizerDemoPage() {
               <div className="relative">
                 <select
                   value={selectedId}
-                  onChange={(e) => setSelectedId(e.target.value)}
-                  className="appearance-none pl-4 pr-10 py-3 bg-white border-2 border-slate-200 rounded-2xl text-sm font-black uppercase tracking-wider text-slate-800 focus:border-orange-500 outline-none cursor-pointer shadow-sm min-w-[220px]"
+                  onChange={(e) => {
+                    setSelectedId(e.target.value);
+                    setSavedDesign(null);
+                  }}
+                  className="appearance-none pl-4 pr-10 py-3 bg-[#111319] border border-white/10 rounded-2xl text-xs font-black uppercase tracking-wider text-white focus:border-[#FF7348] outline-none cursor-pointer shadow-lg min-w-[240px]"
                 >
                   {models.map((m) => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
               </div>
               <button
                 onClick={fetchModels}
                 title="Refresh models"
-                className="p-3 bg-white border-2 border-slate-200 rounded-2xl hover:border-orange-500 text-slate-400 hover:text-orange-500 transition-all shadow-sm"
+                className="p-3 bg-[#111319] border border-white/10 rounded-2xl hover:border-[#FF7348] text-slate-400 hover:text-white transition-all shadow-lg"
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -100,26 +117,19 @@ export default function CustomizerDemoPage() {
         </div>
 
         {/* State: Loading */}
-        {loading && (
-          <div className="w-full h-[750px] bg-[#0a0a0f] rounded-2xl flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-10 h-10 border-4 border-white/10 border-t-orange-500 rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-white/40 text-xs uppercase tracking-widest font-bold">Fetching Models...</p>
-            </div>
-          </div>
-        )}
+        {loading && <CanvasLoader />}
 
         {/* State: Error / Empty */}
         {!loading && error && (
-          <div className="w-full h-[400px] bg-[#0a0a0f] rounded-2xl flex items-center justify-center border-2 border-dashed border-white/10">
+          <div className="w-full h-[400px] bg-[#111319] rounded-3xl flex items-center justify-center border-2 border-dashed border-white/10">
             <div className="text-center space-y-4 p-8">
               <Box className="w-12 h-12 text-white/20 mx-auto" />
               <p className="text-white/50 text-sm font-bold uppercase tracking-widest">{error}</p>
               <a
                 href="/admin/3d-models"
-                className="inline-flex items-center gap-2 px-5 py-3 bg-orange-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-orange-600 transition-all"
+                className="inline-flex items-center gap-2 px-5 py-3 bg-[#FF7348] text-black rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-[#ff8660] transition-all"
               >
-                Go to Admin → 3D Models
+                Go to Admin &rarr; 3D Models
               </a>
             </div>
           </div>
@@ -129,45 +139,149 @@ export default function CustomizerDemoPage() {
         {!loading && selectedModel && (
           <>
             {/* Zone count badge */}
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Model: <span className="text-slate-700">{selectedModel.name}</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                Active Garment: <strong className="text-white">{selectedModel.name}</strong>
               </span>
-              <span className="h-4 w-px bg-slate-200" />
-              <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${selectedModel.printZones.length > 0 ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-400'}`}>
-                {selectedModel.printZones.length} print zone{selectedModel.printZones.length !== 1 ? 's' : ''}
+              <span className="h-3 w-px bg-white/10" />
+              <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-[#FF7348]/10 text-[#FF7348] border border-[#FF7348]/20">
+                {selectedModel.printZones.length} Print Area{selectedModel.printZones.length !== 1 ? 's' : ''} Configured
               </span>
             </div>
 
+            {/* Smart Customizer Component */}
             <SmartCustomizer
               modelConfig={selectedModel}
               onSave={(data) => {
-                console.log('✅ Design payload:', data);
-                alert('Design saved! Open the console to see the JSON payload that would be sent to an order.');
+                setSavedDesign(data);
               }}
             />
+
+            {/* Live Design Summary Box (When saved) */}
+            {savedDesign && (
+              <div className="p-6 rounded-3xl bg-gradient-to-br from-[#121a16] to-[#0e131b] border border-emerald-500/30 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    <div>
+                      <h3 className="text-base font-black italic uppercase tracking-wider text-white">
+                        Design Payload Generated
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        This customization data will be attached to the customer order cart item.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Ready for Checkout
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  {/* Colors applied */}
+                  <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                      <Palette className="w-3.5 h-3.5 text-orange-400" /> Fabric Colors:
+                    </span>
+                    {Object.keys(savedDesign.colors || {}).length === 0 ? (
+                      <p className="text-xs text-slate-500 italic">Default garment fabric colors retained</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(savedDesign.colors).map(([mat, hex]: any) => (
+                          <div
+                            key={mat}
+                            className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-white/5 border border-white/10 text-xs"
+                          >
+                            <span
+                              className="w-3 h-3 rounded-full border border-white/20"
+                              style={{ backgroundColor: hex }}
+                            />
+                            <span className="font-bold text-white uppercase">{mat}</span>
+                            <span className="text-slate-400 font-mono text-[10px]">{hex}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Zones applied */}
+                  <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-purple-400" /> Customized Print Areas:
+                    </span>
+                    {Object.entries(savedDesign.zones || {}).map(([zId, zData]: any) => (
+                      <div
+                        key={zId}
+                        className="text-xs flex items-center justify-between py-1 border-b border-white/5 last:border-none"
+                      >
+                        <span className="font-bold text-white uppercase truncate max-w-[200px]">
+                          {zData.customText || zData.customImageUrl ? 'Customized' : 'Original Default'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {zData.customText && (
+                            <span className="text-emerald-400 font-black">
+                              &ldquo;{zData.customText}&rdquo;
+                            </span>
+                          )}
+                          {zData.customImageUrl && (
+                            <span className="text-purple-400 font-bold">[Logo attached]</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
 
-        {/* How it works */}
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 text-white">
-          <h2 className="text-xl font-black italic uppercase tracking-tighter mb-5 text-orange-400">How to Test This</h2>
-          <ol className="space-y-3">
-            {[
-              { step: '1', text: 'Go to Admin → 3D Models and click "Add Model".' },
-              { step: '2', text: 'Paste a .glb URL (e.g. /3d mockups/Shirt_7.glb) and click Load.' },
-              { step: '3', text: 'Click "Add Zone", then click on the shirt surface to place a print area.' },
-              { step: '4', text: 'Set the zone label, type (image/text/both), width & height. Click Save.' },
-              { step: '5', text: 'Come back here — select your model from the dropdown above and test it live!' },
-            ].map(({ step, text }) => (
-              <li key={step} className="flex items-start gap-4">
-                <span className="w-7 h-7 rounded-xl bg-orange-500 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">{step}</span>
-                <p className="text-white/70 text-sm font-medium leading-relaxed">{text}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
+        {/* How it works Banner */}
+        <div className="bg-[#111319] border border-white/10 rounded-3xl p-6 sm:p-8 text-white space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-[#FF7348]" />
+            <h2 className="text-lg font-black italic uppercase tracking-wider text-white">
+              Non-Technical Experience Guide
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
+              <span className="w-6 h-6 rounded-lg bg-[#FF7348] text-black font-black text-xs flex items-center justify-center">
+                1
+              </span>
+              <p className="text-xs font-black uppercase tracking-wider text-white pt-1">
+                Visual View Buttons
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Click Front, Back, Left Arm, or Right Arm to automatically glide the camera directly to that section.
+              </p>
+            </div>
 
+            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
+              <span className="w-6 h-6 rounded-lg bg-[#FF7348] text-black font-black text-xs flex items-center justify-center">
+                2
+              </span>
+              <p className="text-xs font-black uppercase tracking-wider text-white pt-1">
+                Click in 3D to Edit
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Click anywhere on the shirt fabric or print area to auto-select and highlight that exact item.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
+              <span className="w-6 h-6 rounded-lg bg-[#FF7348] text-black font-black text-xs flex items-center justify-center">
+                3
+              </span>
+              <p className="text-xs font-black uppercase tracking-wider text-white pt-1">
+                Real-Time Visual Customization
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Type names or upload logos with instant 3D feedback, and revert back to team defaults with a single click.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

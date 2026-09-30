@@ -28,13 +28,20 @@ import {
   Play,
   X,
   CreditCard,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Product } from '@/types';
 import { getExploreProductBySlugApi } from '@/lib/api/publicProducts';
+import { apiClient } from '@/lib/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useInView } from 'react-intersection-observer';
+
+const SmartCustomizer = dynamic(
+  () => import('@/components/3d/SmartCustomizer').then((mod) => ({ default: mod.SmartCustomizer })),
+  { ssr: false }
+);
 
 const ShopFeaturesFaqSection = dynamic(() => import('@/app/shop/components/ShopFeaturesFaqSection').then(mod => mod.ShopFeaturesFaqSection), {
   ssr: true,
@@ -189,6 +196,8 @@ interface DetailedProduct extends Omit<Product, 'variants' | 'inventory' | 'main
     imageUrl?: string;
     isActive?: boolean;
   }>;
+  is3dModal?: boolean;
+  modalId?: string | null;
 }
 
 function unique(values: string[]) {
@@ -279,6 +288,8 @@ function mapToDetailedProduct(raw: any): DetailedProduct {
     orderType: raw.orderType || 'direct',
     galleryImages: (raw.galleryImages || []).map((entry: any) => entry.url),
     collections: raw.collections || [],
+    is3dModal: Boolean(raw.is3dModal),
+    modalId: raw.modalId ? String(raw.modalId) : null,
   };
 }
 
@@ -565,6 +576,52 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
   // Upsell Selection Modal State
   const [isUpsellModalOpen, setIsUpsellModalOpen] = useState(false);
   const [activeUpsell, setActiveUpsell] = useState<DetailedProduct['upsellProducts'][0] | null>(null);
+
+  // 3D Customizer State
+  const [active3DModel, setActive3DModel] = useState<any>(null);
+  const [is3DCustomizerOpen, setIs3DCustomizerOpen] = useState(false);
+  const [custom3DDesign, setCustom3DDesign] = useState<any>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const targetModelId = product?.modalId;
+
+    if (targetModelId) {
+      apiClient
+        .get(`/api/public/3d-models/${targetModelId}`)
+        .then(({ data }) => {
+          if (mounted && data?.ok && data.model) {
+            setActive3DModel(data.model);
+            try {
+              const saved = localStorage.getItem(`af1_custom_design_${data.model.id || targetModelId}`);
+              if (saved) setCustom3DDesign(JSON.parse(saved));
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    } else {
+      apiClient
+        .get('/api/public/3d-models')
+        .then(({ data }) => {
+          if (mounted && data?.ok && Array.isArray(data.models) && data.models.length > 0) {
+            const matched = product?.id
+              ? data.models.find((m: any) => m.product_id === product.id || m.productId === product.id)
+              : null;
+            const chosen = matched || data.models[0];
+            setActive3DModel(chosen);
+            try {
+              const saved = localStorage.getItem(`af1_custom_design_${chosen.id}`);
+              if (saved) setCustom3DDesign(JSON.parse(saved));
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [product?.modalId, product?.id]);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -1343,6 +1400,38 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
               </button>
             )}
 
+            {/* 3D Customizer Action Button */}
+            {(active3DModel || product?.is3dModal || product?.modalId) && (
+              <div className="space-y-2 pt-1">
+                <Link
+                  href={`/af1-canvas/editor/${active3DModel?.id || product?.modalId || 'default'}${product?.id ? `?productId=${product.id}` : ''}`}
+                  className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-orange-500/10 via-orange-500/15 to-orange-500/10 hover:from-orange-500/20 hover:to-orange-500/25 border-2 border-dashed border-[#FF7348]/40 text-[#FF7348] font-black uppercase text-xs sm:text-sm tracking-wider transition-all shadow-sm active:scale-[0.99] group cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4 text-[#FF7348] group-hover:rotate-12 transition-transform" />
+                  <span>Customize in 3D Studio</span>
+                  {custom3DDesign && (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-black text-[9px] font-black tracking-widest ml-1">
+                      Customized
+                    </span>
+                  )}
+                </Link>
+                {custom3DDesign && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs text-emerald-800">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      <span className="font-bold">3D Custom Design Attached to Product</span>
+                    </div>
+                    <Link
+                      href={`/af1-canvas/editor/${active3DModel?.id || product?.modalId || 'default'}${product?.id ? `?productId=${product.id}` : ''}`}
+                      className="underline font-black text-[11px] uppercase text-emerald-700 hover:text-emerald-900 cursor-pointer"
+                    >
+                      Edit Design
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Trust Badges (Moved to bottom) */}
 
             {/* Payment & Shipping Terms (moved below trust badges) */}
@@ -1658,6 +1747,42 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
 
       {/* Dynamic spacing spacer to avoid content overlap at the very bottom */}
       <div className="h-20 sm:h-24 lg:hidden" />
+
+      {/* 3D Customizer Fullscreen Modal */}
+      {is3DCustomizerOpen && active3DModel && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-6xl max-h-[96vh] rounded-3xl overflow-hidden border border-white/20 bg-[#07080b] shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between p-4 px-6 border-b border-white/10 bg-[#0e1015]">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#FF7348] animate-pulse" />
+                <h2 className="text-base sm:text-lg font-black uppercase italic tracking-wider text-white">
+                  3D Studio &bull; {product.title}
+                </h2>
+              </div>
+              <button
+                onClick={() => setIs3DCustomizerOpen(false)}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
+                title="Close Customizer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-hidden p-2 sm:p-4 bg-[#0a0a0f] min-h-0">
+              <SmartCustomizer
+                modelConfig={active3DModel}
+                className="w-full h-full min-h-0"
+                onSave={(data) => {
+                  setCustom3DDesign(data);
+                  setIs3DCustomizerOpen(false);
+                  toast.success("3D Customization saved and attached to your product!", { theme: "dark" });
+                }}
+                onClose={() => setIs3DCustomizerOpen(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

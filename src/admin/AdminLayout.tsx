@@ -427,7 +427,10 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
               icon={Boxes}
               label="3D Models"
               isCollapsed={isSidebarCollapsed}
-              href="/admin/3d-models"
+              subItems={[
+                { label: "All Models", href: "/admin/3d-models" },
+                { label: "Add New", href: "/admin/3d-models/add" }
+              ]}
             />
           )}
 
@@ -508,8 +511,8 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
         </div>
       </aside>
 
-      {/* Main Content Area - Dedicated Scroll Container */}
-      <div className={`flex-1 flex flex-col h-screen overflow-y-auto min-w-0 transition-all duration-300 ${isSidebarOpen
+      {/* Main Content Area - Dedicated Shell */}
+      <div className={`flex-1 flex flex-col h-screen overflow-hidden min-w-0 transition-all duration-300 ${isSidebarOpen
           ? (isSidebarCollapsed ? "lg:ml-20" : "lg:ml-72")
           : "ml-0"
         }`}>
@@ -765,7 +768,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           </div>
         </header>
 
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto min-h-0">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

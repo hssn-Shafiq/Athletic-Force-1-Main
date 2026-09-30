@@ -126,13 +126,7 @@ export const VendorLayout: React.FC<{ children: React.ReactNode }> = ({ children
       subItems: [
         { label: 'All products', href: '/vendor/products', icon: Boxes },
         { label: 'Add product', href: '/vendor/products/add', icon: PlusCircle },
-        { label: 'Inventory', href: '/vendor/products/inventory', icon: Warehouse },
       ],
-    },
-    {
-      label: 'Order',
-      href: '/vendor/orders',
-      icon: ShoppingBag,
     },
     {
       label: 'Store',
@@ -141,21 +135,6 @@ export const VendorLayout: React.FC<{ children: React.ReactNode }> = ({ children
         { label: 'Store profile', href: '/vendor/store/profile', icon: Store },
         { label: 'Store setting', href: '/vendor/store/settings', icon: SettingsIcon },
       ],
-    },
-    {
-      label: 'Reviews',
-      href: '/vendor/reviews',
-      icon: Star,
-    },
-    {
-      label: 'Earnings',
-      href: '/vendor/earnings',
-      icon: DollarSign,
-    },
-    {
-      label: 'Analytics',
-      href: '/vendor/analytics',
-      icon: TrendingUp,
     },
     {
       label: 'Setting',

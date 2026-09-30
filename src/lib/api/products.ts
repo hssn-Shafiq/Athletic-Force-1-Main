@@ -34,6 +34,8 @@ function buildProductFormData(payload: Partial<UpsertProductRequest> & { removeM
     ...(payload.inventory !== undefined ? { inventory: payload.inventory } : {}),
     ...(payload.shipping !== undefined ? { shipping: payload.shipping } : {}),
     ...(payload.seo !== undefined ? { seo: payload.seo } : {}),
+    ...(payload.is3dModal !== undefined ? { is3dModal: payload.is3dModal } : {}),
+    ...(payload.modalId !== undefined ? { modalId: payload.modalId } : {}),
     ...(payload.variants !== undefined
       ? {
           variants: payload.variants.map((variant) => ({
