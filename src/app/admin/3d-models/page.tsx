@@ -14,5 +14,5 @@ const Admin3DModels = dynamic(() => import('@/admin/Admin3DModels'), {
 });
 
 export default function Page() {
-  return <Admin3DModels />;
+  return <Admin3DModels initialView="list" />;
 }

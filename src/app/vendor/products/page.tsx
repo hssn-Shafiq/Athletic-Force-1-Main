@@ -8,7 +8,6 @@ import {
   Search,
   PlusCircle,
   ExternalLink,
-  Warehouse,
   Boxes,
   Eye,
   CheckCircle2,
@@ -75,12 +74,6 @@ export default function VendorProductsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link
-            href="/vendor/products/inventory"
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 text-xs font-bold uppercase tracking-wider transition-colors"
-          >
-            <Warehouse className="w-4 h-4 text-blue-400" /> Stock Levels
-          </Link>
           <Link
             href="/vendor/products/add"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF7348] hover:bg-[#ff8660] text-black font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-orange-500/20 active:scale-[0.98]"
@@ -161,7 +154,6 @@ export default function VendorProductsPage() {
                   <th className="p-4 pl-6">Product</th>
                   <th className="p-4">Base Price</th>
                   <th className="p-4">Variations</th>
-                  <th className="p-4">Available Stock</th>
                   <th className="p-4">Status</th>
                   <th className="p-4 pr-6 text-right">Actions</th>
                 </tr>
@@ -203,21 +195,6 @@ export default function VendorProductsPage() {
                       </span>
                     </td>
 
-                    {/* Stock */}
-                    <td className="p-4">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          p.totalStock > 10
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : p.totalStock > 0
-                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                        }`}
-                      >
-                        {p.totalStock > 0 ? `${p.totalStock} in stock` : 'Out of Stock'}
-                      </span>
-                    </td>
-
                     {/* Status */}
                     <td className="p-4">
                       <span
@@ -241,13 +218,6 @@ export default function VendorProductsPage() {
                           title="View Live Store Page"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                        </Link>
-                        <Link
-                          href="/vendor/products/inventory"
-                          className="p-2 rounded-xl bg-white/5 hover:bg-blue-500/20 text-slate-400 hover:text-blue-400 border border-white/5 transition-colors"
-                          title="Update Inventory"
-                        >
-                          <Warehouse className="w-3.5 h-3.5" />
                         </Link>
                       </div>
                     </td>
