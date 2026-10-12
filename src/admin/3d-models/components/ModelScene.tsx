@@ -1,9 +1,9 @@
 import React, { useRef, useEffect, useMemo, useCallback } from "react";
 import * as THREE from "three";
 import { useGLTF } from "@react-three/drei";
-import { createPortal, ThreeEvent, useFrame } from "@react-three/fiber";
+import { createPortal, ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { PrintZone, MaterialInfo } from "../types";
-import { computeDecalRotationFromNormal } from "../utils/decalUtils";
+import { computeDecalRotationFromNormal, isPlaceholderMesh } from "../utils/decalUtils";
 import { CameraFit, CameraHelperController } from "./CameraControllers";
 import { ZoneDecal } from "./ZoneDecal";
 import { PartOutline } from "./PartOutline";
@@ -60,7 +60,6 @@ export function ModelScene({
   onPartClick,
 }: SceneProps) {
   const { scene: rawScene } = useGLTF(url);
-  const didReport = useRef(false);
   const isDraggingRef = useRef(false);
   const highlightedMaterialsRef = useRef<THREE.MeshStandardMaterial[]>([]);
 
@@ -70,8 +69,8 @@ export function ModelScene({
   }, [isDragging]);
 
   const scene = useMemo(() => {
-    didReport.current = false;
     const s = rawScene.clone(true);
+
     s.traverse((o) => {
       const m = o as THREE.Mesh;
       if (!m.isMesh) return;
@@ -82,6 +81,8 @@ export function ModelScene({
           cloned.roughness = 0.85;
           cloned.metalness = 0.0;
           cloned.envMapIntensity = 0.35;
+
+          const matName = (cloned.name || m.name || "").trim().toLowerCase();
         }
         return cloned;
       };
@@ -92,40 +93,96 @@ export function ModelScene({
     return s;
   }, [rawScene]);
 
+  // Free the cloned materials when the model unmounts.
+  useEffect(() => {
+    return () => {
+      scene.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (m.isMesh && m.material) {
+          (Array.isArray(m.material) ? m.material : [m.material]).forEach((mat) => mat.dispose());
+        }
+      });
+    };
+  }, [scene]);
+
   // Expose cloned scene so InnerCanvas raycasts ONLY the model, not lights/cameras
   useEffect(() => {
     modelSceneRef.current = scene;
   }, [scene, modelSceneRef]);
 
-  // Report all model materials with mesh names for rich categorization
-  useEffect(() => {
-    if (didReport.current) return;
-    didReport.current = true;
-    const found = new Map<string, { originalColor: string; meshName?: string }>();
+  const invalidate = useThree((s) => s.invalidate);
+
+  // Single unified index built once when scene loads: gathers materials, meshes, and lookups
+  const modelIndex = useMemo(() => {
+    const byName: Record<string, THREE.Mesh> = {};
+    const byMat: Record<string, THREE.Mesh> = {};
+    let first: THREE.Mesh | null = null;
+    const meshEntries: {
+      mesh: THREE.Mesh;
+      meshNameLower: string;
+      standardMats: THREE.MeshStandardMaterial[];
+      matNamesLower: string[];
+    }[] = [];
+    const found = new Map<string, MaterialInfo>();
+
     scene.traverse((o) => {
       const m = o as THREE.Mesh;
-      if (!m.isMesh) return;
-      if (m.userData?.isDecal) return; // Skip runtime customizer decals only
-      const mats = Array.isArray(m.material) ? m.material : [m.material];
-      mats.forEach((mat) => {
-        const sm   = mat as THREE.MeshStandardMaterial;
-        const name = (sm?.name || m.name || "unnamed").trim();
-        if (name && !found.has(name)) {
-          found.set(name, {
-            originalColor: "#" + (sm?.color?.getHexString?.() ?? "ffffff"),
-            meshName: m.name ? m.name.trim() : undefined,
-          });
+      if (!m.isMesh || !m.visible) return;
+      if (m.userData?.isDecal) return;
+      if (isPlaceholderMesh(m)) return;
+
+      if (!first) first = m;
+      if (m.name) byName[m.name] = m;
+
+      const rawMats = Array.isArray(m.material) ? m.material : [m.material];
+      const standardMats: THREE.MeshStandardMaterial[] = [];
+      const matNamesLower: string[] = [];
+
+      rawMats.forEach((mat) => {
+        const sm = mat as THREE.MeshStandardMaterial;
+        if (sm) {
+          standardMats.push(sm);
+          const matName = (sm.name || "").trim();
+          if (matName) {
+            matNamesLower.push(matName.toLowerCase());
+            if (!byMat[matName]) byMat[matName] = m;
+          }
+          const meshName = (m.name || "").trim();
+          const displayName = matName || meshName || "unnamed";
+          const uniqueKey = matName && meshName ? `${matName}:::${meshName}` : displayName;
+          if (!found.has(uniqueKey)) {
+            found.set(uniqueKey, {
+              name: displayName,
+              originalColor: "#" + (sm.color?.getHexString?.() ?? "ffffff"),
+              meshName: meshName || undefined,
+            });
+          }
         }
       });
+
+      meshEntries.push({
+        mesh: m,
+        meshNameLower: (m.name || "").trim().toLowerCase(),
+        standardMats,
+        matNamesLower,
+      });
     });
-    onMaterialsFound(
-      Array.from(found.entries()).map(([name, data]) => ({
-        name,
-        originalColor: data.originalColor,
-        meshName: data.meshName,
-      }))
-    );
-  }, [scene, onMaterialsFound]);
+
+    return {
+      byName,
+      byMat,
+      first,
+      materialsList: Array.from(found.values()),
+      meshEntries,
+    };
+  }, [scene]);
+
+  // Report all model materials with mesh names for complete parts & variations list
+  useEffect(() => {
+    if (modelIndex.materialsList.length > 0) {
+      onMaterialsFound(modelIndex.materialsList);
+    }
+  }, [modelIndex, onMaterialsFound]);
 
   // Identify all 3D meshes belonging to the active variation/part
   const activeMeshes = useMemo(() => {
@@ -134,103 +191,92 @@ export function ModelScene({
     const activeMatLower = activeMaterial ? activeMaterial.trim().toLowerCase() : null;
     const activeMeshLower = activeMeshName ? activeMeshName.trim().toLowerCase() : null;
 
-    scene.traverse((o) => {
-      const mesh = o as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      if (mesh.userData?.isDecal) return; // Skip runtime customizer decals only
-
-      const meshNameLower = (mesh.name || "").trim().toLowerCase();
+    for (const entry of modelIndex.meshEntries) {
       const isMeshMatch = !!activeMeshLower && (
-        meshNameLower === activeMeshLower ||
-        meshNameLower.includes(activeMeshLower) ||
-        activeMeshLower.includes(meshNameLower)
+        entry.meshNameLower === activeMeshLower ||
+        entry.meshNameLower.includes(activeMeshLower) ||
+        activeMeshLower.includes(entry.meshNameLower)
       );
 
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       let isMatMatch = false;
-      for (const mat of mats) {
-        const sm = mat as THREE.MeshStandardMaterial;
-        const matNameLower = (sm?.name || mesh.name || "unnamed").trim().toLowerCase();
+      if (activeMatLower) {
         if (
-          activeMatLower &&
-          (matNameLower === activeMatLower ||
-           meshNameLower === activeMatLower ||
-           matNameLower.includes(activeMatLower) ||
-           activeMatLower.includes(matNameLower))
+          entry.meshNameLower === activeMatLower ||
+          entry.matNamesLower.some(
+            (nm) => nm === activeMatLower || nm.includes(activeMatLower) || activeMatLower.includes(nm)
+          )
         ) {
           isMatMatch = true;
-          break;
         }
       }
 
       if (isMeshMatch || isMatMatch) {
-        list.push(mesh);
+        list.push(entry.mesh);
       }
-    });
+    }
 
     return list;
-  }, [activeMaterial, activeMeshName, scene]);
+  }, [activeMaterial, activeMeshName, modelIndex]);
 
   // Dual highlight: harmonize surface glow with border outline on selected meshes
   useEffect(() => {
     const list: THREE.MeshStandardMaterial[] = [];
-    scene.traverse((o) => {
-      const mesh = o as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      if (mesh.userData?.isDecal) return; // Never touch runtime customizer decals
-
-      const isSelected = activeMeshes.includes(mesh);
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      mats.forEach((mat) => {
-        const sm = mat as THREE.MeshStandardMaterial;
-        if (!sm.emissive) return;
+    for (const entry of modelIndex.meshEntries) {
+      const isSelected = activeMeshes.includes(entry.mesh);
+      for (const sm of entry.standardMats) {
+        if (!sm.emissive) continue;
         if (isSelected) {
           sm.emissive.setHex(0x00e5ff); // Radiant neon cyan matching the perimeter border
           sm.emissiveIntensity = 0.20;
           sm.needsUpdate = true;
           list.push(sm);
         } else {
-          sm.emissive.setHex(0x000000);
-          sm.emissiveIntensity = 0;
-          sm.needsUpdate = true;
+          if (sm.emissiveIntensity !== 0 || sm.emissive.getHex() !== 0x000000) {
+            sm.emissive.setHex(0x000000);
+            sm.emissiveIntensity = 0;
+            sm.needsUpdate = true;
+          }
         }
-      });
-    });
+      }
+    }
     highlightedMaterialsRef.current = list;
-  }, [activeMeshes, scene]);
+  }, [activeMeshes, modelIndex]);
 
-  // Gentle studio pulse animation on highlighted part
+  // Clean up any orphaned decals whose zone was removed from state
+  useEffect(() => {
+    if (!scene) return;
+    const currentZoneIds = new Set(zones.map((z) => z.id));
+    const toRemove: THREE.Object3D[] = [];
+
+    scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.userData?.isDecal && m.userData?.zoneId && !currentZoneIds.has(m.userData.zoneId)) {
+        m.visible = false;
+        toRemove.push(m);
+      }
+    });
+
+    toRemove.forEach((m) => {
+      if (m.parent) m.parent.remove(m);
+    });
+  }, [scene, zones]);
+
+  // Frame animation loop: pulse emissive glow on active selected variation part
   useFrame(({ clock }) => {
     if (highlightedMaterialsRef.current.length === 0) return;
     const pulse = 0.16 + 0.08 * Math.sin(clock.elapsedTime * 3.5);
     for (const sm of highlightedMaterialsRef.current) {
       sm.emissiveIntensity = pulse;
     }
+    invalidate();
   });
-
-  // Pre-index meshes for quick lookup by mesh name and material name
-  const meshLookup = useMemo(() => {
-    const byName: Record<string, THREE.Mesh> = {};
-    const byMat: Record<string, THREE.Mesh> = {};
-    let first: THREE.Mesh | null = null;
-    scene.traverse((o) => {
-      if ((o as THREE.Mesh).isMesh) {
-        const m = o as THREE.Mesh;
-        if (!first) first = m;
-        if (m.name) byName[m.name] = m;
-        const mats = Array.isArray(m.material) ? m.material : [m.material];
-        mats.forEach((mat) => {
-          const name = (mat?.name || "").trim();
-          if (name && !byMat[name]) byMat[name] = m;
-        });
-      }
-    });
-    return { byName, byMat, first };
-  }, [scene]);
 
   const updatePositionFromHit = useCallback((e: ThreeEvent<PointerEvent>) => {
     if (!activeZoneId) return;
-    const hit = e.intersections.find((i) => (i.object as THREE.Mesh).isMesh);
+    const hit = e.intersections.find((i) => {
+      const m = i.object as THREE.Mesh;
+      return m.isMesh && m.visible && !isPlaceholderMesh(m);
+    });
     if (!hit || !hit.point || !hit.face) return;
 
     const targetMesh = hit.object as THREE.Mesh;
@@ -263,7 +309,10 @@ export function ModelScene({
       }
     }
 
-    const hit = e.intersections.find((i) => (i.object as THREE.Mesh).isMesh);
+    const hit = e.intersections.find((i) => {
+      const m = i.object as THREE.Mesh;
+      return m.isMesh && m.visible && !isPlaceholderMesh(m);
+    });
     if (!hit || !hit.point) return;
 
     const mesh = hit.object as THREE.Mesh;
@@ -343,9 +392,9 @@ export function ModelScene({
       {/* Decals projected directly onto the model mesh inside targetMesh hierarchy */}
       {zones.map((zone) => {
         const targetMesh =
-          (zone.meshName ? meshLookup.byName[zone.meshName] : null) ||
-          meshLookup.byMat[zone.materialName] ||
-          meshLookup.first;
+          (zone.meshName ? modelIndex.byName[zone.meshName] : null) ||
+          modelIndex.byMat[zone.materialName] ||
+          modelIndex.first;
 
         if (!targetMesh) return null;
 

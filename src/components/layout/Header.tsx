@@ -13,7 +13,7 @@ import {
   LayoutDashboard,
   Store,
 } from 'lucide-react';
-import { MegaMenu } from './MegaMenu';
+import { MegaMenu, prefetchHeaderMenu } from './MegaMenu';
 import { CartSidebar } from './CartSidebar';
 import { MobileMenuSidebar } from './MobileMenuSidebar';
 import { motion, AnimatePresence } from 'motion/react';
@@ -40,6 +40,9 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const { items: wishlistItems } = useWishlist();
+
+  // Pre-fetch nav menu data immediately so it's ready when user opens the menu
+  useEffect(() => { prefetchHeaderMenu(); }, []);
 
   // --- Live Search Command Center ---
   const [searchQuery, setSearchQuery] = useState("");

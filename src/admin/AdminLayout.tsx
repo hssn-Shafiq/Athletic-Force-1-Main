@@ -381,8 +381,8 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
       {/* Sidebar - Fixed Positioning */}
       <aside className={`bg-white border-r border-slate-100 flex flex-col transition-all duration-300 z-50 fixed inset-y-0 left-0 ${isSidebarOpen
-          ? (isSidebarCollapsed ? "w-20 translate-x-0" : "w-72 translate-x-0")
-          : "w-72 -translate-x-full lg:translate-x-0 lg:w-20"
+        ? (isSidebarCollapsed ? "w-20 translate-x-0" : "w-72 translate-x-0")
+        : "w-72 -translate-x-full lg:translate-x-0 lg:w-20"
         }`}>
         <div className={`p-8 flex items-center justify-between gap-3 ${isSidebarCollapsed ? "px-5" : ""}`}>
           <div className="flex items-center gap-3">
@@ -513,8 +513,8 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
       {/* Main Content Area - Dedicated Shell */}
       <div className={`flex-1 flex flex-col h-screen overflow-hidden min-w-0 transition-all duration-300 ${isSidebarOpen
-          ? (isSidebarCollapsed ? "lg:ml-20" : "lg:ml-72")
-          : "ml-0"
+        ? (isSidebarCollapsed ? "lg:ml-20" : "lg:ml-72")
+        : "ml-0"
         }`}>
         {/* Topbar - Locked Tactical Header */}
         <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-40 shrink-0">

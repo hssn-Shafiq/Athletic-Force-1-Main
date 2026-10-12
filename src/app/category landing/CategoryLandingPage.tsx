@@ -96,12 +96,11 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
                 className="group relative bg-white border border-slate-100 rounded-[28px] sm:rounded-[40px] p-6 sm:p-10 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 cursor-pointer overflow-hidden shadow-sm h-full"
               >
                 {/* Background Accent */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-[100px] flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-500">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-slate-50 rounded-bl-[100px] flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-500">
                   <ChevronRight className="w-8 h-8 text-slate-200 group-hover:text-white transition-colors" />
                 </div>
 
                 <div className="space-y-4">
-                  <div className="text-xs font-black uppercase tracking-[0.2em] text-orange-600 italic">Sub-Collection</div>
                   <h3 className="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter text-slate-900 group-hover:text-orange-600 transition-colors">
                     {sub}
                   </h3>
@@ -112,11 +111,6 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
                     <span>Explore Collection</span>
                     <div className="w-8 h-0.5 bg-slate-200 group-hover:w-16 group-hover:bg-black transition-all" />
                   </div>
-                </div>
-
-                {/* Decorative Number */}
-                <div className="absolute -bottom-5 right-8 text-8xl font-black text-slate-50 italic pointer-events-none group-hover:text-orange-50 transition-colors">
-                  {(idx + 1).toString().padStart(2, '0')}
                 </div>
               </motion.div>
             </Link>
@@ -145,10 +139,10 @@ export const CategoryLandingPage: React.FC<CategoryLandingPageProps> = ({ catego
               <span>Contact Agent</span>
               <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
-            <button className="flex-1 lg:flex-none flex items-center justify-center gap-3 sm:gap-4 border-2 border-white/20 text-white px-6 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl sm:rounded-3xl font-black uppercase italic tracking-tighter text-base sm:text-lg lg:text-xl hover:bg-white/10 transition-all">
+            {/* <button className="flex-1 lg:flex-none flex items-center justify-center gap-3 sm:gap-4 border-2 border-white/20 text-white px-6 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl sm:rounded-3xl font-black uppercase italic tracking-tighter text-base sm:text-lg lg:text-xl hover:bg-white/10 transition-all">
               <span>Bulk Order</span>
               <Target className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
+            </button> */}
           </div>
         </div>
       </section>

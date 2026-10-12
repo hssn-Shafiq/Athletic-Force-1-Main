@@ -33,6 +33,7 @@ export function categorizeModelPart(
   meshName?: string
 ): FormattedPart {
   const combined = `${rawName} ${meshName || ""}`.toLowerCase();
+  const partId = meshName && meshName !== rawName ? `${rawName}__${meshName}` : rawName;
 
   // Collar / Neck variations (handles "Neeck", "Neckless", "Neck.001", "rib", "collar")
   if (
@@ -44,7 +45,7 @@ export function categorizeModelPart(
     combined.includes("rib")
   ) {
     return {
-      id: rawName,
+      id: partId,
       rawName,
       meshName,
       label: "Collar / Neck",
@@ -68,7 +69,7 @@ export function categorizeModelPart(
   ) {
     const isTrim = combined.includes("part") || combined.includes("cuff") || combined.includes("trim");
     return {
-      id: rawName,
+      id: partId,
       rawName,
       meshName,
       label: isTrim ? "Left Arm Trim / Cuff" : "Left Arm / Sleeve",
@@ -93,7 +94,7 @@ export function categorizeModelPart(
   ) {
     const isTrim = combined.includes("part") || combined.includes("cuff") || combined.includes("trim");
     return {
-      id: rawName,
+      id: partId,
       rawName,
       meshName,
       label: isTrim ? "Right Arm Trim / Cuff" : "Right Arm / Sleeve",
@@ -113,7 +114,7 @@ export function categorizeModelPart(
     combined.includes("body_back")
   ) {
     return {
-      id: rawName,
+      id: partId,
       rawName,
       meshName,
       label: "Back Body",
@@ -128,7 +129,7 @@ export function categorizeModelPart(
   // Dedicated Logo Variations
   if (combined.includes("logo")) {
     return {
-      id: rawName,
+      id: partId,
       rawName,
       meshName,
       label: "Chest Logo / Badge",
@@ -143,7 +144,7 @@ export function categorizeModelPart(
   // Dedicated Number Variations
   if (combined.includes("number")) {
     return {
-      id: rawName,
+      id: partId,
       rawName,
       meshName,
       label: "Jersey Number Area",
@@ -158,7 +159,7 @@ export function categorizeModelPart(
   // Dedicated Text Variations
   if (combined.includes("text")) {
     return {
-      id: rawName,
+      id: partId,
       rawName,
       meshName,
       label: "Graphic / Text Detail",
@@ -178,7 +179,7 @@ export function categorizeModelPart(
     combined.includes("body_front")
   ) {
     return {
-      id: rawName,
+      id: partId,
       rawName,
       meshName,
       label: "Front Body",
@@ -193,7 +194,7 @@ export function categorizeModelPart(
   // Shorts / Bottom variations
   if (combined.includes("short") || combined.includes("pant") || combined.includes("bottom")) {
     return {
-      id: rawName,
+      id: partId,
       rawName,
       meshName,
       label: "Shorts / Bottom",
@@ -211,7 +212,7 @@ export function categorizeModelPart(
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
   return {
-    id: rawName,
+    id: partId,
     rawName,
     meshName,
     label: cleaned,

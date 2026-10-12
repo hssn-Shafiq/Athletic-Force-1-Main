@@ -1,40 +1,46 @@
 "use client";
 
-import React, { Suspense, useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { Canvas, createPortal } from '@react-three/fiber';
-import { OrbitControls, useGLTF, Environment, Decal } from '@react-three/drei';
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Canvas, createPortal, useThree } from '@react-three/fiber';
+import { Decal, Environment, Loader, OrbitControls, useCursor, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import {
-  Upload,
-  Type,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  Image as ImageIcon,
+  Lock,
+  Maximize2,
   Palette,
   RotateCw,
-  RotateCcw,
-  Check,
+  SlidersHorizontal,
   Sparkles,
-  Image as ImageIcon,
   Trash2,
   Undo2,
-  ZoomIn,
-  Eye,
-  Layers,
-  HelpCircle,
-  Maximize2,
-  Sliders,
-  SlidersHorizontal,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Bold,
-  Lock,
   Unlock,
-  ArrowUp,
-  ArrowDown,
-  Move,
+  Upload,
 } from 'lucide-react';
 import { categorizeModelPart, FormattedPart } from '@/admin/3d-models/utils/partUtils';
 import { PartOutline } from '@/admin/3d-models/components/PartOutline';
 import { CameraFit, CameraHelperController } from '@/admin/3d-models/components/CameraControllers';
+import { isPlaceholderMesh } from '@/admin/3d-models/utils/decalUtils';
+import { FONT_FAMILY_PRESETS } from '@/admin/3d-models/types';
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Types (public API is unchanged, plus ZoneEdits / customImageFile in onSave)
+   ════════════════════════════════════════════════════════════════════════════ */
 
 export interface PrintZone {
   id: string;
@@ -54,10 +60,14 @@ export interface PrintZone {
   placeholder?: string;
   fontSize?: number;
   textColor?: string;
+  fontFamily?: string;
   align?: 'left' | 'center' | 'right';
   isBold?: boolean;
   allowCustomColor?: boolean;
   defaultColor?: string;
+  zoneRole?: string;
+  maxCharacters?: number;
+  allowedInputType?: 'text' | 'numeric' | 'alphanumeric';
   hit?: any;
 }
 
@@ -70,30 +80,77 @@ export interface Model3DConfig {
 }
 
 export interface LogoTransform {
-  scale: number; // 0.3 to 1.6, default 1.0
-  widthScale?: number; // 0.4 to 1.6, default 1.0
-  heightScale?: number; // 0.4 to 1.6, default 1.0
+  scale: number; // 0.3 – 1.6, default 1
+  widthScale?: number; // 0.4 – 1.6, default 1
+  heightScale?: number; // 0.4 – 1.6, default 1
   lockAspect?: boolean; // default true
-  alignX: 'left' | 'center' | 'right'; // default 'center'
-  alignY: 'top' | 'center' | 'bottom'; // default 'center'
-  offsetX: number; // -50 to 50, default 0
-  offsetY: number; // -50 to 50, default 0
-  rotation: number; // -180 to 180 in degrees, default 0
+  alignX: 'left' | 'center' | 'right';
+  alignY: 'top' | 'center' | 'bottom';
+  offsetX: number; // -50 – 50
+  offsetY: number; // -50 – 50
+  rotation: number; // -180 – 180 degrees
 }
 
+type TextAlign = 'left' | 'center' | 'right';
+type CameraCommand = 'front' | 'back' | 'left' | 'right' | 'reset';
+
+/** Everything the customer changed for ONE zone. `undefined` = "use the admin default". */
+export interface ZoneEdits {
+  logo?: HTMLImageElement;
+  logoFile?: File;
+  transform?: LogoTransform;
+  text?: string;
+  textColor?: string;
+  fontFamily?: string;
+  fontSize?: number;
+  bold?: boolean;
+  align?: TextAlign;
+}
+type EditsMap = Record<string, ZoneEdits>;
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Constants
+   ════════════════════════════════════════════════════════════════════════════ */
+
 export const ATHLETIC_COLOR_PRESETS = [
-  { name: 'White', hex: '#FFFFFF' },
-  { name: 'Jet Black', hex: '#111827' },
-  { name: 'Athletic Gold', hex: '#F59E0B' },
-  { name: 'Crimson Red', hex: '#EF4444' },
-  { name: 'Royal Blue', hex: '#2563EB' },
-  { name: 'Emerald Green', hex: '#10B981' },
-  { name: 'Electric Orange', hex: '#FF7348' },
-  { name: 'Navy Blue', hex: '#1E3A8A' },
-  { name: 'Heather Silver', hex: '#94A3B8' },
-  { name: 'Purple', hex: '#8B5CF6' },
-  { name: 'Hot Pink', hex: '#EC4899' },
-  { name: 'Neon Volt', hex: '#84CC16' },
+  { name: 'Cardinal Red', hex: '#97233f' },
+  { name: 'Yellow', hex: '#ffb612' },
+  { name: 'Red', hex: '#a71930' },
+  { name: 'Silver', hex: '#a5acaf' },
+  { name: 'Purple', hex: '#1e1656' },
+  { name: 'Metalic Gold', hex: '#9e7c0c' },
+  { name: 'Royal Blue', hex: '#00338d' },
+  { name: 'Process Blue', hex: '#0085ca' },
+  { name: 'Orange', hex: '#e64100' },
+  { name: 'Navy Blue', hex: '#0b162a' },
+  { name: 'Brown', hex: '#311D00' },
+  { name: 'Honolulu Blue', hex: '#0076b6' },
+  { name: 'White', hex: '#ffffff' },
+  { name: 'Silver', hex: '#b0b7bc' },
+  { name: 'Black', hex: '#000000' },
+  { name: 'Dark Green', hex: '#203731' },
+  { name: 'Deep Blue', hex: '#03202f' },
+  { name: 'Teal', hex: '#006778' },
+  { name: 'Gold', hex: '#9f792c' },
+  { name: 'Light Gold', hex: '#d7a22a' },
+  { name: 'Red', hex: '#e31837' },
+  { name: 'Powder Blue', hex: '#0073cf' },
+  { name: 'Yellow', hex: '#ffd100' },
+  { name: 'Orange', hex: '#ff8200' },
+  { name: 'Lite Orange', hex: '#ffa300' },
+  { name: 'Orng', hex: '#fc4c02' },
+  { name: 'Aqua', hex: '#008e97' },
+  { name: 'Marine Blue', hex: '#005778' },
+  { name: 'Old Gold', hex: '#d3bc8d' },
+  { name: 'Legacy Green', hex: '#115740' },
+  { name: 'Midnight Green', hex: '#004c54' },
+  { name: 'Gold', hex: '#b3995d' },
+  { name: 'Red', hex: '#aa0000' },
+  { name: 'Action Green', hex: '#69be28' },
+  { name: 'Titans Red', hex: '#c8102E' },
+  { name: 'Titans Blue', hex: '#4b92db' },
+  { name: 'Burgundy', hex: '#5a1414' },
+  { name: 'Forest Green', hex: '#154406' },
 ];
 
 export const TEXT_SIZE_OPTIONS = [
@@ -103,338 +160,511 @@ export const TEXT_SIZE_OPTIONS = [
   { label: 'XL', value: 160 },
 ];
 
+const TEX = 1024; // decal texture resolution
+const FONT_FAMILY = '"Barlow Condensed", "Arial Black", Arial, sans-serif';
+const ACCENT = '#FF7348';
+const MAX_LOGO_BYTES = 8 * 1024 * 1024;
+const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+
+/**
+ * Render only when something changes (drag, slider, texture update) instead of 60 fps forever.
+ * Big battery / GPU win for a product viewer. If your CameraHelperController animates the camera
+ * inside useFrame without calling invalidate(), set this to false (or add invalidate() there).
+ */
+const RENDER_ON_DEMAND = true;
+
+const DEFAULT_TRANSFORM: LogoTransform = {
+  scale: 1,
+  widthScale: 1,
+  heightScale: 1,
+  lockAspect: true,
+  alignX: 'center',
+  alignY: 'center',
+  offsetX: 0,
+  offsetY: 0,
+  rotation: 0,
+};
+
+const VIEW_BUTTONS: { id: CameraCommand; label: string; icon: string }[] = [
+  { id: 'front', label: 'Front', icon: '👕' },
+  { id: 'back', label: 'Back', icon: '🔄' },
+  { id: 'left', label: 'Left arm', icon: '👈' },
+  { id: 'right', label: 'Right arm', icon: '👉' },
+  { id: 'reset', label: 'Center', icon: '🎯' },
+];
+
+/* Shared class strings keep the JSX readable */
+const cardCls = 'space-y-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5';
+const labelCls = 'text-white/50 text-xs font-bold tracking-wide';
+const focusCls =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400';
+
+const toArray = <T,>(v: T | T[]): T[] => (Array.isArray(v) ? v : [v]);
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Zone helpers
+   ════════════════════════════════════════════════════════════════════════════ */
+
+type Direction = 'FRONT' | 'BACK' | 'LEFT SLEEVE' | 'RIGHT SLEEVE';
+
+const DIRECTION_META: Record<Direction, { camera: 'front' | 'back' | 'left' | 'right'; icon: string }> = {
+  FRONT: { camera: 'front', icon: '👕' },
+  BACK: { camera: 'back', icon: '🔄' },
+  'LEFT SLEEVE': { camera: 'left', icon: '👈' },
+  'RIGHT SLEEVE': { camera: 'right', icon: '👉' },
+};
+
+function detectDirection(zone: PrintZone): Direction {
+  const combined = `${zone.label || ''} ${zone.meshName || ''} ${zone.materialName || ''}`.toLowerCase();
+
+  if (combined.includes('back')) return 'BACK';
+  if (/left|arm_l|sleeve_l/.test(combined)) return 'LEFT SLEEVE';
+  if (/right|arm_r|sleeve_r/.test(combined)) return 'RIGHT SLEEVE';
+
+  // Fall back to the zone's position on the model
+  const [x = 0, , z = 0] = zone.position ?? [0, 0, 0];
+  if (Math.abs(z) >= Math.abs(x)) return z < 0 ? 'BACK' : 'FRONT';
+  return x < 0 ? 'LEFT SLEEVE' : 'RIGHT SLEEVE';
+}
+
+function friendlyTitleFor(zone: PrintZone, dir: Direction): string {
+  const label = (zone.label || '').trim();
+  const isGeneric =
+    /^(front|back|right arm|left arm|text\d+).*—\s*zone\s*\d+/i.test(label) ||
+    /^(zone_\d+)/i.test(label) ||
+    label.includes('—');
+  if (!isGeneric) return zone.label;
+
+  switch (dir) {
+    case 'BACK':
+      if (zone.type === 'text') {
+        const isNumber = zone.defaultText === '01' || (zone.width && zone.height && zone.height > zone.width);
+        return isNumber ? 'Back Player Number' : 'Back Player Name';
+      }
+      return 'Back Graphic / Sponsor';
+    case 'FRONT':
+      if (zone.type === 'image') return 'Front Team Logo';
+      if (zone.type === 'text') return 'Front Team Name';
+      return 'Front Crest & Name';
+    case 'LEFT SLEEVE':
+      return 'Left Sleeve Patch';
+    case 'RIGHT SLEEVE':
+      return 'Right Sleeve Patch';
+  }
+}
+
 export function getFriendlyZoneInfo(zone: PrintZone): {
   friendlyTitle: string;
-  directionTag: 'FRONT' | 'BACK' | 'LEFT SLEEVE' | 'RIGHT SLEEVE';
+  directionTag: Direction;
   icon: string;
   cameraCommand: 'front' | 'back' | 'left' | 'right';
   badgeType: string;
 } {
-  const lbl = (zone.label || '').toLowerCase();
-  const mesh = (zone.meshName || '').toLowerCase();
-  const mat = (zone.materialName || '').toLowerCase();
-  const combined = `${lbl} ${mesh} ${mat}`;
-
-  let directionTag: 'FRONT' | 'BACK' | 'LEFT SLEEVE' | 'RIGHT SLEEVE' = 'FRONT';
-  let cameraCommand: 'front' | 'back' | 'left' | 'right' = 'front';
-  let icon = '👕';
-
-  if (combined.includes('back')) {
-    directionTag = 'BACK';
-    cameraCommand = 'back';
-    icon = '🔄';
-  } else if (combined.includes('left') || combined.includes('arm_l') || combined.includes('sleeve_l')) {
-    directionTag = 'LEFT SLEEVE';
-    cameraCommand = 'left';
-    icon = '👈';
-  } else if (combined.includes('right') || combined.includes('arm_r') || combined.includes('sleeve_r')) {
-    directionTag = 'RIGHT SLEEVE';
-    cameraCommand = 'right';
-    icon = '👉';
-  } else {
-    const [x, , z] = zone.position || [0, 0, 0];
-    if (Math.abs(z) >= Math.abs(x)) {
-      if (z < 0) {
-        directionTag = 'BACK';
-        cameraCommand = 'back';
-        icon = '🔄';
-      } else {
-        directionTag = 'FRONT';
-        cameraCommand = 'front';
-        icon = '👕';
-      }
-    } else {
-      if (x < 0) {
-        directionTag = 'LEFT SLEEVE';
-        cameraCommand = 'left';
-        icon = '👈';
-      } else {
-        directionTag = 'RIGHT SLEEVE';
-        cameraCommand = 'right';
-        icon = '👉';
-      }
-    }
-  }
-
-  let friendlyTitle = zone.label;
-  const isGeneric =
-    /^(front|back|right arm|left arm|text\d+).*—\s*zone\s*\d+/i.test(zone.label.trim()) ||
-    /^(zone_\d+)/i.test(zone.label.trim()) ||
-    zone.label.includes('—');
-
-  if (isGeneric) {
-    if (directionTag === 'BACK') {
-      if (zone.type === 'text' && (zone.defaultText === '01' || (zone.width && zone.height && zone.height > zone.width))) {
-        friendlyTitle = 'Back Player Number';
-      } else if (zone.type === 'text') {
-        friendlyTitle = 'Back Player Name';
-      } else {
-        friendlyTitle = 'Back Graphic / Sponsor';
-      }
-    } else if (directionTag === 'FRONT') {
-      if (zone.type === 'image') {
-        friendlyTitle = 'Front Team Logo';
-      } else if (zone.type === 'text') {
-        friendlyTitle = 'Front Team Name';
-      } else {
-        friendlyTitle = 'Front Crest & Name';
-      }
-    } else if (directionTag === 'LEFT SLEEVE') {
-      friendlyTitle = 'Left Sleeve Patch';
-    } else if (directionTag === 'RIGHT SLEEVE') {
-      friendlyTitle = 'Right Sleeve Patch';
-    }
-  }
-
+  const directionTag = detectDirection(zone);
+  const { camera, icon } = DIRECTION_META[directionTag];
   const badgeType = zone.type === 'image' ? 'Logo Graphic' : zone.type === 'text' ? 'Player Text' : 'Logo & Text';
-
-  return { friendlyTitle, directionTag, icon, cameraCommand, badgeType };
+  return { friendlyTitle: friendlyTitleFor(zone, directionTag), directionTag, icon, cameraCommand: camera, badgeType };
 }
 
-function buildCustomerDecalTexture({
-  zone,
-  logoImg,
-  logoTransform,
-  customText,
-  customTextColor,
-  customFontSize,
-  customIsBold,
-  customAlign,
-  isSelected,
-}: {
+/** One place that decides which text style wins (customer edit → zone default → fallback). */
+function resolveTextStyle(zone: PrintZone, e?: ZoneEdits) {
+  return {
+    text: e?.text !== undefined ? e.text : zone.defaultText ?? '',
+    color: e?.textColor || zone.textColor || zone.defaultColor || '#FFFFFF',
+    fontSize: e?.fontSize || zone.fontSize || 80,
+    bold: e?.bold ?? (zone.isBold !== false),
+    align: (e?.align || zone.align || 'center') as TextAlign,
+    fontFamily: e?.fontFamily || zone.fontFamily || "'Bebas Neue', 'Impact', sans-serif",
+  };
+}
+
+function isZoneEdited(e?: ZoneEdits) {
+  return !!e && Object.values(e).some((v) => v !== undefined);
+}
+
+function revokeLogoUrl(e?: ZoneEdits) {
+  const src = e?.logo?.src;
+  if (src?.startsWith('blob:')) URL.revokeObjectURL(src);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Canvas drawing (pure function — draws into an existing canvas, no allocations)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+interface DrawArgs {
   zone: PrintZone;
   logoImg: HTMLImageElement | null;
-  logoTransform?: LogoTransform;
-  customText?: string;
-  customTextColor?: string;
-  customFontSize?: number;
-  customIsBold?: boolean;
-  customAlign?: 'left' | 'center' | 'right';
+  transform: LogoTransform;
+  style: ReturnType<typeof resolveTextStyle>;
   isSelected: boolean;
-}): THREE.CanvasTexture {
-  const TEX = 1024;
-  const canvas = document.createElement('canvas');
-  canvas.width = TEX;
-  canvas.height = TEX;
-  const ctx = canvas.getContext('2d')!;
-  ctx.clearRect(0, 0, TEX, TEX);
+}
 
-  const textToDraw = customText !== undefined ? customText : (zone.defaultText || '');
-  const textColor = customTextColor || zone.textColor || zone.defaultColor || '#ffffff';
-  const fontSize = customFontSize || zone.fontSize || 80;
-  const isBold = customIsBold !== undefined ? customIsBold : (zone.isBold !== false);
-  const align = customAlign || zone.align || 'center';
+function drawDecal(ctx: CanvasRenderingContext2D, { zone, logoImg, transform: t, style, isSelected }: DrawArgs) {
+  ctx.save();
+  ctx.clearRect(0, 0, TEX, TEX);
 
   const hasImageZone = zone.type === 'image' || zone.type === 'both';
   const hasTextZone = zone.type === 'text' || zone.type === 'both';
+  const isBoth = zone.type === 'both';
 
-  const transform: LogoTransform = logoTransform || {
-    scale: 1,
-    widthScale: 1,
-    heightScale: 1,
-    lockAspect: true,
-    alignX: 'center',
-    alignY: 'center',
-    offsetX: 0,
-    offsetY: 0,
-    rotation: 0,
+  const wScale = (t.scale ?? 1) * (t.widthScale ?? 1);
+  const hScale = (t.scale ?? 1) * (t.heightScale ?? 1);
+  const nudgeX = ((t.offsetX || 0) / 100) * (TEX * 0.35);
+  const nudgeY = ((t.offsetY || 0) / 100) * (TEX * 0.35);
+
+  let contentBox = {
+    x: Math.round(TEX * 0.25),
+    y: Math.round(TEX * 0.35),
+    w: Math.round(TEX * 0.5),
+    h: Math.round(TEX * 0.3),
   };
 
-  // 1. Draw Logo Graphic with Width, Height, Scale, Alignment & Rotation
+  // 1 ─ Logo
   if (hasImageZone) {
     if (logoImg) {
-      const aspect = (logoImg.naturalWidth || logoImg.width || 1) / (logoImg.naturalHeight || logoImg.height || 1);
-      const baseAreaW = TEX * 0.88;
-      const baseAreaH = zone.type === 'both' ? TEX * 0.50 : TEX * 0.88;
+      const pad = 24;
+      const availW = TEX - 2 * pad;
+      const availH = isBoth ? Math.round(TEX * 0.52 - pad) : (TEX - 2 * pad);
 
-      let baseW = baseAreaW;
-      let baseH = baseAreaH;
-      if (aspect > 1) {
-        baseH = baseW / aspect;
-      } else {
-        baseW = baseH * aspect;
-      }
+      const imgW = logoImg.naturalWidth || logoImg.width || 1;
+      const imgH = logoImg.naturalHeight || logoImg.height || 1;
+      const imgAspect = imgW / imgH;
 
-      const wScale = (transform.scale ?? 1) * (transform.widthScale ?? 1);
-      const hScale = (transform.scale ?? 1) * (transform.heightScale ?? 1);
+      let dh = Math.round(availH * hScale);
+      let dw = Math.min(Math.round(availW * wScale), Math.round(dh * imgAspect));
 
-      const dw = baseW * wScale;
-      const dh = baseH * hScale;
+      const minX = pad;
+      const maxX = TEX - pad - dw;
+      const minY = pad;
+      const maxY = isBoth ? Math.round(TEX * 0.54 - dh) : TEX - pad - dh;
 
-      // Usable bounds inside the decal canvas
-      const minX = 40;
-      const maxX = TEX - 40 - dw;
-      const minY = 40;
-      const maxY = zone.type === 'both' ? TEX * 0.54 - dh : TEX - 40 - dh;
-
-      // Base alignment calculation
       let anchorX = (TEX - dw) / 2;
-      if (transform.alignX === 'left') {
-        anchorX = minX;
-      } else if (transform.alignX === 'right') {
-        anchorX = Math.max(minX, maxX);
-      }
+      if (t.alignX === 'left') anchorX = minX;
+      else if (t.alignX === 'right') anchorX = Math.max(minX, maxX);
 
-      let anchorY = zone.type === 'both' ? (TEX * 0.52 - dh) / 2 + 20 : (TEX - dh) / 2;
-      if (transform.alignY === 'top') {
-        anchorY = minY;
-      } else if (transform.alignY === 'bottom') {
-        anchorY = Math.max(minY, maxY);
-      }
-
-      // Add fine offset nudge
-      const finalX = anchorX + ((transform.offsetX || 0) / 100) * (TEX * 0.35);
-      const finalY = anchorY + ((transform.offsetY || 0) / 100) * (TEX * 0.35);
+      let anchorY = isBoth ? (Math.round(TEX * 0.52 - dh) / 2 + pad) : (TEX - dh) / 2;
+      if (t.alignY === 'top') anchorY = minY;
+      else if (t.alignY === 'bottom') anchorY = Math.max(minY, maxY);
 
       ctx.save();
-      const centerX = finalX + dw / 2;
-      const centerY = finalY + dh / 2;
-      ctx.translate(centerX, centerY);
-      if (transform.rotation) {
-        ctx.rotate((transform.rotation * Math.PI) / 180);
-      }
+      ctx.translate(anchorX + nudgeX + dw / 2, anchorY + nudgeY + dh / 2);
+      if (t.rotation) ctx.rotate((t.rotation * Math.PI) / 180);
       ctx.drawImage(logoImg, -dw / 2, -dh / 2, dw, dh);
       ctx.restore();
-    } else if (zone.type === 'image' && !textToDraw) {
-      // Placeholder with transform awareness
-      const wScale = (transform.scale ?? 1) * (transform.widthScale ?? 1);
-      const hScale = (transform.scale ?? 1) * (transform.heightScale ?? 1);
-      const pw = Math.max(120, (TEX - 120) * wScale);
-      const ph = Math.max(100, (TEX - 120) * hScale);
 
-      const px = (TEX - pw) / 2 + ((transform.offsetX || 0) / 100) * (TEX * 0.35);
-      const py = (TEX - ph) / 2 + ((transform.offsetY || 0) / 100) * (TEX * 0.35);
-
+      contentBox = {
+        x: Math.max(14, Math.round(anchorX + nudgeX - 10)),
+        y: Math.max(14, Math.round(anchorY + nudgeY - 10)),
+        w: Math.min(TEX - 28, Math.round(dw + 20)),
+        h: Math.min(TEX - 28, Math.round(dh + 20)),
+      };
+    } else if (zone.type === 'image' && !style.text) {
+      // Empty-state placeholder
+      const pad = 24;
+      const pw = Math.max(120, (TEX - 2 * pad) * wScale);
+      const ph = Math.max(100, (TEX - 2 * pad) * hScale);
       ctx.save();
-      ctx.translate(px + pw / 2, py + ph / 2);
-      if (transform.rotation) {
-        ctx.rotate((transform.rotation * Math.PI) / 180);
-      }
-      ctx.strokeStyle = isSelected ? '#ff7348' : 'rgba(255, 255, 255, 0.4)';
+      ctx.translate(TEX / 2 + nudgeX, TEX / 2 + nudgeY);
+      if (t.rotation) ctx.rotate((t.rotation * Math.PI) / 180);
+      ctx.strokeStyle = isSelected ? ACCENT : 'rgba(255,255,255,0.4)';
       ctx.lineWidth = 10;
       ctx.setLineDash([20, 14]);
       ctx.strokeRect(-pw / 2, -ph / 2, pw, ph);
-
-      ctx.fillStyle = isSelected ? '#ff7348' : 'rgba(255, 255, 255, 0.75)';
-      ctx.font = '900 64px "Barlow Condensed", "Arial Black", sans-serif';
+      ctx.fillStyle = isSelected ? ACCENT : 'rgba(255,255,255,0.75)';
+      ctx.font = `900 64px ${FONT_FAMILY}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('+ YOUR LOGO HERE', 0, 0);
       ctx.restore();
+
+      contentBox = {
+        x: Math.max(14, Math.round(TEX / 2 + nudgeX - pw / 2 - 8)),
+        y: Math.max(14, Math.round(TEX / 2 + nudgeY - ph / 2 - 8)),
+        w: Math.min(TEX - 28, Math.round(pw + 16)),
+        h: Math.min(TEX - 28, Math.round(ph + 16)),
+      };
     }
   }
 
-  // 2. Draw Text (Player Name, Number, Motto)
-  if (hasTextZone && textToDraw.trim()) {
-    const weight = isBold ? '900' : '700';
-    const computedFontSize = Math.max(36, Math.min(fontSize * 1.8, 280));
-    ctx.font = `${weight} ${computedFontSize}px "Barlow Condensed", "Arial Black", Arial, sans-serif`;
-    ctx.fillStyle = textColor;
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = align as CanvasTextAlign;
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
-    ctx.shadowBlur = 16;
+  // 2 ─ Text
+  if (hasTextZone) {
+    const text = style.text.trim();
+    const weight = style.bold ? '900' : '700';
+    const fontFam = style.fontFamily || FONT_FAMILY;
 
-    const tx = align === 'left' ? 44 : align === 'right' ? TEX - 44 : TEX / 2;
-    const ty = zone.type === 'both' ? TEX * 0.78 : TEX / 2;
-    ctx.fillText(textToDraw, tx, ty, TEX - 88);
-    ctx.shadowBlur = 0;
+    const padX = 28;
+    const padY = 24;
+    const availW = TEX - 2 * padX;
+    const availH = isBoth ? Math.round(TEX * 0.44 - padY) : (TEX - 2 * padY);
+    const startY = isBoth ? Math.round(TEX * 0.52 + padY) : padY;
+
+    // Normal clean padding inside the rectangle (4% horizontal, 6% vertical margin)
+    const innerMarginX = Math.round(availW * 0.04);
+    const innerMarginY = Math.round(availH * 0.06);
+    const innerW = availW - 2 * innerMarginX;
+    const innerH = availH - 2 * innerMarginY;
+
+    const userScale = Math.max(0.4, Math.min(1.6, (style.fontSize || 80) / 80));
+    const targetW = innerW * userScale * (wScale || 1);
+    const targetH = innerH * userScale * (hScale || 1);
+
+    const textToMeasure = text || zone.defaultText?.trim() || 'PLAYER NAME';
+    const refFontSize = 100;
+    ctx.font = `${weight} ${refFontSize}px ${fontFam}`;
+    const metrics = ctx.measureText(textToMeasure);
+    const glyphAscent = metrics.actualBoundingBoxAscent || 75;
+    const glyphDescent = metrics.actualBoundingBoxDescent || 15;
+    const glyphH = Math.max(10, glyphAscent + glyphDescent);
+    const glyphW = Math.max(10, metrics.width || 100);
+
+    // Target scale to fill the height of the rectangle
+    const fitScaleY = targetH / glyphH;
+    // Target scale to fill the width of the rectangle
+    const fitScaleX = targetW / glyphW;
+
+    let scaleX: number;
+    let scaleY: number;
+
+    const naturalWidthAtHeight = glyphW * fitScaleY;
+    if (naturalWidthAtHeight <= targetW) {
+      scaleY = fitScaleY;
+      scaleX = fitScaleY * (wScale / hScale > 1.05 || wScale / hScale < 0.95 ? (wScale / hScale) : 1);
+    } else {
+      scaleX = fitScaleX;
+      scaleY = Math.min(fitScaleY, Math.max(fitScaleX, fitScaleY * 0.95));
+    }
+
+    const actualTextW = Math.round(glyphW * scaleX);
+    const actualTextH = Math.round(glyphH * scaleY);
+
+    const centerX = padX + availW / 2;
+    const centerY = startY + availH / 2;
+    const targetX =
+      style.align === 'left'  ? padX + innerMarginX + actualTextW / 2 :
+      style.align === 'right' ? padX + availW - innerMarginX - actualTextW / 2 :
+      centerX;
+
+    if (text) {
+      ctx.save();
+      ctx.translate(targetX, centerY);
+      ctx.scale(scaleX, scaleY);
+
+      ctx.font = `${weight} ${refFontSize}px ${fontFam}`;
+      ctx.fillStyle = style.color;
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'center';
+
+      const opticalBaselineY = (glyphAscent - glyphDescent) / 2;
+      ctx.fillText(text, 0, opticalBaselineY);
+      ctx.restore();
+    } else if (isSelected && !hasImageZone) {
+      ctx.save();
+      ctx.fillStyle = ACCENT;
+      ctx.font = `700 ${Math.max(20, Math.min(52, Math.round(actualTextH * 0.42)))}px ${fontFam}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('+ ENTER TEXT', targetX, centerY);
+      ctx.restore();
+    }
+
+    // Stable print zone boundary: selection box NEVER collapses or jumps when typing short letters like "H"
+    const textPresetBox = {
+      x: padX,
+      y: startY,
+      w: availW,
+      h: availH,
+    };
+
+    contentBox = isBoth
+      ? {
+          x: Math.min(contentBox.x, textPresetBox.x),
+          y: Math.min(contentBox.y, textPresetBox.y),
+          w: Math.max(contentBox.w, textPresetBox.w),
+          h: Math.max(contentBox.h, textPresetBox.h),
+        }
+      : textPresetBox;
   }
 
-  // 3. Selection Indicator (Glow line + corner targeting brackets)
+  // 3 ─ Selection frame + corner brackets — tightly hugs content
   if (isSelected) {
-    ctx.save();
+    const rx = contentBox.x;
+    const ry = contentBox.y;
+    const rw = contentBox.w;
+    const rh = contentBox.h;
+
     ctx.strokeStyle = '#f97316';
     ctx.lineWidth = 14;
     ctx.setLineDash([28, 14]);
-    ctx.strokeRect(20, 20, TEX - 40, TEX - 40);
+    ctx.strokeRect(rx, ry, rw, rh);
 
-    const bLen = 80;
     ctx.setLineDash([]);
     ctx.lineWidth = 22;
     ctx.strokeStyle = '#fb923c';
-
-    // Top-left corner
-    ctx.beginPath();
-    ctx.moveTo(20, 20 + bLen);
-    ctx.lineTo(20, 20);
-    ctx.lineTo(20 + bLen, 20);
-    ctx.stroke();
-
-    // Top-right corner
-    ctx.beginPath();
-    ctx.moveTo(TEX - 20 - bLen, 20);
-    ctx.lineTo(TEX - 20, 20);
-    ctx.lineTo(TEX - 20, 20 + bLen);
-    ctx.stroke();
-
-    // Bottom-left corner
-    ctx.beginPath();
-    ctx.moveTo(20, TEX - 20 - bLen);
-    ctx.lineTo(20, TEX - 20);
-    ctx.lineTo(20 + bLen, TEX - 20);
-    ctx.stroke();
-
-    // Bottom-right corner
-    ctx.beginPath();
-    ctx.moveTo(TEX - 20 - bLen, TEX - 20);
-    ctx.lineTo(TEX - 20, TEX - 20);
-    ctx.lineTo(TEX - 20, TEX - 20 - bLen);
-    ctx.stroke();
-
-    ctx.restore();
+    const L = Math.min(70, Math.max(20, Math.round(Math.min(rw, rh) * 0.3)));
+    const corners: [number, number, number, number][] = [
+      [rx, ry, 1, 1],
+      [rx + rw, ry, -1, 1],
+      [rx, ry + rh, 1, -1],
+      [rx + rw, ry + rh, -1, -1],
+    ];
+    for (const [cx, cy, dx, dy] of corners) {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + dy * L);
+      ctx.lineTo(cx, cy);
+      ctx.lineTo(cx + dx * L, cy);
+      ctx.stroke();
+    }
   }
 
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.flipY = false;
-  tex.needsUpdate = true;
-  return tex;
+  ctx.restore();
 }
 
-function CustomerZoneDecal({
+/* ════════════════════════════════════════════════════════════════════════════
+   Hooks
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/** Loads admin-configured default logos once per zone list. */
+function useAdminLogos(zones: PrintZone[]) {
+  const [logos, setLogos] = useState<Record<string, HTMLImageElement>>({});
+
+  useEffect(() => {
+    let alive = true;
+    zones.forEach((z) => {
+      const url = z.defaultImageUrl;
+      if (!url || url.startsWith('blob:')) return;
+      const img = new Image();
+      // NOTE: no non-CORS fallback on purpose — a cross-origin image taints the canvas and
+      // WebGL refuses to upload it. Make sure your image host sends CORS headers.
+      img.crossOrigin = 'anonymous';
+      img.onload = () => alive && setLogos((p) => ({ ...p, [z.id]: img }));
+      img.onerror = () => console.warn(`[SmartCustomizer] Could not load default image for zone "${z.id}"`);
+      img.src = url;
+    });
+    return () => {
+      alive = false;
+    };
+  }, [zones]);
+
+  return logos;
+}
+
+/** Returns true once web fonts are ready so decals can be redrawn with the right typeface. */
+function useFontReady(font?: string) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    if (typeof document === 'undefined' || !document.fonts) {
+      setReady(true);
+      return;
+    }
+
+    const promises: Promise<any>[] = [document.fonts.ready];
+    if (font) {
+      promises.push(document.fonts.load(font));
+    }
+
+    Promise.all(promises)
+      .then(() => {
+        if (alive) setReady(true);
+      })
+      .catch(() => {
+        if (alive) setReady(true);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [font]);
+  return ready;
+}
+
+/** One reusable canvas + texture per decal. Redrawn in place, disposed on unmount. */
+function useDecalTexture() {
+  const gl = useThree((s) => s.gl);
+  const { canvas, texture } = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = TEX;
+    canvas.height = TEX;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.flipY = false;
+    texture.generateMipmaps = false;
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.anisotropy = Math.min(16, gl.capabilities.getMaxAnisotropy());
+    return { canvas, texture };
+  }, [gl]);
+
+  useEffect(() => () => texture.dispose(), [texture]);
+  return { canvas, texture };
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   3D scene
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const ZoneDecal = React.memo(function ZoneDecal({
   targetMesh,
   zone,
-  logoImg,
-  logoTransform,
-  customText,
-  customTextColor,
-  customFontSize,
-  customIsBold,
-  customAlign,
+  edits,
+  adminLogo,
   isSelected,
-  onClick,
+  fontReady,
+  onSelect,
 }: {
   targetMesh: THREE.Mesh;
   zone: PrintZone;
-  logoImg: HTMLImageElement | null;
-  logoTransform?: LogoTransform;
-  customText?: string;
-  customTextColor?: string;
-  customFontSize?: number;
-  customIsBold?: boolean;
-  customAlign?: 'left' | 'center' | 'right';
+  edits?: ZoneEdits;
+  adminLogo?: HTMLImageElement;
   isSelected: boolean;
-  onClick: () => void;
+  fontReady: boolean;
+  onSelect: (zoneId: string) => void;
 }) {
+  const invalidate = useThree((s) => s.invalidate);
+  const { canvas, texture } = useDecalTexture();
+  const [hovered, setHovered] = useState(false);
+  useCursor(hovered);
+
   const meshRef = useRef<THREE.Mesh>(targetMesh);
   meshRef.current = targetMesh;
 
-  const texture = useMemo(
-    () =>
-      buildCustomerDecalTexture({
-        zone,
-        logoImg,
-        logoTransform,
-        customText,
-        customTextColor,
-        customFontSize,
-        customIsBold,
-        customAlign,
-        isSelected,
-      }),
-    [zone, logoImg, logoTransform, customText, customTextColor, customFontSize, customIsBold, customAlign, isSelected]
-  );
+  const logoImg = edits?.logo ?? adminLogo ?? null;
+  const transform = edits?.transform;
+  const text = edits?.text;
+  const textColor = edits?.textColor;
+  const fontFamily = edits?.fontFamily;
+  const fontSize = edits?.fontSize;
+  const bold = edits?.bold;
+  const align = edits?.align;
+
+  // Redraw the SAME canvas — no new textures, no GPU leaks while dragging sliders.
+  useEffect(() => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    drawDecal(ctx, {
+      zone,
+      logoImg,
+      transform: transform ?? DEFAULT_TRANSFORM,
+      style: resolveTextStyle(zone, { text, textColor, fontFamily, fontSize, bold, align }),
+      isSelected,
+    });
+    texture.needsUpdate = true;
+    invalidate();
+  }, [canvas, texture, invalidate, zone, logoImg, transform, text, textColor, fontFamily, fontSize, bold, align, isSelected, fontReady]);
+
+  // Ensure active zone font redraws immediately once the specific web font file downloads
+  useEffect(() => {
+    const fam = fontFamily || zone.fontFamily;
+    if (fam && typeof document !== 'undefined' && document.fonts) {
+      document.fonts
+        .load(`${bold !== false ? '900' : '700'} 80px ${fam}`)
+        .then(() => {
+          texture.needsUpdate = true;
+          invalidate();
+        })
+        .catch(() => {});
+    }
+  }, [fontFamily, zone.fontFamily, bold, texture, invalidate]);
 
   const depth = zone.depth || Math.max(zone.width, zone.height) * 1.6;
 
@@ -445,18 +675,16 @@ function CustomerZoneDecal({
       position={zone.position}
       rotation={zone.rotation}
       scale={[zone.width, zone.height, depth]}
-      debug={false}
       onClick={(e) => {
         e.stopPropagation();
-        onClick();
+        if (e.delta > 6) return; // it was an orbit drag, not a click
+        onSelect(zone.id);
       }}
       onPointerOver={(e) => {
         e.stopPropagation();
-        document.body.style.cursor = 'pointer';
+        setHovered(true);
       }}
-      onPointerOut={() => {
-        document.body.style.cursor = 'auto';
-      }}
+      onPointerOut={() => setHovered(false)}
     >
       <meshStandardMaterial
         map={texture}
@@ -468,226 +696,193 @@ function CustomerZoneDecal({
         toneMapped={false}
         side={THREE.FrontSide}
         roughness={0.9}
-        metalness={0.0}
+        metalness={0}
         envMapIntensity={0.2}
-        emissive={isSelected ? new THREE.Color('#f97316') : new THREE.Color('#000000')}
+        emissive={isSelected ? '#f97316' : '#000000'}
         emissiveIntensity={isSelected ? 0.35 : 0}
       />
     </Decal>
   );
+});
+
+interface ModelIndex {
+  byName: Record<string, THREE.Mesh>;
+  byMat: Record<string, THREE.Mesh>;
+  first: THREE.Mesh | null;
+  meshes: { mesh: THREE.Mesh; matNames: string[] }[];
+  parts: FormattedPart[];
+  originalColors: Record<string, string>;
 }
 
 function ConfiguredModel({
   url,
   zones,
-  adminLogoMap,
-  customLogoMap,
-  customLogoTransformMap,
-  customTextMap,
-  customTextColorMap,
-  customTextSizeMap,
-  customTextBoldMap,
-  customTextAlignMap,
+  adminLogos,
+  edits,
   colors,
   activeMaterial,
   activeZoneId,
+  fontReady,
   onZoneClick,
   onPartClick,
   onMaterialsFound,
 }: {
   url: string;
   zones: PrintZone[];
-  adminLogoMap: Record<string, HTMLImageElement>;
-  customLogoMap: Record<string, HTMLImageElement>;
-  customLogoTransformMap: Record<string, LogoTransform>;
-  customTextMap: Record<string, string>;
-  customTextColorMap: Record<string, string>;
-  customTextSizeMap: Record<string, number>;
-  customTextBoldMap: Record<string, boolean>;
-  customTextAlignMap: Record<string, 'left' | 'center' | 'right'>;
+  adminLogos: Record<string, HTMLImageElement>;
+  edits: EditsMap;
   colors: Record<string, string>;
   activeMaterial: string | null;
   activeZoneId: string | null;
+  fontReady: boolean;
   onZoneClick: (zoneId: string) => void;
-  onPartClick: (matName: string, meshName?: string) => void;
-  onMaterialsFound: (mats: FormattedPart[]) => void;
+  onPartClick: (matName: string) => void;
+  onMaterialsFound: (parts: FormattedPart[]) => void;
 }) {
   const { scene: rawScene } = useGLTF(url);
+  const invalidate = useThree((s) => s.invalidate);
+  const [hovered, setHovered] = useState(false);
+  useCursor(hovered);
 
-  // Clone GLTF hierarchy cleanly so original isn't mutated
+  // Clone once; give fabric a matte finish once (not on every colour change).
   const scene = useMemo(() => {
     const s = rawScene.clone(true);
     s.traverse((o) => {
       const m = o as THREE.Mesh;
       if (!m.isMesh) return;
-      const processMat = (mat: THREE.Material) => {
-        const cloned = mat.clone();
-        if (cloned instanceof THREE.MeshStandardMaterial) {
-          // Authentic athletic fabric finish: matte with soft diffusion, no harsh plastic specular glare
-          cloned.roughness = 0.85;
-          cloned.metalness = 0.0;
-          cloned.envMapIntensity = 0.35;
-        }
-        return cloned;
-      };
+      if (isPlaceholderMesh(m)) {
+        m.visible = false;
+        m.geometry = new THREE.BufferGeometry();
+        m.material = new THREE.MeshBasicMaterial({
+          visible: false,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+        });
+        m.raycast = () => {};
+        return;
+      }
       m.material = Array.isArray(m.material)
-        ? m.material.map(processMat)
-        : processMat(m.material as THREE.Material);
+        ? m.material.map(matteClone)
+        : matteClone(m.material as THREE.Material);
     });
     return s;
   }, [rawScene]);
 
-  // Report unique materials with friendly categorization
-  useEffect(() => {
-    const seen = new Set<string>();
-    const formatted: FormattedPart[] = [];
-    scene.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (!m.isMesh || m.userData?.isDecal) return;
-      const mats = Array.isArray(m.material) ? m.material : [m.material];
-      mats.forEach((mat) => {
-        const name = (mat?.name || '').trim();
-        if (name && !seen.has(name)) {
-          seen.add(name);
-          let origHex = '#ffffff';
-          if (mat instanceof THREE.MeshStandardMaterial && mat.color) {
-            origHex = `#${mat.color.getHexString()}`;
-          }
-          formatted.push(categorizeModelPart(name, origHex, m.name));
-        }
-      });
-    });
-    onMaterialsFound(formatted);
-  }, [scene, onMaterialsFound]);
-
-  // Apply real-time custom part colors
-  useEffect(() => {
-    scene.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (!m.isMesh || m.userData?.isDecal) return;
-      const mats = Array.isArray(m.material) ? m.material : [m.material];
-      mats.forEach((mat) => {
-        if (mat instanceof THREE.MeshStandardMaterial && colors[mat.name]) {
-          mat.color.set(colors[mat.name]);
-          mat.roughness = 0.85;
-          mat.metalness = 0.0;
-          mat.envMapIntensity = 0.35;
-          mat.needsUpdate = true;
-        }
-      });
-    });
-  }, [scene, colors]);
-
-  // Identify active meshes for high-visibility silhouette outline
-  const activeMeshes = useMemo(() => {
-    if (!activeMaterial) return [];
-    const list: THREE.Mesh[] = [];
-    scene.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (!m.isMesh || m.userData?.isDecal) return;
-      const mats = Array.isArray(m.material) ? m.material : [m.material];
-      if (mats.some((mat) => mat?.name === activeMaterial) || m.name === activeMaterial) {
-        list.push(m);
-      }
-    });
-    return list;
-  }, [scene, activeMaterial]);
-
-  // Index meshes for decal portals
-  const meshLookup = useMemo(() => {
-    const byName: Record<string, THREE.Mesh> = {};
-    const byMat: Record<string, THREE.Mesh> = {};
-    let first: THREE.Mesh | null = null;
-    scene.traverse((o) => {
-      if ((o as THREE.Mesh).isMesh && !o.userData?.isDecal) {
+  // Free the cloned materials when the model unmounts.
+  useEffect(
+    () => () => {
+      scene.traverse((o) => {
         const m = o as THREE.Mesh;
-        if (!first) first = m;
-        if (m.name) byName[m.name] = m;
-        const mats = Array.isArray(m.material) ? m.material : [m.material];
-        mats.forEach((mat) => {
-          const name = (mat?.name || '').trim();
-          if (name && !byMat[name]) byMat[name] = m;
-        });
+        if (m.isMesh) toArray(m.material).forEach((mat) => mat.dispose());
+      });
+    },
+    [scene]
+  );
+
+  // ONE traversal builds every lookup we need.
+  const index = useMemo<ModelIndex>(() => {
+    const idx: ModelIndex = { byName: {}, byMat: {}, first: null, meshes: [], parts: [], originalColors: {} };
+    const seen = new Set<string>();
+    scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh || m.userData?.isDecal || !m.visible || isPlaceholderMesh(m)) return;
+      idx.first ??= m;
+      if (m.name) idx.byName[m.name] = m;
+
+      const matNames: string[] = [];
+      for (const mat of toArray(m.material)) {
+        const name = (mat?.name || '').trim();
+        if (!name) continue;
+        matNames.push(name);
+        if (!idx.byMat[name]) idx.byMat[name] = m;
+        if (!seen.has(name)) {
+          seen.add(name);
+          const hex = mat instanceof THREE.MeshStandardMaterial ? `#${mat.color.getHexString()}` : '#ffffff';
+          idx.originalColors[name] = hex;
+          idx.parts.push(categorizeModelPart(name, hex, m.name));
+        }
       }
+      idx.meshes.push({ mesh: m, matNames });
     });
-    return { byName, byMat, first };
+    return idx;
   }, [scene]);
 
-  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    onMaterialsFound(index.parts);
+  }, [index, onMaterialsFound]);
 
-  const handlePointerDown = (e: any) => {
-    pointerDownPos.current = { x: e.clientX, y: e.clientY };
-  };
+  // Apply customer colours. Falls back to the ORIGINAL colour so "Reset" really resets.
+  useEffect(() => {
+    scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh || m.userData?.isDecal || !m.visible || isPlaceholderMesh(m)) return;
+      for (const mat of toArray(m.material)) {
+        if (!(mat instanceof THREE.MeshStandardMaterial)) continue;
+        const name = (mat.name || '').trim();
+        const hex = colors[name] ?? index.originalColors[name];
+        if (hex) mat.color.set(hex);
+      }
+    });
+    invalidate();
+  }, [scene, index, colors, invalidate]);
 
-  const handleClick = (e: any) => {
-    if (pointerDownPos.current) {
-      const dist = Math.hypot(e.clientX - pointerDownPos.current.x, e.clientY - pointerDownPos.current.y);
-      if (dist > 6) return; // Orbit drag ignored
-    }
-    const hit = e.intersections?.find((i: any) => i.object?.isMesh && !i.object?.userData?.isDecal);
-    if (!hit || !hit.point) return;
-    const mesh = hit.object as THREE.Mesh;
-    const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-    const matName = (mat?.name || mesh.name || '').trim();
-    e.stopPropagation();
-    onPartClick(matName, mesh.name);
-  };
+  const activeMeshes = useMemo(() => {
+    if (!activeMaterial) return [];
+    return index.meshes
+      .filter(({ mesh, matNames }) => matNames.includes(activeMaterial) || mesh.name === activeMaterial)
+      .map(({ mesh }) => mesh);
+  }, [index, activeMaterial]);
+
+  const handleClick = useCallback(
+    (e: any) => {
+      if (e.delta > 6) return; // orbit drag, ignore
+      const hit = e.intersections?.find(
+        (i: any) => i.object?.isMesh && i.object?.visible && !i.object?.userData?.isDecal && !isPlaceholderMesh(i.object)
+      );
+      if (!hit) return;
+      e.stopPropagation();
+      const mesh = hit.object as THREE.Mesh;
+      const mats = toArray(mesh.material);
+      const mat = mats[hit.face?.materialIndex ?? 0] ?? mats[0];
+      onPartClick((mat?.name || mesh.name || '').trim());
+    },
+    [onPartClick]
+  );
 
   return (
     <>
-      {/* Primary 3D Model with click-to-select support */}
       <primitive
         object={scene}
-        onPointerDown={handlePointerDown}
         onClick={handleClick}
-        onPointerOver={() => {
-          document.body.style.cursor = 'pointer';
-        }}
-        onPointerOut={() => {
-          document.body.style.cursor = 'auto';
-        }}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
       />
 
-      {/* Selected part outline */}
-      {activeMeshes.map((mesh, idx) => (
-        <PartOutline key={mesh.uuid || `mesh-outline-${idx}`} targetMesh={mesh} color="#00e5ff" />
+      {activeMeshes.map((mesh) => (
+        <PartOutline key={mesh.uuid} targetMesh={mesh} color="#00e5ff" />
       ))}
 
-      {/* Decals projected into each target mesh */}
-      {zones.map((zone, idx) => {
-        const targetMesh =
-          (zone.meshName ? meshLookup.byName[zone.meshName] : null) ||
-          (zone.materialName ? meshLookup.byMat[zone.materialName] : null) ||
-          meshLookup.first;
-
-        if (!targetMesh) return null;
-
-        const key = zone.id || `zone-${idx}`;
-        const logoImg = customLogoMap[zone.id] ?? adminLogoMap[zone.id] ?? null;
-        const logoTransform = customLogoTransformMap[zone.id];
-        const customText = customTextMap[zone.id];
-        const customTextColor = customTextColorMap[zone.id];
-        const customFontSize = customTextSizeMap[zone.id];
-        const customIsBold = customTextBoldMap[zone.id];
-        const customAlign = customTextAlignMap[zone.id];
+      {zones.map((zone, i) => {
+        const target =
+          (zone.meshName ? index.byName[zone.meshName] : null) ||
+          (zone.materialName ? index.byMat[zone.materialName] : null) ||
+          index.first;
+        if (!target) return null;
 
         return (
-          <React.Fragment key={key}>
+          <React.Fragment key={zone.id || `zone-${i}`}>
             {createPortal(
-              <CustomerZoneDecal
-                targetMesh={targetMesh}
+              <ZoneDecal
+                targetMesh={target}
                 zone={zone}
-                logoImg={logoImg}
-                logoTransform={logoTransform}
-                customText={customText}
-                customTextColor={customTextColor}
-                customFontSize={customFontSize}
-                customIsBold={customIsBold}
-                customAlign={customAlign}
+                edits={edits[zone.id]}
+                adminLogo={adminLogos[zone.id]}
                 isSelected={activeZoneId === zone.id}
-                onClick={() => onZoneClick(zone.id)}
+                fontReady={fontReady}
+                onSelect={onZoneClick}
               />,
-              targetMesh
+              target
             )}
           </React.Fragment>
         );
@@ -695,6 +890,581 @@ function ConfiguredModel({
     </>
   );
 }
+
+function matteClone(mat: THREE.Material) {
+  const c = mat.clone();
+  if (c instanceof THREE.MeshStandardMaterial) {
+    c.roughness = 0.85; // fabric look, no plastic glare
+    c.metalness = 0;
+    c.envMapIntensity = 0.35;
+  }
+  return c;
+}
+
+/** Shows a friendly message instead of a blank/crashed viewer if the GLB fails. */
+class ViewerErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: unknown) {
+    console.error('[SmartCustomizer] 3D viewer crashed', error);
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Small reusable UI pieces
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function Slider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  display,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  display: string;
+  onChange: (v: number) => void;
+}) {
+  const id = useId();
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between items-center text-xs">
+        <label htmlFor={id} className="text-white/60 font-bold">
+          {label}
+        </label>
+        <span className="text-orange-400 font-mono font-black">{display}</span>
+      </div>
+      <input
+        id={id}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className={`w-full accent-[#FF7348] cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none ${focusCls}`}
+      />
+    </div>
+  );
+}
+
+function Segmented<T extends string | number>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { value: T; content: React.ReactNode; title?: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <span className={`${labelCls} block`}>{label}</span>
+      <div className="flex rounded-xl bg-black/40 p-1 border border-white/10" role="group" aria-label={label}>
+        {options.map((o) => {
+          const active = o.value === value;
+          return (
+            <button
+              key={String(o.value)}
+              type="button"
+              title={o.title}
+              aria-pressed={active}
+              onClick={() => onChange(o.value)}
+              className={`flex-1 py-1.5 rounded-lg flex items-center justify-center text-xs font-black transition-all ${focusCls} ${
+                active ? 'bg-[#FF7348] text-black shadow-sm' : 'text-white/50 hover:text-white'
+              }`}
+            >
+              {o.content}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ColorSwatches({ value, onChange }: { value: string; onChange: (hex: string) => void }) {
+  const activePreset = ATHLETIC_COLOR_PRESETS.find((c) => c.hex.toLowerCase() === value?.toLowerCase());
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-xs px-1">
+        <span className="text-white/50">Athletic Colors ({ATHLETIC_COLOR_PRESETS.length})</span>
+        {activePreset && (
+          <span className="text-orange-400 font-medium">
+            {activePreset.name}
+          </span>
+        )}
+      </div>
+      <div
+        className="grid grid-cols-7 sm:grid-cols-8 gap-2 p-2.5 max-h-56 overflow-y-auto rounded-2xl bg-white/[0.03] border border-white/10"
+        role="group"
+        aria-label="Color presets"
+      >
+        {ATHLETIC_COLOR_PRESETS.map((c, idx) => {
+          const selected = value?.toLowerCase() === c.hex.toLowerCase();
+          return (
+            <button
+              key={`${c.hex}-${idx}`}
+              type="button"
+              title={`${c.name} (${c.hex})`}
+              aria-label={c.name}
+              aria-pressed={selected}
+              onClick={() => onChange(c.hex)}
+              className={`aspect-square rounded-xl transition-all border-2 ring-1 ring-white/10 relative ${focusCls} ${
+                selected ? 'border-white scale-110 shadow-lg ring-2 ring-orange-500/60 z-10' : 'border-transparent hover:scale-105 hover:border-white/30'
+              }`}
+              style={{ backgroundColor: c.hex }}
+            >
+              {selected && (
+                <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className={`w-2 h-2 rounded-full ${c.hex.toLowerCase() === '#ffffff' ? 'bg-black' : 'bg-white'}`} />
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Sidebar editors
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function LogoEditor({
+  zone,
+  adminLogo,
+  edits,
+  error,
+  onFile,
+  onClear,
+  onTransform,
+  onResetTransform,
+}: {
+  zone: PrintZone;
+  adminLogo?: HTMLImageElement;
+  edits?: ZoneEdits;
+  error: string | null;
+  onFile: (file: File) => void;
+  onClear: () => void;
+  onTransform: (patch: Partial<LogoTransform>) => void;
+  onResetTransform: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [advanced, setAdvanced] = useState(false);
+  const [dragging, setDragging] = useState(false);
+
+  const t = { ...DEFAULT_TRANSFORM, ...edits?.transform };
+  const locked = t.lockAspect ?? true;
+  const current = edits?.logo ?? adminLogo;
+  const isCustom = !!edits?.logo;
+
+  return (
+    <section className={cardCls} aria-label="Logo settings">
+      <div className="flex items-center justify-between">
+        <h3 className="text-white/80 text-sm font-black">Team logo / sponsor graphic</h3>
+        <span className="text-orange-400 text-xs font-bold">PNG, JPG, WebP, SVG</span>
+      </div>
+
+      {current && (
+        <div className="flex items-center justify-between p-3 bg-black/40 rounded-xl border border-white/10">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-12 h-12 shrink-0 rounded-xl bg-white/5 border border-white/10 p-1 flex items-center justify-center overflow-hidden">
+              <img src={current.src} alt="Current logo preview" className="max-h-full max-w-full object-contain" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-white text-sm font-black truncate">
+                {isCustom ? 'Your logo' : 'Official team graphic'}
+              </p>
+              <p className="text-white/40 text-xs">{isCustom ? 'Uploaded by you' : 'Set by the team admin'}</p>
+            </div>
+          </div>
+          {isCustom && (
+            <button
+              type="button"
+              onClick={onClear}
+              className={`p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all ${focusCls}`}
+              title="Remove my logo and go back to the default"
+              aria-label="Remove my logo and go back to the default"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED_LOGO_TYPES.join(',')}
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = ''; // allow re-selecting the same file
+          if (file) onFile(file);
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          const file = e.dataTransfer.files?.[0];
+          if (file) onFile(file);
+        }}
+        className={`w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed rounded-2xl text-sm font-black text-white transition-all ${focusCls} ${
+          dragging ? 'bg-orange-500/15 border-orange-500' : 'bg-white/5 hover:bg-white/10 border-white/20 hover:border-orange-500/50'
+        }`}
+      >
+        <Upload className="w-4 h-4 text-[#FF7348]" />
+        <span>{isCustom ? 'Replace logo' : 'Upload your logo'}</span>
+        <span className="text-white/40 font-medium text-xs hidden sm:inline">or drop a file here</span>
+      </button>
+      {error && (
+        <p role="alert" className="text-red-400 text-xs font-medium">
+          {error}
+        </p>
+      )}
+
+      {/* Size presets are always visible; fine-tuning is tucked away to keep things simple */}
+      <Segmented
+        label="Logo size"
+        value={([0.75, 1, 1.25, 1.5] as number[]).find((s) => Math.abs(s - t.scale) < 0.05) ?? -1}
+        onChange={(scale) => onTransform({ scale })}
+        options={[
+          { value: 0.75, content: 'Compact' },
+          { value: 1, content: 'Normal' },
+          { value: 1.25, content: 'Large' },
+          { value: 1.5, content: 'Hero' },
+        ]}
+      />
+
+      <button
+        type="button"
+        onClick={() => setAdvanced((v) => !v)}
+        aria-expanded={advanced}
+        className={`w-full flex items-center justify-between text-xs font-bold text-white/70 hover:text-white py-1 ${focusCls}`}
+      >
+        <span className="flex items-center gap-1.5">
+          <SlidersHorizontal className="w-3.5 h-3.5 text-[#FF7348]" />
+          Fine-tune size, position &amp; rotation
+        </span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${advanced ? 'rotate-180' : ''}`} />
+      </button>
+
+      {advanced && (
+        <div className="space-y-4 pt-3 border-t border-white/10">
+          <div className="space-y-3 p-3 bg-black/40 rounded-2xl border border-white/5">
+            <Slider
+              label="Overall size"
+              value={t.scale}
+              min={0.3}
+              max={1.6}
+              step={0.02}
+              display={`${Math.round(t.scale * 100)}%`}
+              onChange={(scale) => onTransform({ scale })}
+            />
+
+            <div className="flex items-center justify-between">
+              <span className={labelCls}>Stretch width &amp; height separately</span>
+              <button
+                type="button"
+                aria-pressed={!locked}
+                onClick={() =>
+                  onTransform(
+                    locked
+                      ? { lockAspect: false }
+                      : { lockAspect: true, widthScale: t.widthScale, heightScale: t.widthScale }
+                  )
+                }
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-black transition-all border ${focusCls} ${
+                  locked
+                    ? 'bg-white/10 text-white/70 border-white/10'
+                    : 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                }`}
+              >
+                {locked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
+                {locked ? 'Ratio locked' : 'Free stretch'}
+              </button>
+            </div>
+
+            {!locked && (
+              <>
+                <Slider
+                  label="Width"
+                  value={t.widthScale ?? 1}
+                  min={0.4}
+                  max={1.6}
+                  step={0.02}
+                  display={`${Math.round((t.widthScale ?? 1) * 100)}%`}
+                  onChange={(widthScale) => onTransform({ widthScale })}
+                />
+                <Slider
+                  label="Height"
+                  value={t.heightScale ?? 1}
+                  min={0.4}
+                  max={1.6}
+                  step={0.02}
+                  display={`${Math.round((t.heightScale ?? 1) * 100)}%`}
+                  onChange={(heightScale) => onTransform({ heightScale })}
+                />
+              </>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Segmented
+              label="Horizontal"
+              value={t.alignX}
+              onChange={(alignX) => onTransform({ alignX, offsetX: 0 })}
+              options={[
+                { value: 'left', title: 'Align left', content: <AlignLeft className="w-4 h-4" /> },
+                { value: 'center', title: 'Align center', content: <AlignCenter className="w-4 h-4" /> },
+                { value: 'right', title: 'Align right', content: <AlignRight className="w-4 h-4" /> },
+              ]}
+            />
+            <Segmented
+              label="Vertical"
+              value={t.alignY}
+              onChange={(alignY) => onTransform({ alignY, offsetY: 0 })}
+              options={[
+                { value: 'top', title: 'Align top', content: <ArrowUp className="w-4 h-4" /> },
+                { value: 'center', title: 'Align middle', content: <AlignCenter className="w-4 h-4" /> },
+                { value: 'bottom', title: 'Align bottom', content: <ArrowDown className="w-4 h-4" /> },
+              ]}
+            />
+          </div>
+
+          <div className="space-y-3 p-3 bg-black/40 rounded-2xl border border-white/5">
+            <Slider
+              label="Nudge left / right"
+              value={t.offsetX}
+              min={-50}
+              max={50}
+              step={1}
+              display={`${t.offsetX}%`}
+              onChange={(offsetX) => onTransform({ offsetX })}
+            />
+            <Slider
+              label="Nudge up / down"
+              value={t.offsetY}
+              min={-50}
+              max={50}
+              step={1}
+              display={`${t.offsetY}%`}
+              onChange={(offsetY) => onTransform({ offsetY })}
+            />
+          </div>
+
+          <div className="space-y-3 p-3 bg-black/40 rounded-2xl border border-white/5">
+            <Slider
+              label="Rotation"
+              value={t.rotation}
+              min={-180}
+              max={180}
+              step={1}
+              display={`${t.rotation}°`}
+              onChange={(rotation) => onTransform({ rotation })}
+            />
+            <div className="flex gap-1">
+              {[-45, 0, 45, 90].map((deg) => (
+                <button
+                  key={deg}
+                  type="button"
+                  onClick={() => onTransform({ rotation: deg })}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-black transition-all ${focusCls} ${
+                    t.rotation === deg ? 'bg-[#FF7348] text-black' : 'bg-white/5 text-white/50 hover:text-white'
+                  }`}
+                >
+                  {deg}°
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {edits?.transform && (
+            <button
+              type="button"
+              onClick={onResetTransform}
+              className={`text-xs text-orange-400 font-bold hover:underline ${focusCls}`}
+            >
+              Reset size &amp; position
+            </button>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function getZoneTextLimits(zone: PrintZone): {
+  maxChars: number;
+  isNumeric: boolean;
+  roleLabel: string;
+  badgeLabel: string;
+} {
+  const labelLower = (zone.label || "").toLowerCase();
+  const defText = (zone.defaultText || "").trim();
+  const isNumber =
+    zone.zoneRole === "back_number" ||
+    zone.zoneRole === "front_number" ||
+    labelLower.includes("number") ||
+    labelLower.includes("num") ||
+    defText === "01" ||
+    defText === "23" ||
+    (!isNaN(Number(defText)) && defText.length <= 3 && defText !== "");
+
+  const isTeam = zone.zoneRole === "team_name" || labelLower.includes("team");
+  const isPlayer = zone.zoneRole === "player_name" || labelLower.includes("player") || labelLower.includes("name");
+
+  if (isNumber) {
+    const maxChars = zone.maxCharacters ?? 3;
+    return {
+      maxChars,
+      isNumeric: true,
+      roleLabel: labelLower.includes("front") ? "Front Number" : "Back Number",
+      badgeLabel: `Max ${maxChars} Digits (0–999)`,
+    };
+  }
+
+  if (isTeam) {
+    const maxChars = zone.maxCharacters ?? 12;
+    return {
+      maxChars,
+      isNumeric: false,
+      roleLabel: "Team Name",
+      badgeLabel: `Max ${maxChars} Letters`,
+    };
+  }
+
+  if (isPlayer) {
+    const maxChars = zone.maxCharacters ?? 12;
+    return {
+      maxChars,
+      isNumeric: false,
+      roleLabel: "Player Name",
+      badgeLabel: `Max ${maxChars} Letters`,
+    };
+  }
+
+  const maxChars = zone.maxCharacters ?? 15;
+  return {
+    maxChars,
+    isNumeric: zone.allowedInputType === "numeric",
+    roleLabel: zone.label || "Custom Text",
+    badgeLabel: `Max ${maxChars} Characters`,
+  };
+}
+
+function TextEditor({
+  zone,
+  edits,
+  onChange,
+}: {
+  zone: PrintZone;
+  edits?: ZoneEdits;
+  onChange: (patch: Partial<ZoneEdits>) => void;
+}) {
+  const style = resolveTextStyle(zone, edits);
+  const inputId = useId();
+  const { maxChars, isNumeric, roleLabel, badgeLabel } = getZoneTextLimits(zone);
+  const currentVal = edits?.text ?? '';
+
+  return (
+    <section className={cardCls} aria-label="Text settings">
+      <div className="flex items-center justify-between">
+        <label htmlFor={inputId} className="text-white/80 text-sm font-black flex items-center gap-2">
+          <span>{roleLabel}</span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
+            {badgeLabel}
+          </span>
+        </label>
+        {edits?.text !== undefined && (
+          <button
+            type="button"
+            onClick={() => onChange({ text: undefined })}
+            className={`text-xs text-orange-400 font-bold hover:underline ${focusCls}`}
+          >
+            Reset text
+          </button>
+        )}
+      </div>
+
+      <div className="relative">
+        <input
+          id={inputId}
+          type="text"
+          inputMode={isNumeric ? "numeric" : "text"}
+          pattern={isNumeric ? "[0-9]*" : undefined}
+          maxLength={maxChars}
+          placeholder={zone.placeholder || zone.defaultText || (isNumeric ? "23" : "Type your text…")}
+          value={currentVal}
+          onChange={(e) => {
+            let val = e.target.value.toUpperCase();
+            if (isNumeric) {
+              val = val.replace(/[^0-9]/g, "");
+            }
+            onChange({ text: val.slice(0, maxChars) });
+          }}
+          className="w-full bg-black/40 border border-white/10 rounded-2xl pl-4 pr-16 py-3 text-base font-black uppercase text-white placeholder-white/25 focus:outline-none focus:border-orange-500 shadow-inner"
+        />
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-white/40 font-mono font-bold">
+          {currentVal.length}/{maxChars}
+        </span>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className={labelCls}>Font Family</label>
+        <select
+          value={style.fontFamily}
+          onChange={(e) => onChange({ fontFamily: e.target.value })}
+          className="w-full bg-[#18181b] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FF7348] transition-colors"
+        >
+          {FONT_FAMILY_PRESETS.map((f) => (
+            <option key={f.id} value={f.family} className="bg-[#18181b] text-white">
+              {f.label} ({f.category})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className={labelCls}>Text color</span>
+          <span className="text-white/60 text-xs font-mono uppercase">{style.color}</span>
+        </div>
+        <ColorSwatches value={style.color} onChange={(textColor) => onChange({ textColor })} />
+      </div>
+    </section>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Main component
+   ════════════════════════════════════════════════════════════════════════════ */
 
 export interface SmartCustomizerProps {
   modelConfig: Model3DConfig;
@@ -704,10 +1474,13 @@ export interface SmartCustomizerProps {
       string,
       {
         type: string;
+        /** Admin default image URL. The customer's upload is in `customImageFile` (blob URLs don't survive a reload). */
         customImageUrl?: string;
+        customImageFile?: File;
         customLogoTransform?: LogoTransform;
         customText?: string;
         customTextColor?: string;
+        customFontFamily?: string;
         fontSize?: number;
         isBold?: boolean;
         align?: string;
@@ -719,383 +1492,367 @@ export interface SmartCustomizerProps {
 }
 
 export function SmartCustomizer({ modelConfig, onSave, onClose, className }: SmartCustomizerProps) {
+  const zones = modelConfig.printZones;
+
   const [modelParts, setModelParts] = useState<FormattedPart[]>([]);
   const [colors, setColors] = useState<Record<string, string>>({});
-  const [activeMaterial, setActiveMaterial] = useState<string | null>(null);
-  const [activeZoneId, setActiveZoneId] = useState<string | null>(
-    modelConfig.printZones[0]?.id ?? null
-  );
+  const [edits, setEdits] = useState<EditsMap>({});
   const [tab, setTab] = useState<'zones' | 'colors'>('zones');
-  const [cameraCommand, setCameraCommand] = useState<'front' | 'back' | 'left' | 'right' | 'reset' | null>('front');
+  const [activeZoneId, setActiveZoneId] = useState<string | null>(zones[0]?.id ?? null);
+  const [activeMaterial, setActiveMaterial] = useState<string | null>(null);
+  const [cameraCommand, setCameraCommand] = useState<CameraCommand | null>('front');
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
 
-  // Preloaded admin default logos
-  const [adminLogoMap, setAdminLogoMap] = useState<Record<string, HTMLImageElement>>({});
+  const adminLogos = useAdminLogos(zones);
+  const fontReady = useFontReady(`900 64px ${FONT_FAMILY}`);
+  const [sceneRoot, setSceneRoot] = useState<THREE.Group | null>(null);
 
-  // Customer custom uploads & transformations
-  const [customLogoMap, setCustomLogoMap] = useState<Record<string, HTMLImageElement>>({});
-  const [customLogoTransformMap, setCustomLogoTransformMap] = useState<Record<string, LogoTransform>>({});
+  // Revoke any leftover blob URLs when the customizer closes.
+  const editsRef = useRef(edits);
+  editsRef.current = edits;
+  useEffect(
+    () => () => {
+      Object.values(editsRef.current).forEach(revokeLogoUrl);
+    },
+    []
+  );
 
-  // Customer custom text styling
-  const [customTextMap, setCustomTextMap] = useState<Record<string, string>>({});
-  const [customTextColorMap, setCustomTextColorMap] = useState<Record<string, string>>({});
-  const [customTextSizeMap, setCustomTextSizeMap] = useState<Record<string, number>>({});
-  const [customTextBoldMap, setCustomTextBoldMap] = useState<Record<string, boolean>>({});
-  const [customTextAlignMap, setCustomTextAlignMap] = useState<Record<string, 'left' | 'center' | 'right'>>({});
-
-  const [savedSuccess, setSavedSuccess] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const sceneRootRef = useRef<THREE.Group>(null);
-
-  // Preload admin default images (supports Cloudinary, external URLs, and relative paths)
+  // Auto-dismiss the "saved" and "confirm reset" states.
   useEffect(() => {
-    let isMounted = true;
-    modelConfig.printZones.forEach((z) => {
-      if (z.defaultImageUrl && !z.defaultImageUrl.startsWith('blob:')) {
-        const img = new window.Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-          if (isMounted) setAdminLogoMap((prev) => ({ ...prev, [z.id]: img }));
-        };
-        img.onerror = () => {
-          // Fallback without crossOrigin in case host rejects CORS
-          const fallback = new window.Image();
-          fallback.onload = () => {
-            if (isMounted) setAdminLogoMap((prev) => ({ ...prev, [z.id]: fallback }));
-          };
-          fallback.src = z.defaultImageUrl!;
-        };
-        img.src = z.defaultImageUrl;
-      }
+    if (!saved) return;
+    const id = setTimeout(() => setSaved(false), 3000);
+    return () => clearTimeout(id);
+  }, [saved]);
+  useEffect(() => {
+    if (!confirmReset) return;
+    const id = setTimeout(() => setConfirmReset(false), 3000);
+    return () => clearTimeout(id);
+  }, [confirmReset]);
+
+  /* ── State updaters ─────────────────────────────────────────────────────── */
+
+  const patchZone = useCallback((zoneId: string, patch: Partial<ZoneEdits>) => {
+    setEdits((prev) => ({ ...prev, [zoneId]: { ...prev[zoneId], ...patch } }));
+  }, []);
+
+  const updateTransform = useCallback((zoneId: string, patch: Partial<LogoTransform>) => {
+    setEdits((prev) => {
+      const current = prev[zoneId]?.transform ?? DEFAULT_TRANSFORM;
+      return { ...prev, [zoneId]: { ...prev[zoneId], transform: { ...current, ...patch } } };
     });
-    return () => {
-      isMounted = false;
-    };
-  }, [modelConfig.printZones]);
+  }, []);
 
-  // Handle mesh discovery
-  const handleMaterialsFound = useCallback((mats: FormattedPart[]) => {
-    setModelParts(mats);
-    if (!activeMaterial && mats.length > 0) {
-      setActiveMaterial(mats[0].rawName);
+  const handleLogoFile = useCallback((file: File, zoneId: string) => {
+    if (!ACCEPTED_LOGO_TYPES.includes(file.type)) {
+      setUploadError('Please choose a PNG, JPG, WebP or SVG image.');
+      return;
     }
-  }, [activeMaterial]);
-
-  // Zone selection & camera view sync
-  const handleZoneSelect = (zoneId: string) => {
-    setActiveZoneId(zoneId);
-    setActiveMaterial(null);
-    setTab('zones');
-    const z = modelConfig.printZones.find((x) => x.id === zoneId);
-    if (z) {
-      const info = getFriendlyZoneInfo(z);
-      setCameraCommand(info.cameraCommand);
+    if (file.size > MAX_LOGO_BYTES) {
+      setUploadError('That file is over 8 MB. Please choose a smaller image.');
+      return;
     }
-  };
+    setUploadError(null);
 
-  // Garment part selection & camera view sync
-  const handlePartSelect = (matName: string) => {
-    setActiveMaterial(matName);
-    setActiveZoneId(null);
-    setTab('colors');
-    const part = modelParts.find((p) => p.rawName === matName);
-    if (part) {
-      setCameraCommand(part.cameraCommand);
-    }
-  };
-
-  // Customer custom logo upload
-  const handleCustomerImageUpload = (e: React.ChangeEvent<HTMLInputElement>, zoneId: string) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
     const url = URL.createObjectURL(file);
-    const img = new window.Image();
-    img.crossOrigin = 'anonymous';
+    const img = new Image();
     img.onload = () => {
-      setCustomLogoMap((prev) => ({ ...prev, [zoneId]: img }));
+      setEdits((prev) => {
+        revokeLogoUrl(prev[zoneId]); // free the previous upload
+        return { ...prev, [zoneId]: { ...prev[zoneId], logo: img, logoFile: file } };
+      });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setUploadError("We couldn't read that image. Please try a different file.");
     };
     img.src = url;
-  };
+  }, []);
 
-  const handleClearCustomLogo = (zoneId: string) => {
-    setCustomLogoMap((prev) => {
-      const next = { ...prev };
-      delete next[zoneId];
-      return next;
+  const clearLogo = useCallback((zoneId: string) => {
+    setEdits((prev) => {
+      revokeLogoUrl(prev[zoneId]);
+      return { ...prev, [zoneId]: { ...prev[zoneId], logo: undefined, logoFile: undefined } };
     });
+  }, []);
+
+  /* ── Selection / navigation ─────────────────────────────────────────────── */
+
+  const handleZoneSelect = useCallback(
+    (zoneId: string) => {
+      setActiveZoneId(zoneId);
+      setTab('zones');
+      setUploadError(null);
+      const z = zones.find((x) => x.id === zoneId);
+      if (z) setCameraCommand(getFriendlyZoneInfo(z).cameraCommand);
+    },
+    [zones]
+  );
+
+  const handlePartSelect = useCallback(
+    (matName: string) => {
+      setActiveMaterial(matName);
+      setTab('colors');
+      const part = modelParts.find((p) => p.rawName === matName);
+      if (part) setCameraCommand(part.cameraCommand as CameraCommand);
+    },
+    [modelParts]
+  );
+
+  const openTab = (next: 'zones' | 'colors') => {
+    setTab(next);
+    if (next === 'colors' && !activeMaterial && modelParts[0]) setActiveMaterial(modelParts[0].rawName);
+    if (next === 'zones' && !activeZoneId && zones[0]) setActiveZoneId(zones[0].id);
   };
 
-  // Logo transform updater
-  const updateLogoTransform = (zoneId: string, patch: Partial<LogoTransform>) => {
-    setCustomLogoTransformMap((prev) => {
-      const current = prev[zoneId] || {
-        scale: 1,
-        widthScale: 1,
-        heightScale: 1,
-        lockAspect: true,
-        alignX: 'center',
-        alignY: 'center',
-        offsetX: 0,
-        offsetY: 0,
-        rotation: 0,
-      };
-      return {
-        ...prev,
-        [zoneId]: { ...current, ...patch },
-      };
-    });
-  };
-
-  // Reset logo sizing & positioning
-  const resetLogoTransform = (zoneId: string) => {
-    setCustomLogoTransformMap((prev) => {
-      const next = { ...prev };
-      delete next[zoneId];
-      return next;
-    });
-  };
-
-  // Reset all customer customizations back to original default
-  const handleResetAll = () => {
+  const handleReset = () => {
+    if (!confirmReset) {
+      setConfirmReset(true);
+      return;
+    }
+    Object.values(edits).forEach(revokeLogoUrl);
+    setEdits({});
     setColors({});
-    setCustomLogoMap({});
-    setCustomLogoTransformMap({});
-    setCustomTextMap({});
-    setCustomTextColorMap({});
-    setCustomTextSizeMap({});
-    setCustomTextBoldMap({});
-    setCustomTextAlignMap({});
+    setUploadError(null);
     setCameraCommand('front');
+    setConfirmReset(false);
   };
 
-  const activeZone = modelConfig.printZones.find((z) => z.id === activeZoneId);
-  const activePart = modelParts.find((p) => p.rawName === activeMaterial);
+  const handleSave = () => {
+    setSaved(true);
+    onSave?.({
+      colors,
+      zones: Object.fromEntries(
+        zones.map((z) => {
+          const e = edits[z.id];
+          const style = resolveTextStyle(z, e);
+          return [
+            z.id,
+            {
+              type: z.type,
+              customImageUrl: z.defaultImageUrl,
+              customImageFile: e?.logoFile,
+              customLogoTransform: e?.transform ?? DEFAULT_TRANSFORM,
+              customText: style.text,
+              customTextColor: style.color,
+              customFontFamily: style.fontFamily,
+              fontSize: style.fontSize,
+              isBold: style.bold,
+              align: style.align,
+            },
+          ];
+        })
+      ),
+    });
+  };
 
-  // Count active customizations
-  const customizedCount = useMemo(() => {
-    let count = 0;
-    count += Object.keys(colors).length;
-    count += Object.keys(customLogoMap).length;
-    count += Object.keys(customLogoTransformMap).length;
-    count += Object.values(customTextMap).filter((t) => t.trim().length > 0).length;
-    return count;
-  }, [colors, customLogoMap, customLogoTransformMap, customTextMap]);
+  /* ── Derived ────────────────────────────────────────────────────────────── */
+
+  const activeZone = zones.find((z) => z.id === activeZoneId);
+  const activePart = modelParts.find((p) => p.rawName === activeMaterial);
+  const customizedCount = useMemo(
+    () => Object.keys(colors).length + Object.values(edits).filter(isZoneEdited).length,
+    [colors, edits]
+  );
+  const activeColor = activeMaterial ? colors[activeMaterial] ?? activePart?.originalColor ?? '#FFFFFF' : '#FFFFFF';
+
+  /* ── Render ─────────────────────────────────────────────────────────────── */
 
   return (
     <div
       style={{ fontFamily: "'Barlow Condensed', 'Arial Narrow', Arial, sans-serif" }}
-      className={`flex flex-col lg:flex-row bg-[#0a0a0f] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative select-none ${
-        className || "w-full h-[780px]"
+      className={`flex flex-col lg:flex-row bg-[#0a0a0f] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative ${
+        className || 'w-full lg:h-[780px]'
       }`}
     >
-      {/* ── 3D Viewport ────────────────────────────────────────────────────── */}
-      <div className="flex-1 relative overflow-hidden">
-        {/* Sleek Radial Background */}
+      {/* ── 3D viewport ─────────────────────────────────────────────────── */}
+      <div className="flex-1 relative overflow-hidden select-none min-h-[340px] h-[52vh] lg:h-auto touch-none">
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 50% 35%, #1f2333 0%, #0d0f14 70%, #07080b 100%)',
-          }}
+          style={{ backgroundImage: 'radial-gradient(circle at 50% 35%, #1f2333 0%, #0d0f14 70%, #07080b 100%)' }}
         />
 
-        <Canvas
-          dpr={[1, 2]}
-          camera={{ position: [0, 0, 4.2], fov: 45 }}
-          style={{ background: 'transparent' }}
+        <ViewerErrorBoundary
+          fallback={
+            <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-white/70">
+              <div>
+                <p className="text-lg font-black">The 3D preview couldn’t load</p>
+                <p className="text-sm text-white/40 mt-1">Check your connection and refresh the page.</p>
+              </div>
+            </div>
+          }
         >
-          <Suspense fallback={null}>
-            <Environment preset="studio" blur={0.8} environmentIntensity={0.35} />
-            <ambientLight intensity={0.9} />
-            <directionalLight position={[5, 10, 5]} intensity={1.1} />
-            <directionalLight position={[-5, 5, -5]} intensity={0.25} />
+          <Canvas
+            dpr={[1, 2]}
+            frameloop={RENDER_ON_DEMAND ? 'demand' : 'always'}
+            camera={{ position: [0, 0, 4.2], fov: 45 }}
+            style={{ background: 'transparent' }}
+          >
+            <Suspense fallback={null}>
+              <Environment preset="studio" blur={0.8} environmentIntensity={0.35} />
+              <ambientLight intensity={0.9} />
+              <directionalLight position={[5, 10, 5]} intensity={1.1} />
+              <directionalLight position={[-5, 5, -5]} intensity={0.25} />
 
-            <group ref={sceneRootRef}>
-              <ConfiguredModel
-                url={modelConfig.modelUrl}
-                zones={modelConfig.printZones}
-                adminLogoMap={adminLogoMap}
-                customLogoMap={customLogoMap}
-                customLogoTransformMap={customLogoTransformMap}
-                customTextMap={customTextMap}
-                customTextColorMap={customTextColorMap}
-                customTextSizeMap={customTextSizeMap}
-                customTextBoldMap={customTextBoldMap}
-                customTextAlignMap={customTextAlignMap}
-                colors={colors}
-                activeMaterial={activeMaterial}
-                activeZoneId={activeZoneId}
-                onZoneClick={handleZoneSelect}
-                onPartClick={handlePartSelect}
-                onMaterialsFound={handleMaterialsFound}
-              />
-            </group>
+              <group ref={setSceneRoot}>
+                <ConfiguredModel
+                  url={modelConfig.modelUrl}
+                  zones={zones}
+                  adminLogos={adminLogos}
+                  edits={edits}
+                  colors={colors}
+                  activeMaterial={tab === 'colors' ? activeMaterial : null}
+                  activeZoneId={tab === 'zones' ? activeZoneId : null}
+                  fontReady={fontReady}
+                  onZoneClick={handleZoneSelect}
+                  onPartClick={handlePartSelect}
+                  onMaterialsFound={setModelParts}
+                />
+              </group>
 
-            <OrbitControls
-              makeDefault
-              enablePan={false}
-              minDistance={1.0}
-              maxDistance={8.0}
-            />
-            <CameraFit scene={sceneRootRef.current} />
-            <CameraHelperController
-              scene={sceneRootRef.current}
-              command={cameraCommand}
-              onHandled={() => setCameraCommand(null)}
-            />
-          </Suspense>
-        </Canvas>
+              <OrbitControls makeDefault enablePan={false} minDistance={1} maxDistance={8} />
+              <CameraFit scene={sceneRoot} />
+              <CameraHelperController scene={sceneRoot} command={cameraCommand} onHandled={() => setCameraCommand(null)} />
+            </Suspense>
+          </Canvas>
+          <Loader />
+        </ViewerErrorBoundary>
 
-        {/* Top Left Studio Title & Hint */}
-        <div className="absolute top-6 left-6 pointer-events-none space-y-1">
+        <div className="absolute top-5 left-5 pointer-events-none space-y-1">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
-            <p className="text-white text-2xl font-black uppercase tracking-[.2em] italic">
-              3D Customizer
-            </p>
+            <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+            <p className="text-white text-2xl font-black uppercase tracking-[.18em] italic">3D Customizer</p>
           </div>
-          <p className="text-white/50 text-[11px] font-medium tracking-wider">
-            Drag to rotate 360° &bull; Click anywhere on shirt to customize
+          <p className="text-white/55 text-xs font-medium tracking-wide">
+            Drag to rotate &bull; Click the shirt to customize that part
           </p>
         </div>
 
-        {/* Top Right Reset & Close Toolbar */}
-        <div className="absolute top-6 right-6 flex items-center gap-2 z-10">
+        <div className="absolute top-5 right-5 flex items-center gap-2 z-10">
           {customizedCount > 0 && (
             <button
-              onClick={handleResetAll}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 text-xs font-black uppercase tracking-wider transition-all"
-              title="Reset all customizations"
+              type="button"
+              onClick={handleReset}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-black transition-all ${focusCls} ${
+                confirmReset
+                  ? 'bg-red-500/20 border-red-500/50 text-red-300'
+                  : 'bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border-white/10'
+              }`}
             >
               <Undo2 className="w-3.5 h-3.5 text-orange-400" />
-              <span>Reset Defaults</span>
+              {confirmReset ? 'Click again to clear everything' : 'Reset to defaults'}
             </button>
           )}
-
           {onClose && (
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 transition-colors"
-              title="Exit Customizer"
+              className={`p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 transition-colors ${focusCls}`}
+              title="Exit customizer"
+              aria-label="Exit customizer"
             >
               <Maximize2 className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Floating Quick Camera Angle Switcher (Non-technical friendly) */}
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 p-1.5 bg-[#0F1116]/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl z-10">
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/40 px-2">
-            View:
-          </span>
-          {[
-            { id: 'front', label: 'Front', icon: '👕' },
-            { id: 'back', label: 'Back', icon: '🔄' },
-            { id: 'left', label: 'Left Arm', icon: '👈' },
-            { id: 'right', label: 'Right Arm', icon: '👉' },
-            { id: 'reset', label: 'Center', icon: '🎯' },
-          ].map((v) => (
+        <div
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-[calc(100%-1rem)] overflow-x-auto flex items-center gap-1 p-1.5 bg-[#0F1116]/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl z-10"
+          role="group"
+          aria-label="Camera view"
+        >
+          {VIEW_BUTTONS.map((v) => (
             <button
               key={v.id}
-              onClick={() => setCameraCommand(v.id as any)}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider text-white/70 hover:text-white hover:bg-white/10 active:bg-orange-500/20 active:text-orange-400 transition-all border border-transparent hover:border-white/5"
+              type="button"
+              onClick={() => setCameraCommand(v.id)}
+              className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black text-white/70 hover:text-white hover:bg-white/10 active:bg-orange-500/20 transition-all whitespace-nowrap ${focusCls}`}
             >
-              <span>{v.icon}</span>
+              <span aria-hidden>{v.icon}</span>
               <span>{v.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Customizer Control Sidebar ───────────────────────────────────── */}
-      <div className="w-full lg:w-[420px] flex flex-col bg-[#111319] border-l border-white/10 z-10 min-h-0">
-        {/* Navigation Tabs (Big, clear buttons for non-technical users) */}
-        <div className="flex border-b border-white/10 p-2 gap-2 bg-[#0e1015]">
-          <button
-            onClick={() => setTab('zones')}
-            className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${tab === 'zones'
-                ? 'bg-[#FF7348] text-black shadow-lg shadow-orange-500/20'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
+      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
+      <div className="w-full lg:w-[420px] flex flex-col bg-[#111319] border-t lg:border-t-0 lg:border-l border-white/10 z-10 min-h-0">
+        <div className="flex border-b border-white/10 p-2 gap-2 bg-[#0e1015]" role="tablist">
+          {(
+            [
+              { id: 'zones', label: `Logos & text (${zones.length})`, icon: <ImageIcon className="w-4 h-4" /> },
+              { id: 'colors', label: 'Garment colors', icon: <Palette className="w-4 h-4" /> },
+            ] as const
+          ).map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => openTab(t.id)}
+              className={`flex-1 py-3 px-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all ${focusCls} ${
+                tab === t.id ? 'bg-[#FF7348] text-black shadow-lg shadow-orange-500/20' : 'text-white/60 hover:text-white hover:bg-white/5'
               }`}
-          >
-            <ImageIcon className="w-4 h-4" />
-            <span>Graphics & Text ({modelConfig.printZones.length})</span>
-          </button>
-          <button
-            onClick={() => setTab('colors')}
-            className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${tab === 'colors'
-                ? 'bg-[#FF7348] text-black shadow-lg shadow-orange-500/20'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
-              }`}
-          >
-            <Palette className="w-4 h-4" />
-            <span>Garment Colors</span>
-          </button>
+            >
+              {t.icon}
+              <span>{t.label}</span>
+            </button>
+          ))}
         </div>
 
-        {/* Panel Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-5 space-y-6">
-          {/* ══════════ TAB 1: GRAPHICS & TEXT ══════════ */}
+        <div className="flex-1 overflow-y-auto min-h-0 p-5 space-y-6" role="tabpanel">
+          {/* ═══ Logos & text ═══ */}
           {tab === 'zones' && (
             <>
-              {/* Area Selection List */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">
-                    Step 1: Choose Area to Personalize
-                  </p>
-                  <span className="text-[10px] text-orange-400 font-bold uppercase">
-                    Auto-focuses 3D view
-                  </span>
-                </div>
+                <p className={labelCls}>1. Pick the area you want to personalize</p>
 
-                {modelConfig.printZones.length === 0 ? (
-                  <div className="text-center py-10 text-white/30 text-xs uppercase tracking-widest border border-dashed border-white/10 rounded-2xl p-4">
-                    No customizable areas configured for this model
+                {zones.length === 0 ? (
+                  <div className="text-center py-10 text-white/40 text-sm border border-dashed border-white/10 rounded-2xl p-4">
+                    This model doesn’t have any customizable areas yet.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-2">
-                    {modelConfig.printZones.map((zone) => {
-                      const isSel = activeZoneId === zone.id;
+                    {zones.map((zone) => {
+                      const selected = activeZoneId === zone.id;
                       const info = getFriendlyZoneInfo(zone);
-                      const hasCustomLogo = !!customLogoMap[zone.id];
-                      const hasAdminLogo = !!adminLogoMap[zone.id];
-                      const hasCustomTxt = !!customTextMap[zone.id]?.trim();
-                      const hasAdminTxt = !!zone.defaultText?.trim();
+                      const e = edits[zone.id];
+                      const hasLogo = !!e?.logo || !!adminLogos[zone.id];
+                      const hasText = (e?.text !== undefined ? e.text : zone.defaultText ?? '').trim().length > 0;
 
                       return (
                         <button
                           key={zone.id}
+                          type="button"
+                          aria-pressed={selected}
                           onClick={() => handleZoneSelect(zone.id)}
-                          className={`w-full px-4 py-3 rounded-2xl text-left flex items-center justify-between transition-all border ${isSel
+                          className={`w-full px-4 py-3 rounded-2xl text-left flex items-center justify-between gap-2 transition-all border ${focusCls} ${
+                            selected
                               ? 'bg-orange-500/15 border-orange-500 text-white shadow-lg shadow-orange-500/10'
                               : 'bg-white/[0.02] border-white/5 text-white/60 hover:bg-white/5 hover:text-white'
-                            }`}
+                          }`}
                         >
-                          <div className="flex items-center gap-3">
-                            <span className="text-xl">{info.icon}</span>
-                            <div>
-                              <p className="text-xs font-black uppercase tracking-wider text-white">
-                                {info.friendlyTitle}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-xl" aria-hidden>
+                              {info.icon}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-black text-white truncate">{info.friendlyTitle}</p>
+                              <p className="text-xs text-white/45 mt-0.5">
+                                {info.directionTag.toLowerCase().replace(/^\w/, (c) => c.toUpperCase())} &bull; {info.badgeType}
                               </p>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 text-slate-400">
-                                  {info.directionTag}
-                                </span>
-                                <span className="text-[9px] text-white/40">
-                                  &bull; {info.badgeType}
-                                </span>
-                              </div>
                             </div>
                           </div>
-
-                          <div className="flex items-center gap-1.5">
-                            {(hasCustomLogo || hasAdminLogo) && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isZoneEdited(e) && <span className="w-2 h-2 rounded-full bg-orange-400" title="You edited this" />}
+                            {hasLogo && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
                                 Logo
                               </span>
                             )}
-                            {(hasCustomTxt || hasAdminTxt) && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            {hasText && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                                 Text
                               </span>
                             )}
@@ -1107,584 +1864,84 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
                 )}
               </div>
 
-              {/* Active Zone Editor */}
               {activeZone && (
                 <div className="border-t border-white/10 pt-5 space-y-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-[#FF7348]" />
-                        <p className="text-white text-sm font-black uppercase tracking-wider">
-                          Editing {getFriendlyZoneInfo(activeZone).friendlyTitle}
-                        </p>
-                      </div>
-                      <p className="text-white/40 text-[10px] uppercase mt-0.5">
-                        Updates in real-time on the 3D model
+                      <p className="text-white text-base font-black">
+                        2. Edit: {getFriendlyZoneInfo(activeZone).friendlyTitle}
                       </p>
+                      <p className="text-white/45 text-xs mt-0.5">Changes show instantly on the 3D shirt</p>
                     </div>
-
                     <button
-                      onClick={() => {
-                        const info = getFriendlyZoneInfo(activeZone);
-                        setCameraCommand(info.cameraCommand);
-                      }}
-                      className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all border border-white/5"
-                      title="Face camera directly to this area"
+                      type="button"
+                      onClick={() => setCameraCommand(getFriendlyZoneInfo(activeZone).cameraCommand)}
+                      className={`p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all border border-white/5 ${focusCls}`}
+                      title="Turn the shirt to face this area"
+                      aria-label="Turn the shirt to face this area"
                     >
-                      <RotateCw className="w-3.5 h-3.5" />
+                      <RotateCw className="w-4 h-4" />
                     </button>
                   </div>
 
-                  {/* ── Logo Customization ── */}
                   {(activeZone.type === 'image' || activeZone.type === 'both') && (
-                    <div className="space-y-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-                      <label className="text-white/60 text-[10px] font-black uppercase tracking-widest flex items-center justify-between">
-                        <span>Team Logo / Sponsor Graphic</span>
-                        <span className="text-orange-400 font-bold">PNG, JPG, SVG</span>
-                      </label>
-
-                      {/* Current Applied Logo Box */}
-                      {(customLogoMap[activeZone.id] || adminLogoMap[activeZone.id]) && (
-                        <div className="flex items-center justify-between p-3 bg-black/40 rounded-xl border border-white/10">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 p-1 flex items-center justify-center overflow-hidden">
-                              <img
-                                src={
-                                  customLogoMap[activeZone.id]?.src ||
-                                  adminLogoMap[activeZone.id]?.src
-                                }
-                                alt="Decal Preview"
-                                className="max-h-full max-w-full object-contain"
-                              />
-                            </div>
-                            <div>
-                              <p className="text-white text-xs font-black uppercase">
-                                {customLogoMap[activeZone.id]
-                                  ? 'Custom Logo Uploaded'
-                                  : 'Official Team Graphic'}
-                              </p>
-                              <p className="text-white/40 text-[9px] uppercase">
-                                {customLogoMap[activeZone.id]
-                                  ? 'Customized by you'
-                                  : 'Configured by Admin'}
-                              </p>
-                            </div>
-                          </div>
-
-                          {customLogoMap[activeZone.id] && (
-                            <button
-                              onClick={() => handleClearCustomLogo(activeZone.id)}
-                              className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all"
-                              title="Revert back to default logo"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-                      {/* File Upload Input */}
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                        className="hidden"
-                        onChange={(e) => handleCustomerImageUpload(e, activeZone.id)}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 border-2 border-dashed border-white/20 hover:border-orange-500/50 rounded-2xl text-xs font-black uppercase tracking-wider text-white transition-all shadow-sm"
-                      >
-                        <Upload className="w-4 h-4 text-[#FF7348]" />
-                        <span>
-                          {customLogoMap[activeZone.id]
-                            ? 'Change Uploaded Logo'
-                            : 'Upload Your Custom Logo'}
-                        </span>
-                      </button>
-
-                      {/* ── Logo Size, Scale, Height, Width & Alignment ── */}
-                      <div className="space-y-4 pt-3 border-t border-white/10">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <SlidersHorizontal className="w-3.5 h-3.5 text-[#FF7348]" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-white/80">
-                              Logo Dimensions & Alignment
-                            </span>
-                          </div>
-                          {customLogoTransformMap[activeZone.id] && (
-                            <button
-                              type="button"
-                              onClick={() => resetLogoTransform(activeZone.id)}
-                              className="text-[9px] text-orange-400 font-bold uppercase hover:underline"
-                            >
-                              Reset Sizing
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Quick Scale Presets */}
-                        <div className="space-y-1.5">
-                          <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest block">
-                            Size Presets
-                          </span>
-                          <div className="grid grid-cols-4 gap-1.5">
-                            {[
-                              { label: 'Compact', scale: 0.75 },
-                              { label: 'Normal', scale: 1.0 },
-                              { label: 'Large', scale: 1.25 },
-                              { label: 'Hero', scale: 1.5 },
-                            ].map((preset) => {
-                              const curScale = customLogoTransformMap[activeZone.id]?.scale ?? 1.0;
-                              const isMatch = Math.abs(curScale - preset.scale) < 0.05;
-                              return (
-                                <button
-                                  key={preset.label}
-                                  type="button"
-                                  onClick={() => updateLogoTransform(activeZone.id, { scale: preset.scale })}
-                                  className={`py-1.5 px-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${isMatch
-                                      ? 'bg-[#FF7348] text-black border-[#FF7348] shadow-sm'
-                                      : 'bg-white/5 border-white/5 text-white/50 hover:bg-white/10 hover:text-white'
-                                    }`}
-                                >
-                                  {preset.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Width and Height Sliders */}
-                        <div className="space-y-3 p-3 bg-black/40 rounded-2xl border border-white/5">
-                          {/* Overall Scale Slider */}
-                          <div className="space-y-1">
-                            <div className="flex justify-between items-center text-[10px]">
-                              <span className="text-white/60 font-bold uppercase tracking-wider">Overall Size:</span>
-                              <span className="text-orange-400 font-mono font-black">
-                                {Math.round((customLogoTransformMap[activeZone.id]?.scale ?? 1.0) * 100)}%
-                              </span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0.3"
-                              max="1.6"
-                              step="0.02"
-                              value={customLogoTransformMap[activeZone.id]?.scale ?? 1.0}
-                              onChange={(e) => updateLogoTransform(activeZone.id, { scale: parseFloat(e.target.value) })}
-                              className="w-full accent-[#FF7348] cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
-                            />
-                          </div>
-
-                          {/* Proportional Lock / Unlock Toggle */}
-                          <div className="flex items-center justify-between pt-1">
-                            <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest">
-                              Independent Width & Height
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const curLock = customLogoTransformMap[activeZone.id]?.lockAspect ?? true;
-                                updateLogoTransform(activeZone.id, { lockAspect: !curLock });
-                              }}
-                              className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${(customLogoTransformMap[activeZone.id]?.lockAspect ?? true)
-                                  ? 'bg-white/10 text-white/70 border-white/10'
-                                  : 'bg-orange-500/20 text-orange-400 border-orange-500/30'
-                                }`}
-                            >
-                              {(customLogoTransformMap[activeZone.id]?.lockAspect ?? true) ? (
-                                <>
-                                  <Lock className="w-2.5 h-2.5" />
-                                  <span>Locked Ratio</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Unlock className="w-2.5 h-2.5" />
-                                  <span>Free Stretch</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-
-                          {/* Width Slider */}
-                          <div className="space-y-1">
-                            <div className="flex justify-between items-center text-[10px]">
-                              <span className="text-white/50 font-bold uppercase">Width:</span>
-                              <span className="text-white/70 font-mono">
-                                {Math.round((customLogoTransformMap[activeZone.id]?.widthScale ?? 1.0) * 100)}%
-                              </span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0.4"
-                              max="1.6"
-                              step="0.02"
-                              value={customLogoTransformMap[activeZone.id]?.widthScale ?? 1.0}
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value);
-                                const isLocked = customLogoTransformMap[activeZone.id]?.lockAspect ?? true;
-                                if (isLocked) {
-                                  updateLogoTransform(activeZone.id, { widthScale: val, heightScale: val });
-                                } else {
-                                  updateLogoTransform(activeZone.id, { widthScale: val });
-                                }
-                              }}
-                              className="w-full accent-[#FF7348] cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
-                            />
-                          </div>
-
-                          {/* Height Slider */}
-                          <div className="space-y-1">
-                            <div className="flex justify-between items-center text-[10px]">
-                              <span className="text-white/50 font-bold uppercase">Height:</span>
-                              <span className="text-white/70 font-mono">
-                                {Math.round((customLogoTransformMap[activeZone.id]?.heightScale ?? 1.0) * 100)}%
-                              </span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0.4"
-                              max="1.6"
-                              step="0.02"
-                              value={customLogoTransformMap[activeZone.id]?.heightScale ?? 1.0}
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value);
-                                const isLocked = customLogoTransformMap[activeZone.id]?.lockAspect ?? true;
-                                if (isLocked) {
-                                  updateLogoTransform(activeZone.id, { widthScale: val, heightScale: val });
-                                } else {
-                                  updateLogoTransform(activeZone.id, { heightScale: val });
-                                }
-                              }}
-                              className="w-full accent-[#FF7348] cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Horizontal & Vertical Alignment Grid */}
-                        <div className="grid grid-cols-2 gap-2">
-                          {/* Horizontal Alignment */}
-                          <div className="space-y-1.5">
-                            <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest block">
-                              Horizontal Align
-                            </span>
-                            <div className="flex rounded-xl bg-black/40 p-1 border border-white/10">
-                              {(['left', 'center', 'right'] as const).map((a) => (
-                                <button
-                                  key={a}
-                                  type="button"
-                                  onClick={() => updateLogoTransform(activeZone.id, { alignX: a, offsetX: 0 })}
-                                  className={`flex-1 py-1 rounded-lg flex items-center justify-center transition-all ${(customLogoTransformMap[activeZone.id]?.alignX ?? 'center') === a
-                                      ? 'bg-[#FF7348] text-black shadow-sm'
-                                      : 'text-white/40 hover:text-white'
-                                    }`}
-                                  title={`Align ${a}`}
-                                >
-                                  {a === 'left' && <AlignLeft className="w-3.5 h-3.5" />}
-                                  {a === 'center' && <AlignCenter className="w-3.5 h-3.5" />}
-                                  {a === 'right' && <AlignRight className="w-3.5 h-3.5" />}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Vertical Alignment */}
-                          <div className="space-y-1.5">
-                            <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest block">
-                              Vertical Align
-                            </span>
-                            <div className="flex rounded-xl bg-black/40 p-1 border border-white/10">
-                              {[
-                                { id: 'top', label: 'Top', icon: ArrowUp },
-                                { id: 'center', label: 'Mid', icon: AlignCenter },
-                                { id: 'bottom', label: 'Bot', icon: ArrowDown },
-                              ].map((v) => {
-                                const Icon = v.icon;
-                                return (
-                                  <button
-                                    key={v.id}
-                                    type="button"
-                                    onClick={() => updateLogoTransform(activeZone.id, { alignY: v.id as any, offsetY: 0 })}
-                                    className={`flex-1 py-1 rounded-lg flex items-center justify-center text-[10px] font-black uppercase transition-all ${(customLogoTransformMap[activeZone.id]?.alignY ?? 'center') === v.id
-                                        ? 'bg-[#FF7348] text-black shadow-sm'
-                                        : 'text-white/40 hover:text-white'
-                                      }`}
-                                    title={`Align ${v.label}`}
-                                  >
-                                    <Icon className="w-3.5 h-3.5" />
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Position Nudge Sliders (Fine adjustment) */}
-                        <div className="space-y-2 p-3 bg-black/40 rounded-2xl border border-white/5">
-                          <div className="flex justify-between items-center text-[9px] font-bold uppercase text-white/40">
-                            <span>Fine Position Nudge</span>
-                            <span>
-                              X: {customLogoTransformMap[activeZone.id]?.offsetX ?? 0}%, Y:{' '}
-                              {customLogoTransformMap[activeZone.id]?.offsetY ?? 0}%
-                            </span>
-                          </div>
-
-                          {/* X Nudge */}
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[9px] text-white/50">
-                              <span>&larr; Left</span>
-                              <span>Center</span>
-                              <span>Right &rarr;</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="-50"
-                              max="50"
-                              step="1"
-                              value={customLogoTransformMap[activeZone.id]?.offsetX ?? 0}
-                              onChange={(e) => updateLogoTransform(activeZone.id, { offsetX: parseInt(e.target.value) })}
-                              className="w-full accent-[#FF7348] cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
-                            />
-                          </div>
-
-                          {/* Y Nudge */}
-                          <div className="space-y-1 pt-1">
-                            <div className="flex justify-between text-[9px] text-white/50">
-                              <span>&uarr; Up</span>
-                              <span>Center</span>
-                              <span>Down &darr;</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="-50"
-                              max="50"
-                              step="1"
-                              value={customLogoTransformMap[activeZone.id]?.offsetY ?? 0}
-                              onChange={(e) => updateLogoTransform(activeZone.id, { offsetY: parseInt(e.target.value) })}
-                              className="w-full accent-[#FF7348] cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Rotation / Angle Controls */}
-                        <div className="space-y-2 p-3 bg-black/40 rounded-2xl border border-white/5">
-                          <div className="flex justify-between items-center text-[10px]">
-                            <span className="text-white/50 font-bold uppercase flex items-center gap-1">
-                              <RotateCw className="w-3 h-3 text-[#FF7348]" /> Logo Rotation:
-                            </span>
-                            <span className="text-white/70 font-mono font-black">
-                              {customLogoTransformMap[activeZone.id]?.rotation ?? 0}&deg;
-                            </span>
-                          </div>
-
-                          <input
-                            type="range"
-                            min="-180"
-                            max="180"
-                            step="1"
-                            value={customLogoTransformMap[activeZone.id]?.rotation ?? 0}
-                            onChange={(e) => updateLogoTransform(activeZone.id, { rotation: parseInt(e.target.value) })}
-                            className="w-full accent-[#FF7348] cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
-                          />
-
-                          <div className="flex items-center justify-between gap-1 pt-1">
-                            {[-45, 0, 45, 90].map((deg) => (
-                              <button
-                                key={deg}
-                                type="button"
-                                onClick={() => updateLogoTransform(activeZone.id, { rotation: deg })}
-                                className={`flex-1 py-1 rounded-lg text-[9px] font-black uppercase transition-all ${(customLogoTransformMap[activeZone.id]?.rotation ?? 0) === deg
-                                    ? 'bg-[#FF7348] text-black shadow-sm'
-                                    : 'bg-white/5 text-white/40 hover:text-white'
-                                  }`}
-                              >
-                                {deg}&deg;
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <LogoEditor
+                      zone={activeZone}
+                      adminLogo={adminLogos[activeZone.id]}
+                      edits={edits[activeZone.id]}
+                      error={uploadError}
+                      onFile={(file) => handleLogoFile(file, activeZone.id)}
+                      onClear={() => clearLogo(activeZone.id)}
+                      onTransform={(patch) => updateTransform(activeZone.id, patch)}
+                      onResetTransform={() => patchZone(activeZone.id, { transform: undefined })}
+                    />
                   )}
 
-                  {/* ── Text Customization ── */}
                   {(activeZone.type === 'text' || activeZone.type === 'both') && (
-                    <div className="space-y-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-white/60 text-[10px] font-black uppercase tracking-widest">
-                          Custom Name / Number / Text
-                        </label>
-                        {customTextMap[activeZone.id] && (
-                          <button
-                            onClick={() =>
-                              setCustomTextMap((p) => {
-                                const n = { ...p };
-                                delete n[activeZone.id];
-                                return n;
-                              })
-                            }
-                            className="text-[9px] text-orange-400 font-bold uppercase hover:underline"
-                          >
-                            Reset Text
-                          </button>
-                        )}
-                      </div>
-
-                      <input
-                        type="text"
-                        maxLength={25}
-                        placeholder={activeZone.defaultText || 'Type your text...'}
-                        value={customTextMap[activeZone.id] ?? ''}
-                        onChange={(e) =>
-                          setCustomTextMap((prev) => ({
-                            ...prev,
-                            [activeZone.id]: e.target.value.toUpperCase(),
-                          }))
-                        }
-                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm font-black uppercase text-white placeholder-white/25 focus:outline-none focus:border-orange-500 shadow-inner"
-                      />
-
-                      {/* Text Style Controls (Size, Bold, Alignment) */}
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        {/* Alignment */}
-                        <div className="space-y-1.5">
-                          <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest block">
-                            Alignment
-                          </span>
-                          <div className="flex rounded-xl bg-black/40 p-1 border border-white/10">
-                            {(['left', 'center', 'right'] as const).map((a) => (
-                              <button
-                                key={a}
-                                type="button"
-                                onClick={() =>
-                                  setCustomTextAlignMap((p) => ({ ...p, [activeZone.id]: a }))
-                                }
-                                className={`flex-1 py-1 rounded-lg flex items-center justify-center transition-all ${(customTextAlignMap[activeZone.id] || activeZone.align || 'center') === a
-                                    ? 'bg-[#FF7348] text-black shadow-sm'
-                                    : 'text-white/40 hover:text-white'
-                                  }`}
-                              >
-                                {a === 'left' && <AlignLeft className="w-3.5 h-3.5" />}
-                                {a === 'center' && <AlignCenter className="w-3.5 h-3.5" />}
-                                {a === 'right' && <AlignRight className="w-3.5 h-3.5" />}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Font Size Preset */}
-                        <div className="space-y-1.5">
-                          <span className="text-white/40 text-[9px] font-bold uppercase tracking-widest block">
-                            Font Scale
-                          </span>
-                          <div className="flex rounded-xl bg-black/40 p-1 border border-white/10">
-                            {TEXT_SIZE_OPTIONS.map((opt) => (
-                              <button
-                                key={opt.value}
-                                type="button"
-                                onClick={() =>
-                                  setCustomTextSizeMap((p) => ({
-                                    ...p,
-                                    [activeZone.id]: opt.value,
-                                  }))
-                                }
-                                className={`flex-1 py-1 text-[10px] font-black uppercase rounded-lg transition-all ${(customTextSizeMap[activeZone.id] || activeZone.fontSize || 80) ===
-                                    opt.value
-                                    ? 'bg-[#FF7348] text-black shadow-sm'
-                                    : 'text-white/40 hover:text-white'
-                                  }`}
-                              >
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Text Color Picker */}
-                      <div className="space-y-2 pt-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">
-                            Text Color
-                          </span>
-                          <span className="text-white/60 text-[10px] font-mono uppercase">
-                            {customTextColorMap[activeZone.id] ||
-                              activeZone.textColor ||
-                              '#FFFFFF'}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-6 gap-2">
-                          {ATHLETIC_COLOR_PRESETS.map((c) => {
-                            const curColor =
-                              customTextColorMap[activeZone.id] ||
-                              activeZone.textColor ||
-                              '#FFFFFF';
-                            const isSelected = curColor.toLowerCase() === c.hex.toLowerCase();
-                            return (
-                              <button
-                                key={c.hex}
-                                type="button"
-                                onClick={() =>
-                                  setCustomTextColorMap((prev) => ({
-                                    ...prev,
-                                    [activeZone.id]: c.hex,
-                                  }))
-                                }
-                                className={`aspect-square rounded-xl transition-all border-2 ${isSelected
-                                    ? 'border-white scale-110 shadow-lg'
-                                    : 'border-transparent hover:scale-105'
-                                  }`}
-                                style={{ backgroundColor: c.hex }}
-                                title={c.name}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
+                    <TextEditor
+                      zone={activeZone}
+                      edits={edits[activeZone.id]}
+                      onChange={(patch) => patchZone(activeZone.id, patch)}
+                    />
                   )}
                 </div>
               )}
             </>
           )}
 
-          {/* ══════════ TAB 2: GARMENT COLORS ══════════ */}
+          {/* ═══ Garment colors ═══ */}
           {tab === 'colors' && (
             <>
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">
-                    Step 1: Select Garment Part
-                  </p>
-                  <span className="text-[10px] text-orange-400 font-bold uppercase">
-                    Auto-highlights section
-                  </span>
-                </div>
+                <p className={labelCls}>1. Pick the part of the garment to recolor</p>
 
                 {modelParts.length === 0 ? (
-                  <p className="text-white/20 text-xs italic">Loading model materials...</p>
+                  <p className="text-white/40 text-sm">Loading garment parts…</p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {modelParts.map((part) => {
-                      const isSel = activeMaterial === part.rawName;
-                      const currentColor = colors[part.rawName] ?? part.originalColor;
-
+                      const selected = activeMaterial === part.rawName;
                       return (
                         <button
                           key={part.id}
+                          type="button"
+                          aria-pressed={selected}
                           onClick={() => handlePartSelect(part.rawName)}
-                          className={`px-3.5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider text-left flex items-center justify-between transition-all border ${isSel
+                          className={`px-3.5 py-3 rounded-2xl text-sm font-black text-left flex items-center justify-between gap-2 transition-all border ${focusCls} ${
+                            selected
                               ? 'bg-orange-500/15 border-orange-500 text-white shadow-lg shadow-orange-500/10'
                               : 'bg-white/[0.02] border-white/5 text-white/60 hover:bg-white/5 hover:text-white'
-                            }`}
+                          }`}
                         >
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="text-base">{part.icon}</span>
+                          <span className="flex items-center gap-2 truncate">
+                            <span className="text-base" aria-hidden>
+                              {part.icon}
+                            </span>
                             <span className="truncate">{part.label}</span>
-                          </div>
+                          </span>
                           <span
-                            className="w-4 h-4 rounded-full border border-white/20 shrink-0 shadow-sm"
-                            style={{ backgroundColor: currentColor }}
+                            className="w-4 h-4 rounded-full border border-white/20 shrink-0"
+                            style={{ backgroundColor: colors[part.rawName] ?? part.originalColor }}
                           />
                         </button>
                       );
@@ -1693,122 +1950,73 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
                 )}
               </div>
 
-              {/* Active Part Color Palette */}
               {activeMaterial && (
                 <div className="border-t border-white/10 pt-5 space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className="text-white text-sm font-black uppercase tracking-wider">
-                        Color for {activePart?.label || activeMaterial.replace(/_/g, ' ')}
+                      <p className="text-white text-base font-black">
+                        2. Color for {activePart?.label || activeMaterial.replace(/_/g, ' ')}
                       </p>
-                      <p className="text-white/40 text-[10px] uppercase">
-                        Select an official team shade or pick custom
-                      </p>
+                      <p className="text-white/45 text-xs mt-0.5">Select from athletic preset shades</p>
                     </div>
-                    <span className="text-white/60 text-xs font-mono uppercase">
-                      {colors[activeMaterial] ?? activePart?.originalColor ?? '#FFFFFF'}
-                    </span>
+                    <div className="text-right">
+                      <span className="text-white/90 text-xs font-semibold block">
+                        {ATHLETIC_COLOR_PRESETS.find((c) => c.hex.toLowerCase() === activeColor.toLowerCase())?.name || ''}
+                      </span>
+                      <span className="text-white/50 text-[11px] font-mono uppercase">{activeColor}</span>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-6 gap-2">
-                    {ATHLETIC_COLOR_PRESETS.map((c) => {
-                      const activeCol =
-                        colors[activeMaterial] ?? activePart?.originalColor ?? '#FFFFFF';
-                      const isSelected = activeCol.toLowerCase() === c.hex.toLowerCase();
-                      return (
-                        <button
-                          key={c.hex}
-                          type="button"
-                          onClick={() => setColors((p) => ({ ...p, [activeMaterial]: c.hex }))}
-                          className={`aspect-square rounded-xl transition-all border-2 ${isSelected
-                              ? 'border-white scale-110 shadow-lg'
-                              : 'border-transparent hover:scale-105'
-                            }`}
-                          style={{ backgroundColor: c.hex }}
-                          title={c.name}
+                  <ColorSwatches value={activeColor} onChange={(hex) => setColors((p) => ({ ...p, [activeMaterial]: hex }))} />
+
+                  {colors[activeMaterial] && (
+                    <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-2xl">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="w-4 h-4 rounded-full border border-white/20 inline-block shadow-sm"
+                          style={{ backgroundColor: colors[activeMaterial] }}
                         />
-                      );
-                    })}
-                  </div>
-
-                  {/* Custom Hex Color Input */}
-                  <div className="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-2xl">
-                    <input
-                      type="color"
-                      value={colors[activeMaterial] ?? activePart?.originalColor ?? '#CCCCCC'}
-                      onChange={(e) =>
-                        setColors((p) => ({ ...p, [activeMaterial]: e.target.value }))
-                      }
-                      className="w-9 h-9 rounded-xl cursor-pointer bg-transparent border border-white/10 p-0.5"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-black uppercase text-white">Custom Color Picker</p>
-                      <p className="text-[10px] text-white/40">Select exact pantone or team hex</p>
+                        <span className="text-xs text-white/70">
+                          Customized: <strong className="text-white">{ATHLETIC_COLOR_PRESETS.find((c) => c.hex.toLowerCase() === colors[activeMaterial].toLowerCase())?.name || colors[activeMaterial]}</strong>
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setColors((p) => {
+                            const next = { ...p };
+                            delete next[activeMaterial];
+                            return next;
+                          })
+                        }
+                        className={`text-xs text-orange-400 font-bold hover:underline ${focusCls}`}
+                      >
+                        Reset to default
+                      </button>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </>
           )}
         </div>
 
-        {/* ── Customizer Footer / Save Action ──────────────────────────────── */}
+        {/* ── Footer ──────────────────────────────────────────────────── */}
         <div className="p-5 border-t border-white/10 bg-[#0e1015] space-y-3 shrink-0">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-white/50 font-bold uppercase tracking-wider">
-              Modifications:
-            </span>
-            <span className="text-orange-400 font-black uppercase tracking-wider">
-              {customizedCount} changes applied
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/50 font-bold">Your changes</span>
+            <span className="text-orange-400 font-black">
+              {customizedCount === 0 ? 'None yet' : `${customizedCount} ${customizedCount === 1 ? 'change' : 'changes'}`}
             </span>
           </div>
 
           <button
-            onClick={() => {
-              setSavedSuccess(true);
-              setTimeout(() => setSavedSuccess(false), 3000);
-              onSave?.({
-                colors,
-                zones: Object.fromEntries(
-                  modelConfig.printZones.map((z) => [
-                    z.id,
-                    {
-                      type: z.type,
-                      customImageUrl: customLogoMap[z.id]?.src || z.defaultImageUrl,
-                      customLogoTransform: customLogoTransformMap[z.id] || {
-                        scale: 1,
-                        widthScale: 1,
-                        heightScale: 1,
-                        lockAspect: true,
-                        alignX: 'center',
-                        alignY: 'center',
-                        offsetX: 0,
-                        offsetY: 0,
-                        rotation: 0,
-                      },
-                      customText: customTextMap[z.id] || z.defaultText,
-                      customTextColor: customTextColorMap[z.id] || z.textColor,
-                      fontSize: customTextSizeMap[z.id] || z.fontSize,
-                      isBold: customTextBoldMap[z.id] ?? z.isBold,
-                      align: customTextAlignMap[z.id] || z.align,
-                    },
-                  ])
-                ),
-              });
-            }}
-            className="w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest bg-gradient-to-r from-[#FF7348] to-[#ff8c69] hover:from-[#ff8660] hover:to-[#ffa082] text-black shadow-xl shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            type="button"
+            onClick={handleSave}
+            className={`w-full py-4 rounded-2xl text-sm font-black tracking-wide bg-gradient-to-r from-[#FF7348] to-[#ff8c69] hover:from-[#ff8660] hover:to-[#ffa082] text-black shadow-xl shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${focusCls}`}
           >
-            {savedSuccess ? (
-              <>
-                <Check className="w-4 h-4 text-black" />
-                <span>Customization Saved!</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 text-black" />
-                <span>Apply & Save Customization</span>
-              </>
-            )}
+            {saved ? <Check className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+            <span aria-live="polite">{saved ? 'Customization saved!' : 'Save my design'}</span>
           </button>
         </div>
       </div>

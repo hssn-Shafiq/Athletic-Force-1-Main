@@ -22,12 +22,20 @@ import { ShopSkeleton } from "@/app/shop/components/ShopSkeleton";
 interface SubCollectionClientProps {
   initialProducts?: PublicProduct[];
   initialHierarchy?: CollectionHierarchy[];
+  /** Override slugs when rendered outside the [subCategoryId] route */
+  overrideParentSlug?: string;
+  overrideSubSlug?: string;
 }
 
-export default function SubCollectionClient({ initialProducts = [], initialHierarchy = [] }: SubCollectionClientProps) {
+export default function SubCollectionClient({
+  initialProducts = [],
+  initialHierarchy = [],
+  overrideParentSlug,
+  overrideSubSlug,
+}: SubCollectionClientProps) {
   const params = useParams();
-  const parentSlug = params.categoryId as string;
-  const subSlug = params.subCategoryId as string;
+  const parentSlug = overrideParentSlug || (params.categoryId as string);
+  const subSlug = overrideSubSlug || (params.subCategoryId as string);
 
   // --- State Command Center ---
   const [products, setProducts] = useState<PublicProduct[]>(initialProducts);

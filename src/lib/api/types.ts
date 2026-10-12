@@ -163,6 +163,50 @@ export type CollectionHierarchy = {
   }>;
 };
 
+/** Flat collection item returned by /api/collections/tree */
+export type CollectionTreeItem = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  parentId: string | null;
+  sortOrder: number;
+  productCount: number;
+  hasChildren: boolean;
+  seo?: {
+    pageTitle?: string;
+    metaDescription?: string;
+    keywords?: string[];
+    canonicalUrl?: string;
+  } | null;
+};
+
+export type CollectionTreeResponse = {
+  ok: boolean;
+  collections: CollectionTreeItem[];
+};
+
+/** Child collection item returned by /api/collections/details/:slug */
+export type CollectionChildItem = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  productCount: number;
+};
+
+export type CollectionDetailItem = CollectionTreeItem & {
+  hasChildren: boolean;
+  children: CollectionChildItem[];
+};
+
+export type CollectionDetailResponse = {
+  ok: boolean;
+  collection: CollectionDetailItem;
+};
+
 export type ProductCollectionOption = {
   id: string;
   name: string;
@@ -648,32 +692,28 @@ export type SyncWishlistRequest = {
   guestItems: ApiWishlistItem[];
 };
 
-// ─── Nav Menu Types ───────────────────────────────────────────────────────────
+// ─── Nav Menu Types (Strict 4 Levels) ───────────────────────────────────────────
 
-export type NavSubItem = {
-  _id?: string;
-  label: string;
-  href: string;
-  isActive: boolean;
-  sortOrder: number;
-};
-
-export type NavMenuItem = {
+export type NavItem = {
   _id?: string;
   label: string;
   href?: string;
   categoryId?: string;
   isActive: boolean;
   sortOrder: number;
-  subItems: NavSubItem[];
+  children?: NavItem[];
+  subItems?: NavItem[];
 };
+
+export type NavSubItem = NavItem;
+export type NavMenuItem = NavItem;
 
 export type NavMenu = {
   _id?: string;
   id?: string;
   key: string;
   label: string;
-  items: NavMenuItem[];
+  items: NavItem[];
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -692,13 +732,13 @@ export type NavMenusResponse = {
 export type CreateNavMenuRequest = {
   key: string;
   label: string;
-  items?: Omit<NavMenuItem, '_id'>[];
+  items?: NavItem[];
   isActive?: boolean;
 };
 
 export type UpdateNavMenuRequest = {
   label?: string;
-  items?: Omit<NavMenuItem, '_id'>[];
+  items?: NavItem[];
   isActive?: boolean;
 };
 
