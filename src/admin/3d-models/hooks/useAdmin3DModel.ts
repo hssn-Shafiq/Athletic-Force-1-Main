@@ -162,7 +162,7 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
   }, []);
 
   const setZoneDimensions = useCallback(
-    (zoneId: string, newW?: number, newH?: number, lockAspect = true) => {
+    (zoneId: string, newW?: number, newH?: number, lockAspect = false) => {
       setZones((prev) =>
         prev.map((z) => {
           if (z.id !== zoneId) return z;
@@ -186,7 +186,7 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
         })
       );
     },
-    []
+    [logoMap]
   );
 
   const setZoneRotationZ = useCallback((zoneId: string, angleDeg: number) => {
@@ -311,6 +311,7 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
         setZones(normalized);
         setPreviewUrl(model.modelUrl);
         setModelUrlInput(model.modelUrl);
+        setIsModelLoading(true);
 
         // Preload logos for existing zones
         normalized.forEach((z) => {
@@ -318,6 +319,11 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
             const img = new window.Image();
             img.crossOrigin = "anonymous";
             img.onload = () => setLogoMap((prev) => ({ ...prev, [z.id]: img }));
+            img.onerror = () => {
+              const fallback = new window.Image();
+              fallback.onload = () => setLogoMap((prev) => ({ ...prev, [z.id]: fallback }));
+              fallback.src = z.defaultImageUrl!;
+            };
             img.src = z.defaultImageUrl;
           }
         });
@@ -427,6 +433,8 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
 
     if (zoneCreationType) {
       const isText = zoneCreationType === "text";
+      const defaultText = isText ? "PLAYER NAME" : "";
+
       const newZone: PrintZone = {
         id: `zone_${Date.now()}`,
         label: `${currentMat} — ${isText ? "Text Zone" : "Logo Zone"} ${zones.length + 1}`,
@@ -440,7 +448,7 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
         depth: res.depth,
         rotationZ: 0,
         hit: res.hit,
-        defaultText: isText ? "PLAYER NAME" : "",
+        defaultText,
         placeholder: isText ? "Enter custom text" : "",
         defaultImageUrl: undefined,
         fontSize: 80,
@@ -460,7 +468,12 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
   }, [activeMaterial, zoneCreationType, zones.length, showToast]);
 
   const updateZone = useCallback((id: string, patch: Partial<PrintZone>) => {
-    setZones((prev) => prev.map((z) => (z.id === id ? { ...z, ...patch } : z)));
+    setZones((prev) =>
+      prev.map((z) => {
+        if (z.id !== id) return z;
+        return { ...z, ...patch };
+      })
+    );
   }, []);
 
   const deleteZone = useCallback((id: string) => {
@@ -474,7 +487,21 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
       const localUrl = URL.createObjectURL(file);
       const img = new window.Image();
       img.crossOrigin = "anonymous";
-      img.onload = () => setLogoMap((prev) => ({ ...prev, [zoneId]: img }));
+      img.onload = () => {
+        setLogoMap((prev) => ({ ...prev, [zoneId]: img }));
+        const aspect = (img.naturalWidth || 1) / (img.naturalHeight || 1);
+        setZones((prev) =>
+          prev.map((z) => {
+            if (z.id !== zoneId) return z;
+            const newH = Math.max(0.02, z.width / aspect);
+            return {
+              ...z,
+              height: newH,
+              depth: Math.max(z.width, newH) * 1.5,
+            };
+          })
+        );
+      };
       img.src = localUrl;
 
       updateZone(zoneId, { defaultImageUrl: localUrl });

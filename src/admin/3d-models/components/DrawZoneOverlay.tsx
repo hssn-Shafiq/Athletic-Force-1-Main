@@ -4,6 +4,7 @@ import { DrawRect } from "../types";
 interface DrawZoneOverlayProps {
   canvasRef: React.RefObject<HTMLDivElement | null>;
   isDrawing: boolean;
+  zoneCreationType?: "text" | "image" | null;
   onRectDrawn: (rect: DrawRect) => void;
   onCancel: () => void;
 }
@@ -11,6 +12,7 @@ interface DrawZoneOverlayProps {
 export function DrawZoneOverlay({
   canvasRef,
   isDrawing,
+  zoneCreationType,
   onRectDrawn,
 }: DrawZoneOverlayProps) {
   const [start, setStart] = useState<{ x: number; y: number } | null>(null);
@@ -90,7 +92,7 @@ export function DrawZoneOverlay({
       {/* Live rectangle */}
       {rect && rect.width > 5 && rect.height > 5 && (
         <div
-          className="absolute border-2 border-orange-400 bg-orange-400/10 pointer-events-none"
+          className="absolute border-2 border-orange-400 bg-orange-400/10 pointer-events-none shadow-sm"
           style={{
             left:   rect.left,
             top:    rect.top,

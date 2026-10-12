@@ -20,6 +20,7 @@ export const CATEGORY_LANDING_DATA: Record<string, CategoryLandingData> = {
       'Cheer',
       'Wrestling',
       'Baseball',
+      'Volleyball',
     ],
     bgImage:
       'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=2000',

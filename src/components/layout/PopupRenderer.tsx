@@ -213,7 +213,7 @@ export function PopupRenderer() {
   const [minimizedPopup, setMinimizedPopup] = useState<Popup | null>(null);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const pathname = usePathname();
-  
+
   const hasTriggeredRef = useRef<Set<string>>(new Set());
   const timerRefs = useRef<Record<string, NodeJS.Timeout>>({});
 
@@ -243,7 +243,7 @@ export function PopupRenderer() {
   const showPopup = useCallback((p: Popup) => {
     if (activePopup) return; // Only show one at a time
     if (hasTriggeredRef.current.has(p._id)) return;
-    
+
     setActivePopup(p);
     hasTriggeredRef.current.add(p._id);
     trackImpression(p._id);

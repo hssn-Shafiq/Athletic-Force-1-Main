@@ -4,11 +4,11 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
@@ -181,7 +181,7 @@ export const AdminProductList: React.FC = () => {
           </h1>
           <p className="text-slate-400 font-medium italic text-sm">Managing {total} products across all vectors.</p>
         </div>
-        <button 
+        <button
           onClick={() => router.push('/admin/products/add')}
           className="bg-black text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-tighter text-sm flex items-center gap-2 hover:scale-105 transition-all shadow-xl"
         >
@@ -193,49 +193,49 @@ export const AdminProductList: React.FC = () => {
       {/* Filters Bar */}
       <div className="bg-white p-4 rounded-[30px] border border-slate-100 shadow-sm flex flex-col gap-4">
         <div className="flex flex-col md:flex-row gap-4 items-center">
-        <div className="relative flex-1 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-orange-600 transition-colors" />
-          <input 
-            type="text" 
-            placeholder="Search by ID, Name, or SKU..." 
-            className="w-full bg-slate-50 border border-transparent focus:border-slate-200 focus:bg-white rounded-2xl py-3 pl-12 pr-4 outline-none text-xs font-medium transition-all"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-2">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsColumnsOpen((prev) => !prev)}
-              className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest italic text-slate-500 hover:text-black hover:border-slate-200 transition-all"
-            >
-              <Columns3 className="w-4 h-4" />
-              Columns
-            </button>
+          <div className="relative flex-1 group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-orange-600 transition-colors" />
+            <input
+              type="text"
+              placeholder="Search by ID, Name, or SKU..."
+              className="w-full bg-slate-50 border border-transparent focus:border-slate-200 focus:bg-white rounded-2xl py-3 pl-12 pr-4 outline-none text-xs font-medium transition-all"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsColumnsOpen((prev) => !prev)}
+                className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest italic text-slate-500 hover:text-black hover:border-slate-200 transition-all"
+              >
+                <Columns3 className="w-4 h-4" />
+                Columns
+              </button>
 
-            {isColumnsOpen ? (
-              <div className="absolute right-0 mt-2 min-w-48 rounded-2xl border border-slate-200 bg-white shadow-xl p-3 space-y-2 z-20">
-                {(Object.keys(columnVisibility) as ColumnKey[]).map((column) => (
-                  <label key={column} className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                    <span>{column}</span>
-                    <input
-                      type="checkbox"
-                      checked={columnVisibility[column]}
-                      onChange={(e) =>
-                        setColumnVisibility((prev) => ({
-                          ...prev,
-                          [column]: e.target.checked,
-                        }))
-                      }
-                    />
-                  </label>
-                ))}
-              </div>
-            ) : null}
+              {isColumnsOpen ? (
+                <div className="absolute right-0 mt-2 min-w-48 rounded-2xl border border-slate-200 bg-white shadow-xl p-3 space-y-2 z-20">
+                  {(Object.keys(columnVisibility) as ColumnKey[]).map((column) => (
+                    <label key={column} className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                      <span>{column}</span>
+                      <input
+                        type="checkbox"
+                        checked={columnVisibility[column]}
+                        onChange={(e) =>
+                          setColumnVisibility((prev) => ({
+                            ...prev,
+                            [column]: e.target.checked,
+                          }))
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
-      </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className="bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider outline-none">
             <option value="">All Statuses</option>
@@ -356,9 +356,8 @@ export const AdminProductList: React.FC = () => {
                   </div>
                 </td> : null}
                 {columnVisibility.type ? <td className="px-8 py-6">
-                  <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase italic tracking-widest ${
-                    product.orderType === 'direct' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'
-                  }`}>
+                  <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase italic tracking-widest ${product.orderType === 'direct' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'
+                    }`}>
                     {product.orderType === 'direct' ? 'Direct' : 'Request'} Order
                   </span>
                 </td> : null}
@@ -433,11 +432,10 @@ export const AdminProductList: React.FC = () => {
                 type="button"
                 disabled={n === '...'}
                 onClick={() => typeof n === 'number' && setPage(n)}
-                className={`w-10 h-10 rounded-xl text-[10px] font-black transition-all ${
-                  n === page
+                className={`w-10 h-10 rounded-xl text-[10px] font-black transition-all ${n === page
                     ? 'bg-black text-white shadow-lg'
                     : 'hover:bg-slate-50 text-slate-400 hover:text-black'
-                } ${n === '...' ? 'cursor-default' : ''}`}
+                  } ${n === '...' ? 'cursor-default' : ''}`}
               >
                 {n}
               </button>

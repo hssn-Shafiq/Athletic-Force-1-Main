@@ -168,7 +168,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
   const [mediaPreviewItem, setMediaPreviewItem] = useState<AdminMediaItem | null>(null);
   const [mediaNextCursor, setMediaNextCursor] = useState<string | undefined>(undefined);
   const [isMediaPaginationLoading, setIsMediaPaginationLoading] = useState(false);
-  const initialCreateSignatureRef = useRef<string | null>(null);
+  const [initialCreateSignature, setInitialCreateSignature] = useState<string | null>(null);
   const [mediaTarget, setMediaTarget] = useState<
     | { type: 'main' } | { type: 'gallery' } | { type: 'parent'; parentId: string }
     | { type: 'variant'; variantId: string } | { type: 'main-video-thumb' }
@@ -383,12 +383,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
   }), [badgeName, benefits, description, faqs, galleryImageFiles.length, galleryImages.length, globalStock, mainImageFile, mainImageUrl, name, orderType, regularPrice, salePrice, reviews, selectedCollectionIds, upsellProductIds, status, useBasePriceForVariants, variants]);
 
   useEffect(() => {
-    if (isEditMode || isLoading) return;
-    if (initialCreateSignatureRef.current !== null) return;
-    initialCreateSignatureRef.current = createFormSignature;
-  }, [createFormSignature, isEditMode, isLoading]);
+    if (isEditMode || isLoading || initialCreateSignature !== null) return;
+    if (!optionGroups.length || !variants.length) return;
+    setInitialCreateSignature(createFormSignature);
+  }, [createFormSignature, initialCreateSignature, isEditMode, isLoading, optionGroups.length, variants.length]);
 
-  const hasUnsavedCreateChanges = !isEditMode && !isLoading && !isSubmitting && initialCreateSignatureRef.current !== null && initialCreateSignatureRef.current !== createFormSignature;
+  const hasUnsavedCreateChanges = !isEditMode && !isLoading && !isSubmitting && initialCreateSignature !== null && initialCreateSignature !== createFormSignature;
 
   useEffect(() => {
     if (!hasUnsavedCreateChanges) return;

@@ -33,6 +33,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@700;800;900&family=Bebas+Neue&family=Graduate&family=Montserrat:wght@800;900&family=Oswald:wght@600;700&family=Russo+One&family=Teko:wght@600;700&display=swap"
+        />
+      </head>
       <body className={`${sora.variable} ${inter.variable} antialiased`}>
         <AppProviders>
           <AppShell>{children}</AppShell>

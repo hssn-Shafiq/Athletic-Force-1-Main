@@ -1,7 +1,259 @@
 import * as THREE from "three";
-import { DrawRect, PrintZone, RaycastResult } from "../types";
+import { AllowedInputType, DrawRect, PrintZone, RaycastResult, ZoneRole } from "../types";
 
-export const TEX = 1024;
+export const TEX = 2048;
+
+/**
+ * Detects baked-in logo placeholder materials (such as "Logo.005" or "Logo.001").
+ * These are made transparent by default so they never display as an ugly opaque gray box on the shirt,
+ * while still preserving the part in the variations list and allowing selection and decal placement.
+ */
+export function isLogoPlaneMaterial(matName?: string): boolean {
+  if (!matName) return false;
+  const clean = matName.trim().toLowerCase();
+  return clean.startsWith("logo.") || clean.startsWith("logo_") || clean === "logo";
+}
+
+/**
+ * Detects dummy debug bounding boxes or non-garment helper geometry that should be excluded.
+ */
+export function isPlaceholderMesh(mesh: THREE.Mesh): boolean {
+  if (!mesh) return false;
+  const name = (mesh.name || "").toLowerCase();
+  return (
+    name.includes("dummy_mesh") ||
+    name.includes("bounding_box") ||
+    name.includes("decal_helper")
+  );
+}
+
+export function drawDecalToCanvas(
+  ctx: CanvasRenderingContext2D,
+  zone: PrintZone,
+  logoImg?: HTMLImageElement | null,
+  isSelected: boolean = false,
+  isRepositioning: boolean = false
+): void {
+  ctx.clearRect(0, 0, TEX, TEX);
+
+  // Track the actual bounding box occupied by content so selection rectangle hugs it tightly
+  let contentBox = {
+    x: Math.round(TEX * 0.25),
+    y: Math.round(TEX * 0.35),
+    w: Math.round(TEX * 0.5),
+    h: Math.round(TEX * 0.3),
+  };
+
+  // 1 ─ Logo (Image)
+  if (zone.type === "image" || zone.type === "both") {
+    const pad = 36;
+    const availW = TEX - 2 * pad;
+    const availH = zone.type === "both" ? Math.round(TEX * 0.52 - pad) : (TEX - 2 * pad);
+
+    // The user's drawn zone rectangle preset boundary
+    const presetBox = { x: pad, y: pad, w: availW, h: availH };
+
+    if (logoImg) {
+      const imgW = logoImg.naturalWidth || logoImg.width || 1;
+      const imgH = logoImg.naturalHeight || logoImg.height || 1;
+      const imgAspect = imgW / imgH;
+
+      // In 3D, the canvas is projected with scale [zone.width, zone.height].
+      // To ensure the logo maintains its true natural aspect ratio inside the user's
+      // custom width x height rectangle on the shirt:
+      const zw = Math.max(0.01, zone.width || 0.12);
+      const zh = Math.max(0.01, zone.height || 0.12);
+      const canvasAspect = imgAspect * (zh / zw);
+
+      let dw: number;
+      let dh: number;
+
+      if (canvasAspect > availW / availH) {
+        dw = availW;
+        dh = Math.max(10, Math.round(availW / canvasAspect));
+      } else {
+        dh = availH;
+        dw = Math.max(10, Math.round(availH * canvasAspect));
+      }
+
+      const dx = Math.round((TEX - dw) / 2);
+      const dy = zone.type === "both" ? Math.round(pad + (availH - dh) / 2) : Math.round((TEX - dh) / 2);
+
+      ctx.drawImage(logoImg, dx, dy, dw, dh);
+
+      contentBox = presetBox;
+    } else if (zone.type === "image") {
+      // Placeholder when logo is not uploaded yet — neatly outlines the exact preset rectangle
+      ctx.save();
+      ctx.strokeStyle = isSelected ? (isRepositioning ? "#22d3ee" : "#f97316") : "rgba(255,255,255,0.40)";
+      ctx.lineWidth = 10;
+      ctx.setLineDash([24, 14]);
+      ctx.strokeRect(pad, pad, availW, availH);
+
+      ctx.fillStyle = isSelected ? (isRepositioning ? "#22d3ee" : "#f97316") : "rgba(255,255,255,0.70)";
+      ctx.font = "900 64px 'Bebas Neue', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("+ LOGO AREA", TEX / 2, TEX / 2);
+      ctx.restore();
+
+      contentBox = presetBox;
+    }
+  }
+
+  // 2 ─ Text
+  if (zone.type === "text" || zone.type === "both") {
+    const text = zone.defaultText?.trim() || "";
+    const weight = zone.isBold ? "900" : "700";
+    const fontFam = zone.fontFamily || "'Bebas Neue', 'Impact', sans-serif";
+
+    // Clean outer padding inside the decal area
+    const padX = 36;
+    const padY = 32;
+    const availW = TEX - 2 * padX;
+    const availH = zone.type === "both" ? Math.round(TEX * 0.44 - padY) : (TEX - 2 * padY);
+    const startY = zone.type === "both" ? Math.round(TEX * 0.52 + padY) : padY;
+
+    // Normal clean padding inside the rectangle (4% horizontal, 6% vertical margin)
+    const innerMarginX = Math.round(availW * 0.04);
+    const innerMarginY = Math.round(availH * 0.06);
+    const innerW = availW - 2 * innerMarginX;
+    const innerH = availH - 2 * innerMarginY;
+
+    const userScale = Math.max(0.4, Math.min(1.6, (zone.fontSize || 80) / 80));
+    const targetW = innerW * userScale;
+    const targetH = innerH * userScale;
+
+    const textToMeasure = text || (zone.defaultText || "").trim() || "PLAYER NAME";
+    const refFontSize = 100;
+    ctx.font = `${weight} ${refFontSize}px ${fontFam}`;
+    const metrics = ctx.measureText(textToMeasure);
+    const glyphAscent = metrics.actualBoundingBoxAscent || 75;
+    const glyphDescent = metrics.actualBoundingBoxDescent || 15;
+    const glyphH = Math.max(10, glyphAscent + glyphDescent);
+    const glyphW = Math.max(10, metrics.width || 100);
+
+    // Target scale to fill the height of the rectangle
+    const fitScaleY = targetH / glyphH;
+    // Target scale to fill the width of the rectangle
+    const fitScaleX = targetW / glyphW;
+
+    let scaleX: number;
+    let scaleY: number;
+
+    const naturalWidthAtHeight = glyphW * fitScaleY;
+    if (naturalWidthAtHeight <= targetW) {
+      // Short text or number covers the full height, centered horizontally
+      scaleY = fitScaleY;
+      scaleX = fitScaleY;
+    } else {
+      // Text is wider: covers rectangle width, and scales height to fill the box
+      scaleX = fitScaleX;
+      scaleY = Math.min(fitScaleY, Math.max(fitScaleX, fitScaleY * 0.95));
+    }
+
+    const actualTextW = Math.round(glyphW * scaleX);
+    const actualTextH = Math.round(glyphH * scaleY);
+
+    const centerX = padX + availW / 2;
+    const centerY = startY + availH / 2;
+    const targetX =
+      zone.align === "left"  ? padX + innerMarginX + actualTextW / 2 :
+      zone.align === "right" ? padX + availW - innerMarginX - actualTextW / 2 :
+      centerX;
+
+    if (text) {
+      ctx.save();
+      ctx.translate(targetX, centerY);
+      ctx.scale(scaleX, scaleY);
+
+      ctx.font = `${weight} ${refFontSize}px ${fontFam}`;
+      ctx.fillStyle = zone.textColor || "#ffffff";
+      ctx.textBaseline = "alphabetic";
+      ctx.textAlign = "center";
+
+      // (glyphAscent - glyphDescent) / 2 aligns exact optical center of glyphs with Y = 0
+      const opticalBaselineY = (glyphAscent - glyphDescent) / 2;
+      ctx.fillText(text, 0, opticalBaselineY);
+      ctx.restore();
+    } else if (isSelected && zone.type !== "both") {
+      ctx.save();
+      ctx.fillStyle = isSelected ? (isRepositioning ? "#22d3ee" : "#f97316") : "rgba(255,255,255,0.70)";
+      ctx.font = `700 ${Math.max(20, Math.min(52, Math.round(actualTextH * 0.42)))}px ${fontFam}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("+ ENTER TEXT", targetX, centerY);
+      ctx.restore();
+    }
+
+    // Selection frame stays fixed at the zone's true printable boundary so typing short text never collapses the box
+    const textPresetBox = {
+      x: padX,
+      y: startY,
+      w: availW,
+      h: availH,
+    };
+
+    contentBox = zone.type === "both"
+      ? {
+          x: Math.min(contentBox.x, textPresetBox.x),
+          y: Math.min(contentBox.y, textPresetBox.y),
+          w: Math.max(contentBox.w, textPresetBox.w),
+          h: Math.max(contentBox.h, textPresetBox.h),
+        }
+      : textPresetBox;
+  }
+
+  // Draw high-visibility glowing outline and corner brackets when selected — rock solid stable frame!
+  if (isSelected) {
+    ctx.save();
+    ctx.strokeStyle = isRepositioning ? "#06b6d4" : "#f97316";
+    ctx.lineWidth = 14;
+    ctx.setLineDash([28, 14]);
+
+    const rx = contentBox.x;
+    const ry = contentBox.y;
+    const rw = contentBox.w;
+    const rh = contentBox.h;
+
+    ctx.strokeRect(rx, ry, rw, rh);
+
+    const bLen = Math.min(70, Math.max(20, Math.round(Math.min(rw, rh) * 0.3)));
+    ctx.setLineDash([]);
+    ctx.lineWidth = 22;
+    ctx.strokeStyle = isRepositioning ? "#22d3ee" : "#fb923c";
+
+    // Top-left corner
+    ctx.beginPath();
+    ctx.moveTo(rx, ry + bLen);
+    ctx.lineTo(rx, ry);
+    ctx.lineTo(rx + bLen, ry);
+    ctx.stroke();
+
+    // Top-right corner
+    ctx.beginPath();
+    ctx.moveTo(rx + rw - bLen, ry);
+    ctx.lineTo(rx + rw, ry);
+    ctx.lineTo(rx + rw, ry + bLen);
+    ctx.stroke();
+
+    // Bottom-left corner
+    ctx.beginPath();
+    ctx.moveTo(rx, ry + rh - bLen);
+    ctx.lineTo(rx, ry + rh);
+    ctx.lineTo(rx + bLen, ry + rh);
+    ctx.stroke();
+
+    // Bottom-right corner
+    ctx.beginPath();
+    ctx.moveTo(rx + rw - bLen, ry + rh);
+    ctx.lineTo(rx + rw, ry + rh);
+    ctx.lineTo(rx + rw, ry + rh - bLen);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+}
 
 export function buildDecalTexture(
   zone: PrintZone,
@@ -13,85 +265,15 @@ export function buildDecalTexture(
   canvas.width = TEX;
   canvas.height = TEX;
   const ctx = canvas.getContext("2d")!;
-  ctx.clearRect(0, 0, TEX, TEX);
-
-  // Draw logo
-  if ((zone.type === "image" || zone.type === "both") && logoImg) {
-    const aspect = (logoImg.naturalWidth || logoImg.width || 1) / (logoImg.naturalHeight || logoImg.height || 1);
-    let dw = TEX * 0.9;
-    let dh = TEX * 0.9;
-    if (aspect > 1) dh = dw / aspect;
-    else dw = dh * aspect;
-    const dy = zone.type === "both" ? (TEX - dh) * 0.28 : (TEX - dh) / 2;
-    ctx.drawImage(logoImg, (TEX - dw) / 2, dy, dw, dh);
-  }
-
-  // Draw text
-  if ((zone.type === "text" || zone.type === "both") && zone.defaultText?.trim()) {
-    const weight = zone.isBold ? "900" : "600";
-    const baseFontSize = Math.max(30, Math.min((zone.fontSize || 80) * 1.8, 260));
-    ctx.font = `${weight} ${baseFontSize}px "Arial Black", Arial, sans-serif`;
-    ctx.fillStyle = zone.textColor || "#ffffff";
-    ctx.textBaseline = "middle";
-    ctx.textAlign = (zone.align as CanvasTextAlign) || "center";
-    ctx.shadowColor = "rgba(0,0,0,0.65)";
-    ctx.shadowBlur = 14;
-    const tx =
-      zone.align === "left"  ? 36 :
-      zone.align === "right" ? TEX - 36 :
-      TEX / 2;
-    const ty = zone.type === "both" ? (TEX * 0.78) : (TEX / 2);
-    ctx.fillText(zone.defaultText, tx, ty, TEX - 72);
-    ctx.shadowBlur = 0;
-  }
-
-  // Draw high-visibility glowing outline and corner brackets when selected
-  if (isSelected) {
-    ctx.save();
-    ctx.strokeStyle = isRepositioning ? "#06b6d4" : "#f97316";
-    ctx.lineWidth = 14;
-    ctx.setLineDash([28, 14]);
-    ctx.strokeRect(16, 16, TEX - 32, TEX - 32);
-
-    const bLen = 70;
-    ctx.setLineDash([]);
-    ctx.lineWidth = 22;
-    ctx.strokeStyle = isRepositioning ? "#22d3ee" : "#fb923c";
-
-    // Top-left corner
-    ctx.beginPath();
-    ctx.moveTo(16, 16 + bLen);
-    ctx.lineTo(16, 16);
-    ctx.lineTo(16 + bLen, 16);
-    ctx.stroke();
-
-    // Top-right corner
-    ctx.beginPath();
-    ctx.moveTo(TEX - 16 - bLen, 16);
-    ctx.lineTo(TEX - 16, 16);
-    ctx.lineTo(TEX - 16, 16 + bLen);
-    ctx.stroke();
-
-    // Bottom-left corner
-    ctx.beginPath();
-    ctx.moveTo(16, TEX - 16 - bLen);
-    ctx.lineTo(16, TEX - 16);
-    ctx.lineTo(16 + bLen, TEX - 16);
-    ctx.stroke();
-
-    // Bottom-right corner
-    ctx.beginPath();
-    ctx.moveTo(TEX - 16 - bLen, TEX - 16);
-    ctx.lineTo(TEX - 16, TEX - 16);
-    ctx.lineTo(TEX - 16, TEX - 16 - bLen);
-    ctx.stroke();
-
-    ctx.restore();
-  }
+  drawDecalToCanvas(ctx, zone, logoImg, isSelected, isRepositioning);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.flipY = false; // Required for Decals on GLTF meshes
+  tex.generateMipmaps = false;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.anisotropy = 16;
   tex.needsUpdate = true;
   return tex;
 }
@@ -156,23 +338,60 @@ export function normalizeZone(z: any): PrintZone {
   const height = typeof z.height === "number" && z.height > 0 ? z.height : (z.hit?.worldH || 0.12);
   const depth = typeof z.depth === "number" && z.depth > 0 ? z.depth : Math.max(width, height) * 1.5;
 
+  // Infer athletic role if not already explicitly assigned
+  const labelLower = (z.label || "").toLowerCase();
+  const defText = (z.defaultText || "").trim();
+  const isNumber =
+    labelLower.includes("number") ||
+    labelLower.includes("num") ||
+    defText === "01" ||
+    defText === "23" ||
+    (!isNaN(Number(defText)) && defText.length <= 3 && defText !== "");
+
+  let role: ZoneRole = z.zoneRole;
+  if (!role) {
+    if (z.type === "image") role = "team_logo";
+    else if (isNumber) role = labelLower.includes("front") ? "front_number" : "back_number";
+    else if (labelLower.includes("team")) role = "team_name";
+    else if (labelLower.includes("name") || labelLower.includes("player")) role = "player_name";
+    else role = "custom_text";
+  }
+
+  // Exact character limits requested: Player name: 12, Team name: 12, Numbers: 3, Custom: 15
+  const maxCharacters =
+    typeof z.maxCharacters === "number"
+      ? z.maxCharacters
+      : role === "player_name" || role === "team_name"
+      ? 12
+      : role === "back_number" || role === "front_number"
+      ? 3
+      : 15;
+
+  const allowedInputType: AllowedInputType =
+    z.allowedInputType ||
+    (role === "back_number" || role === "front_number" ? "numeric" : "text");
+
   return {
     id: z.id || `zone_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-    label: z.label || "Print Zone",
+    label: z.label || (role === "player_name" ? "Player Name" : role === "back_number" ? "Back Number" : role === "front_number" ? "Front Number" : role === "team_name" ? "Team Name" : "Print Zone"),
     materialName: z.materialName || "default",
     meshName: z.meshName,
-    type: z.type || "text",
+    type: z.type || (role === "team_logo" ? "image" : "text"),
+    zoneRole: role,
+    maxCharacters,
+    allowedInputType,
     position,
     rotation,
     width,
     height,
     depth,
     rotationZ,
-    defaultText: z.defaultText ?? (z.type === "image" ? "" : "PLAYER NAME"),
-    placeholder: z.placeholder ?? "Enter text",
+    defaultText: z.defaultText ?? (z.type === "image" ? "" : isNumber ? "23" : "PLAYER NAME"),
+    placeholder: z.placeholder ?? (isNumber ? "23" : "Enter text"),
     defaultImageUrl: z.defaultImageUrl,
     hit: z.hit,
-    fontSize: z.fontSize ?? 80,
+    fontFamily: z.fontFamily || (isNumber ? "'Teko', sans-serif" : "'Bebas Neue', sans-serif"),
+    fontSize: z.fontSize ?? (isNumber ? 100 : 80),
     textColor: z.textColor ?? "#ffffff",
     align: z.align ?? "center",
     isBold: z.isBold ?? true,
@@ -190,9 +409,14 @@ export function raycastRect(
 ): RaycastResult | null {
   const raycaster = new THREE.Raycaster();
 
-  // Collect only Mesh children from the model
+  // Collect only visible non-placeholder Mesh children from the model
   const meshes: THREE.Mesh[] = [];
-  modelRoot.traverse((o) => { if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh); });
+  modelRoot.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (m.isMesh && m.visible && !isPlaceholderMesh(m)) {
+      meshes.push(m);
+    }
+  });
   if (!meshes.length) return null;
 
   // Raycast the center of the drawn rectangle
@@ -251,8 +475,8 @@ export function raycastRect(
 
   const scale = new THREE.Vector3().setFromMatrixScale(targetMesh.matrixWorld);
   const avgScale = (scale.x + scale.y + scale.z) / 3 || 1;
-  const width = worldW / avgScale;
-  const height = worldH / avgScale;
+  const width = Math.max(0.01, worldW / avgScale);
+  const height = Math.max(0.01, worldH / avgScale);
   const depth = Math.max(width, height) * 1.5;
 
   // Orientation facing outward along normal
@@ -279,3 +503,53 @@ export function raycastRect(
     },
   };
 }
+
+/**
+ * Calculates the natural aspect ratio (width / height) of text.
+ */
+export function getTextAspect(
+  text: string,
+  fontFamily: string = "'Bebas Neue', sans-serif",
+  isBold: boolean = true
+): number {
+  if (!text || !text.trim()) return 3.5;
+  if (typeof document === "undefined") return 3.5;
+
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1200;
+    canvas.height = 300;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return 3.5;
+
+    ctx.font = `${isBold ? "900" : "700"} 100px ${fontFamily}`;
+    const metrics = ctx.measureText(text.trim());
+    const w = metrics.width || 100;
+    const ascent = metrics.actualBoundingBoxAscent || 75;
+    const descent = metrics.actualBoundingBoxDescent || 15;
+    const h = Math.max(20, ascent + descent);
+
+    return Math.max(0.15, Math.min(15, w / h));
+  } catch {
+    return 3.5;
+  }
+}
+
+/**
+ * Returns the natural aspect ratio (width / height) of a zone's content.
+ */
+export function getContentAspect(zone: PrintZone, logoImg?: HTMLImageElement | null): number {
+  if (zone.type === "image") {
+    if (logoImg) {
+      const iw = logoImg.naturalWidth || logoImg.width || 1;
+      const ih = logoImg.naturalHeight || logoImg.height || 1;
+      return Math.max(0.15, Math.min(15, iw / ih));
+    }
+    return Math.max(0.15, (zone.width || 1) / (zone.height || 1));
+  }
+  if (zone.type === "text") {
+    return getTextAspect(zone.defaultText || "PLAYER NAME", zone.fontFamily, zone.isBold);
+  }
+  return 1.4;
+}
+

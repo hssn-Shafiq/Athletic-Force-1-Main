@@ -12,7 +12,7 @@ import { PrintZone, RaycastResult } from "./3d-models/types";
 import { useAdmin3DModel } from "./3d-models/hooks/useAdmin3DModel";
 import { ModelListView } from "./3d-models/components/ModelListView";
 import { ProductSelectorView } from "./3d-models/components/ProductSelectorView";
-import { ModelTopToolbar } from "./3d-models/components/ModelTopToolbar";
+import { ModelTopBar, ModelBottomBar } from "./3d-models/components/ModelTopToolbar";
 import { InnerCanvas } from "./3d-models/components/InnerCanvas";
 import { DrawZoneOverlay } from "./3d-models/components/DrawZoneOverlay";
 import { ZoneCard } from "./3d-models/components/ZoneCard";
@@ -153,7 +153,7 @@ export default function Admin3DModels({
         />
       ) : (
         /* ── EDITOR VIEW ── */
-        <div className="flex flex-col gap-3 h-[calc(100vh-140px)] min-h-[580px]">
+        <div className="flex flex-col gap-3 h-[calc(100vh-140px)] min-h-[800px]">
           {/* Header */}
           <div className="flex items-center gap-3 flex-shrink-0">
             <button
@@ -208,25 +208,11 @@ export default function Admin3DModels({
           <div className="flex gap-4 flex-1 min-h-0">
             {/* ── 3D CANVAS VIEWPORT ── */}
             <div
-              ref={canvasWrapRef}
-              className="flex-1 min-h-0 bg-[#06060e] rounded-3xl overflow-hidden relative shadow-2xl"
+              className="flex-1 min-h-0 bg-[#06060e] rounded-3xl overflow-hidden relative shadow-2xl flex flex-col border border-slate-800/80"
             >
-              {previewUrl && (
-                <ModelTopToolbar
-                  zoneCreationType={zoneCreationType}
-                  isPickingMaterial={isPickingMaterial}
-                  isDrawingZone={isDrawingZone}
-                  activeMaterial={activeMaterial}
-                  onStartAddZone={startAddZone}
-                  onCancelCreation={cancelZoneCreation}
-                  onBackToPicking={backToPicking}
-                  onSetCameraCommand={(cmd) => setCameraCommand(cmd)}
-                />
-              )}
-
               {/* Upload screen if no model loaded */}
               {!previewUrl ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 p-8">
+                <div className="flex-1 flex flex-col items-center justify-center gap-5 p-8">
                   <div className="w-20 h-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center">
                     <Box className="w-10 h-10 text-white/20" />
                   </div>
@@ -271,127 +257,116 @@ export default function Admin3DModels({
                 </div>
               ) : (
                 <>
-                  <Canvas
-                    key={modelKey}
-                    dpr={[1, 2]}
-                    camera={{ position: [0, 0, 5], fov: 45 }}
-                    gl={{ preserveDrawingBuffer: true, antialias: true }}
-                    style={{ width: "100%", height: "90%" }}
-                  >
-                    <color attach="background" args={["#06060e"]} />
-                    <Suspense fallback={<Canvas3DInnerFallback />}>
-                      <Environment preset="studio" />
-                      <ambientLight intensity={0.8} />
-                      <directionalLight position={[5, 10, 5]} intensity={1.4} />
-                      <directionalLight position={[-5, 5, -5]} intensity={0.3} />
-                      <Center>
-                        <InnerCanvas
-                          url={previewUrl}
-                          zones={zones}
-                          logoMap={logoMap}
-                          activeMaterial={activeMaterial}
-                          activeMeshName={activeMeshName}
-                          activeZoneId={activeZoneId}
-                          isPickingMaterial={isPickingMaterial}
-                          isDrawingZone={isDrawingZone}
-                          isRepositioning={isRepositioning}
-                          isDragging={isDragging}
-                          setIsDragging={setIsDragging}
-                          onMaterialPicked={handleMaterialPicked}
-                          onMaterialsFound={handleMaterialsFound}
-                          onZoneSelect={(id) => selectZone(id)}
-                          onZoneReposition={handleZoneReposition}
-                          pendingRect={pendingRect}
-                          onRaycastDone={handleRaycastDone}
-                          modelSceneRef={modelSceneRef}
-                          cameraCommand={cameraCommand}
-                          onCameraCommandHandled={() => setCameraCommand(null)}
-                          onPartClick={(matName, meshName) => {
-                            const part = categorizeModelPart(matName, undefined, meshName);
-                            selectPart(matName, meshName, part.cameraCommand);
-                          }}
-                        />
-                      </Center>
-                      <OrbitControls
-                        makeDefault
-                        enablePan={false}
-                        enabled={!isDrawingZone && !isRepositioning && !isDragging}
-                      />
-                    </Suspense>
-                  </Canvas>
-
-                  {/* Drag to Reposition Active Banner */}
-                  {isRepositioning && activeZone && (
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-orange-600/90 text-white backdrop-blur-md px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-2.5 animate-pulse border border-orange-400/40 pointer-events-auto">
-                      <span>Drag Mode Active: Click & hold anywhere on model to move</span>
-                      <button
-                        type="button"
-                        onClick={() => setIsRepositioning(false)}
-                        className="ml-3 px-2.5 py-1 bg-black/40 hover:bg-black/60 rounded-lg text-[9px] font-black uppercase transition-colors"
-                      >
-                        Done (Esc)
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Canvas Top Toolbar: actions, part variation pills, camera presets */}
-                  <ModelTopToolbar
+                  {/* Top Bar - completely separate header above the 3D canvas */}
+                  <ModelTopBar
                     zoneCreationType={zoneCreationType}
                     isPickingMaterial={isPickingMaterial}
                     isDrawingZone={isDrawingZone}
                     activeMaterial={activeMaterial}
-                    activeMeshName={activeMeshName}
-                    materials={materials}
                     onStartAddZone={startAddZone}
                     onCancelCreation={cancelZoneCreation}
                     onBackToPicking={backToPicking}
                     onSetCameraCommand={setCameraCommand}
-                    onSelectPart={selectPart}
                   />
 
-                  {/* Draw zone overlay */}
-                  <DrawZoneOverlay
-                    canvasRef={canvasWrapRef}
-                    isDrawing={isDrawingZone}
-                    onRectDrawn={handleRectDrawn}
-                    onCancel={() => setIsDrawingZone(false)}
-                  />
-                </>
-              )}
+                  {/* 3D Canvas Viewport - strictly bounded between top and bottom bars */}
+                  <div
+                    ref={canvasWrapRef}
+                    className="flex-1 relative w-full h-full min-h-0 overflow-hidden"
+                  >
+                    <Canvas
+                      key={modelKey}
+                      dpr={[1, 2]}
+                      frameloop="demand"
+                      camera={{ position: [0, 0, 2.8], fov: 45 }}
+                      gl={{ preserveDrawingBuffer: true, antialias: true }}
+                      style={{ width: "100%", height: "100%" }}
+                    >
+                      <color attach="background" args={["#06060e"]} />
+                      <Suspense fallback={<Canvas3DInnerFallback />}>
+                        <Environment preset="studio" />
+                        <ambientLight intensity={0.8} />
+                        <directionalLight position={[5, 10, 5]} intensity={1.4} />
+                        <directionalLight position={[-5, 5, -5]} intensity={0.3} />
+                        <Center>
+                          <InnerCanvas
+                            url={previewUrl}
+                            zones={zones}
+                            logoMap={logoMap}
+                            activeMaterial={activeMaterial}
+                            activeMeshName={activeMeshName}
+                            activeZoneId={activeZoneId}
+                            isPickingMaterial={isPickingMaterial}
+                            isDrawingZone={isDrawingZone}
+                            isRepositioning={isRepositioning}
+                            isDragging={isDragging}
+                            setIsDragging={setIsDragging}
+                            onMaterialPicked={handleMaterialPicked}
+                            onMaterialsFound={handleMaterialsFound}
+                            onZoneSelect={(id) => selectZone(id)}
+                            onZoneReposition={handleZoneReposition}
+                            pendingRect={pendingRect}
+                            onRaycastDone={handleRaycastDone}
+                            modelSceneRef={modelSceneRef}
+                            cameraCommand={cameraCommand}
+                            onCameraCommandHandled={() => setCameraCommand(null)}
+                            onPartClick={(matName, meshName) => {
+                              const part = categorizeModelPart(matName, undefined, meshName);
+                              selectPart(matName, meshName, part.cameraCommand);
+                            }}
+                          />
+                        </Center>
+                        <OrbitControls
+                          makeDefault
+                          enablePan={false}
+                          enableDamping
+                          minDistance={1.2}
+                          maxDistance={2.6}
+                          enabled={!isDrawingZone && !isRepositioning && !isDragging}
+                        />
+                      </Suspense>
+                    </Canvas>
 
-              {/* 3D Model Loading Progress Overlay */}
-              {previewUrl && (
-                <Canvas3DLoaderOverlay isModelLoading={isModelLoading} />
-              )}
-
-              {/* Status bar */}
-              {previewUrl && (
-                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none">
-                  <div className="flex gap-2">
-                    {activeMaterial && (
-                      <div className="bg-orange-500/90 backdrop-blur rounded-xl px-3 py-1.5">
-                        <p className="text-white text-[10px] font-black uppercase tracking-widest">
-                          ● {activeMaterial}
-                        </p>
+                    {/* Drag to Reposition Active Banner */}
+                    {isRepositioning && activeZone && (
+                      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-orange-600/90 text-white backdrop-blur-md px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-2.5 animate-pulse border border-orange-400/40 pointer-events-auto">
+                        <span>Drag Mode Active: Click & hold anywhere on model to move</span>
+                        <button
+                          type="button"
+                          onClick={() => setIsRepositioning(false)}
+                          className="ml-3 px-2.5 py-1 bg-black/40 hover:bg-black/60 rounded-lg text-[9px] font-black uppercase transition-colors"
+                        >
+                          Done (Esc)
+                        </button>
                       </div>
                     )}
-                    <div className="bg-black/60 backdrop-blur rounded-xl px-3 py-1.5">
-                      <p className="text-white text-[10px] font-black uppercase tracking-widest">
-                        {zones.length} zones
-                      </p>
-                    </div>
+
+                    {/* Draw zone overlay */}
+                    <DrawZoneOverlay
+                      canvasRef={canvasWrapRef}
+                      isDrawing={isDrawingZone}
+                      zoneCreationType={zoneCreationType}
+                      onRectDrawn={handleRectDrawn}
+                      onCancel={() => setIsDrawingZone(false)}
+                    />
+
+                    {/* 3D Model Loading Progress Overlay */}
+                    <Canvas3DLoaderOverlay isModelLoading={isModelLoading} />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
+
+                  {/* Bottom Bar - completely separate footer below the 3D canvas */}
+                  <ModelBottomBar
+                    materials={materials}
+                    activeMaterial={activeMaterial}
+                    activeMeshName={activeMeshName}
+                    zonesCount={zones.length}
+                    onSelectPart={selectPart}
+                    onClosePreview={() => {
                       setPreviewUrl(null);
                       resetEditor();
                     }}
-                    className="pointer-events-auto p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
+                  />
+                </>
               )}
             </div>
 
@@ -577,7 +552,7 @@ export default function Admin3DModels({
 
                       return (
                         <div
-                          key={mat.name}
+                          key={part.id}
                           onClick={() => selectPart(mat.name, mat.meshName, part.cameraCommand)}
                           className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group ${
                             isSelected
