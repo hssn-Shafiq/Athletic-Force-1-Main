@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'react-toastify';
 import {
   createAdminProductApi,
@@ -242,24 +243,24 @@ function defaultGlobalDefinitions(): GlobalOptionDefinition[] {
   ];
 }
 
-function createGroupFromDefinition(definition: GlobalOptionDefinition): ProductOptionGroup {
+function createGroupFromDefinition(definition: GlobalOptionDefinition, isRequestMode: boolean = false): ProductOptionGroup {
   return {
     id: makeId(),
     key: definition.key,
     name: definition.name,
     isColor: definition.isColor,
     values: definition.values,
-    selectedValueIds: definition.values.length ? [definition.values[0].id] : [],
+    selectedValueIds: isRequestMode ? [] : (definition.values.length ? [definition.values[0].id] : []),
   };
 }
 
-function createDefaultProductOptionGroups(definitions: GlobalOptionDefinition[]) {
+function createDefaultProductOptionGroups(definitions: GlobalOptionDefinition[], isRequestMode: boolean = false) {
   const preferredOrder = ['color', 'size'];
   const picked = preferredOrder
     .map((key) => definitions.find((entry) => entry.key === key))
     .filter((entry): entry is GlobalOptionDefinition => Boolean(entry));
 
-  return picked.map(createGroupFromDefinition);
+  return picked.map((entry) => createGroupFromDefinition(entry, isRequestMode));
 }
 
 type ParentImageMapEntry = {
@@ -273,6 +274,10 @@ export function useProductForm(productId?: string) {
   const isEditMode = Boolean(productId);
   const skipRegenerateRef = useRef(false);
 
+  const searchParams = useSearchParams();
+  const urlOrderType = searchParams?.get('orderType') || searchParams?.get('type');
+  const initialOrderType: OrderType = urlOrderType === 'request' ? 'request' : 'direct';
+
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -284,7 +289,23 @@ export function useProductForm(productId?: string) {
   const [upsellOffers, setUpsellOffers] = useState<Record<string, number | undefined>>({});
   const [upsellOptions, setUpsellOptions] = useState<ProductUpsellOption[]>([]);
   const [upsellSearch, setUpsellSearch] = useState('');
-  const [orderType, setOrderType] = useState<OrderType>('direct');
+  const [orderType, setOrderTypeState] = useState<OrderType>(initialOrderType);
+
+  const setOrderType = (nextType: OrderType) => {
+    setOrderTypeState(nextType);
+    if (nextType === 'request') {
+      // Keep variations empty for request type products
+      setVariants([]);
+      // Clear selected option values so variants are not auto-generated
+      setOptionGroups((prev) =>
+        prev.map((group) => ({
+          ...group,
+          selectedValueIds: [],
+        }))
+      );
+      setDependentChildSelections({});
+    }
+  };
   const [status, setStatus] = useState<ProductStatus>('draft');
   const [basePrice, setBasePrice] = useState('0');
   const [regularPrice, setRegularPrice] = useState('0');
@@ -347,28 +368,33 @@ export function useProductForm(productId?: string) {
     try {
       const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
       const defaults = defaultGlobalDefinitions();
+      const isReq = initialOrderType === 'request';
 
       if (!raw) {
         setGlobalOptionDefinitions(defaults);
-        setOptionGroups(createDefaultProductOptionGroups(defaults));
+        setOptionGroups(createDefaultProductOptionGroups(defaults, isReq));
+        if (isReq) setVariants([]);
         return;
       }
 
       const parsed = JSON.parse(raw) as GlobalOptionDefinition[];
       if (!Array.isArray(parsed) || !parsed.length) {
         setGlobalOptionDefinitions(defaults);
-        setOptionGroups(createDefaultProductOptionGroups(defaults));
+        setOptionGroups(createDefaultProductOptionGroups(defaults, isReq));
+        if (isReq) setVariants([]);
         return;
       }
 
       setGlobalOptionDefinitions(parsed);
-      setOptionGroups(createDefaultProductOptionGroups(parsed));
+      setOptionGroups(createDefaultProductOptionGroups(parsed, isReq));
+      if (isReq) setVariants([]);
     } catch {
       const defaults = defaultGlobalDefinitions();
       setGlobalOptionDefinitions(defaults);
-      setOptionGroups(createDefaultProductOptionGroups(defaults));
+      setOptionGroups(createDefaultProductOptionGroups(defaults, initialOrderType === 'request'));
+      if (initialOrderType === 'request') setVariants([]);
     }
-  }, []);
+  }, [initialOrderType]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -507,6 +533,11 @@ export function useProductForm(productId?: string) {
   }, [productId]);
 
   const regenerateVariants = () => {
+    if (orderType === 'request') {
+      setVariants([]);
+      return;
+    }
+
     const activeGroups = optionGroups.filter((entry) => entry.selectedValueIds.length > 0);
     if (!activeGroups.length) {
       setVariants([]);
@@ -722,13 +753,17 @@ export function useProductForm(productId?: string) {
   };
 
   useEffect(() => {
+    if (orderType === 'request') {
+      setVariants([]);
+      return;
+    }
     if (skipRegenerateRef.current) {
       skipRegenerateRef.current = false;
       return;
     }
     regenerateVariants();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [optionGroups, variantMode, parentOptionKey, childOptionKey, dependentChildSelections, name]);
+  }, [optionGroups, variantMode, parentOptionKey, childOptionKey, dependentChildSelections, name, orderType]);
 
   useEffect(() => {
     if (!useBasePriceForVariants) return;
