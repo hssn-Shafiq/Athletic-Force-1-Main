@@ -384,9 +384,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
 
   useEffect(() => {
     if (isEditMode || isLoading || initialCreateSignature !== null) return;
-    if (!optionGroups.length || !variants.length) return;
+    if (!optionGroups.length || (orderType === 'direct' && !variants.length)) return;
     setInitialCreateSignature(createFormSignature);
-  }, [createFormSignature, initialCreateSignature, isEditMode, isLoading, optionGroups.length, variants.length]);
+  }, [createFormSignature, initialCreateSignature, isEditMode, isLoading, optionGroups.length, variants.length, orderType]);
 
   const hasUnsavedCreateChanges = !isEditMode && !isLoading && !isSubmitting && initialCreateSignature !== null && initialCreateSignature !== createFormSignature;
 
@@ -1527,15 +1527,32 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
             {activeTab === 'variants' && (
               <div className="space-y-5">
 
+                {/* Request Order Notice */}
+                {orderType === 'request' && (
+                  <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-2xl p-4">
+                    <Info size={18} className="text-blue-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-blue-900 uppercase tracking-wider">
+                        Request Order Mode — No Variations Required
+                      </p>
+                      <p className="text-xs text-blue-700 mt-0.5 leading-relaxed">
+                        For request-type products, variations are kept empty by default so customers can inquire and submit their custom requirements directly.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Option Setup */}
                 <SectionCard>
                   <SectionHeader icon={<Layers size={14} />} title="Product Options"
                     subtitle="Define sizes, colors and other attributes"
                     action={
-                      <button type="button" onClick={regenerateVariants}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-all">
-                        <Wand2 size={12} /> Regenerate Variants
-                      </button>
+                      orderType !== 'request' ? (
+                        <button type="button" onClick={regenerateVariants}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-all">
+                          <Wand2 size={12} /> Regenerate Variants
+                        </button>
+                      ) : undefined
                     }
                   />
                   <div className="p-6 space-y-5">
@@ -1927,6 +1944,20 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
                           </div>
                         );
                       })}
+                    </div>
+                  </SectionCard>
+                )}
+
+                {orderType === 'request' && variants.length === 0 && (
+                  <SectionCard>
+                    <div className="p-8 text-center space-y-2">
+                      <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
+                        <Layers size={20} />
+                      </div>
+                      <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Variations Kept Empty</h4>
+                      <p className="text-xs text-gray-500 max-w-md mx-auto leading-relaxed">
+                        This is a request-type product. Variations are kept empty by default so customers can submit inquiry requests directly with their custom requirements.
+                      </p>
                     </div>
                   </SectionCard>
                 )}
