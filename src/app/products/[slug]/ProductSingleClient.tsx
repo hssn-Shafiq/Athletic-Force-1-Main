@@ -288,7 +288,7 @@ function mapToDetailedProduct(raw: any): DetailedProduct {
     orderType: raw.orderType || 'direct',
     galleryImages: (raw.galleryImages || []).map((entry: any) => entry.url),
     collections: raw.collections || [],
-    is3dModal: Boolean(raw.is3dModal),
+    is3dModal: Boolean(raw.is3dModal === true || raw.is3dModal === 'true' || raw.Is3dModal === true || raw.Is3dModal === 'true' || raw.modalId),
     modalId: raw.modalId ? String(raw.modalId) : null,
   };
 }
@@ -585,6 +585,13 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
   useEffect(() => {
     let mounted = true;
     const targetModelId = product?.modalId;
+    const has3dFlag = Boolean(product?.is3dModal);
+
+    // If product has no 3D model assigned and no 3D flag, do not fetch any 3D model
+    if (!targetModelId && !has3dFlag) {
+      setActive3DModel(null);
+      return;
+    }
 
     if (targetModelId) {
       apiClient
@@ -596,32 +603,46 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
               const saved = localStorage.getItem(`af1_custom_design_${data.model.id || targetModelId}`);
               if (saved) setCustom3DDesign(JSON.parse(saved));
             } catch {}
+          } else if (mounted) {
+            setActive3DModel(null);
           }
         })
-        .catch(() => {});
-    } else {
+        .catch(() => {
+          if (mounted) setActive3DModel(null);
+        });
+    } else if (has3dFlag && product?.id) {
+      // If product has is3dModal enabled, only fetch and attach if a 3D model explicitly matches this product
       apiClient
         .get('/api/public/3d-models')
         .then(({ data }) => {
-          if (mounted && data?.ok && Array.isArray(data.models) && data.models.length > 0) {
-            const matched = product?.id
-              ? data.models.find((m: any) => m.product_id === product.id || m.productId === product.id)
-              : null;
-            const chosen = matched || data.models[0];
-            setActive3DModel(chosen);
-            try {
-              const saved = localStorage.getItem(`af1_custom_design_${chosen.id}`);
-              if (saved) setCustom3DDesign(JSON.parse(saved));
-            } catch {}
+          if (mounted && data?.ok && Array.isArray(data.models)) {
+            const matched = data.models.find(
+              (m: any) => String(m.product_id) === String(product.id) || String(m.productId) === String(product.id)
+            );
+            if (matched) {
+              setActive3DModel(matched);
+              try {
+                const saved = localStorage.getItem(`af1_custom_design_${matched.id}`);
+                if (saved) setCustom3DDesign(JSON.parse(saved));
+              } catch {}
+            } else {
+              setActive3DModel(null);
+            }
+          } else if (mounted) {
+            setActive3DModel(null);
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          if (mounted) setActive3DModel(null);
+        });
+    } else {
+      setActive3DModel(null);
     }
 
     return () => {
       mounted = false;
     };
-  }, [product?.modalId, product?.id]);
+  }, [product?.modalId, product?.is3dModal, product?.id]);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -1400,11 +1421,11 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
               </button>
             )}
 
-            {/* 3D Customizer Action Button */}
-            {(active3DModel || product?.is3dModal || product?.modalId) && (
+            {/* 3D Customizer Action Button — ONLY shown if product genuinely has a 3D model */}
+            {Boolean(active3DModel || (product?.is3dModal && product?.modalId)) && (
               <div className="space-y-2 pt-1">
                 <Link
-                  href={`/af1-canvas/editor/${active3DModel?.id || product?.modalId || 'default'}${product?.id ? `?productId=${product.id}` : ''}`}
+                  href={`/af1-canvas/editor/${active3DModel?.id || product?.modalId}${product?.id ? `?productId=${product.id}` : ''}`}
                   className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-orange-500/10 via-orange-500/15 to-orange-500/10 hover:from-orange-500/20 hover:to-orange-500/25 border-2 border-dashed border-[#FF7348]/40 text-[#FF7348] font-black uppercase text-xs sm:text-sm tracking-wider transition-all shadow-sm active:scale-[0.99] group cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4 text-[#FF7348] group-hover:rotate-12 transition-transform" />
@@ -1422,7 +1443,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                       <span className="font-bold">3D Custom Design Attached to Product</span>
                     </div>
                     <Link
-                      href={`/af1-canvas/editor/${active3DModel?.id || product?.modalId || 'default'}${product?.id ? `?productId=${product.id}` : ''}`}
+                      href={`/af1-canvas/editor/${active3DModel?.id || product?.modalId}${product?.id ? `?productId=${product.id}` : ''}`}
                       className="underline font-black text-[11px] uppercase text-emerald-700 hover:text-emerald-900 cursor-pointer"
                     >
                       Edit Design
