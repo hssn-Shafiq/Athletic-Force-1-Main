@@ -602,7 +602,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
             try {
               const saved = localStorage.getItem(`af1_custom_design_${data.model.id || targetModelId}`);
               if (saved) setCustom3DDesign(JSON.parse(saved));
-            } catch {}
+            } catch { }
           } else if (mounted) {
             setActive3DModel(null);
           }
@@ -624,7 +624,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
               try {
                 const saved = localStorage.getItem(`af1_custom_design_${matched.id}`);
                 if (saved) setCustom3DDesign(JSON.parse(saved));
-              } catch {}
+              } catch { }
             } else {
               setActive3DModel(null);
             }
@@ -784,7 +784,7 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
     : (variantPrice || productPrice);
 
   const displayOriginalPrice = productRegPrice;
-  const displaySku = selectedVariant?.sku || product?.sku || '00001';
+  const displaySku = selectedVariant?.sku || product?.sku || (product?.orderType === 'request' ? '' : '00001');
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -1198,29 +1198,36 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                 </motion.button>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-slate-400 text-sm font-bold tracking-widest uppercase">SKU: {displaySku}</span>
-                <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full">
-                  <div className="flex -space-x-1.5">
-                    {(product.reviews.length > 0 ? product.reviews.slice(0, 3) : [1, 2, 3]).map((r: any, i) => {
-                      const avatarUrl = typeof r === 'object' ? r.userAvatar?.url : null;
-                      const initial = typeof r === 'object' ? r.fullName.charAt(0) : '';
+                {Boolean(displaySku) && (
+                  <span className="text-slate-400 text-sm font-bold tracking-widest uppercase">SKU: {displaySku}</span>
+                )}
+                {product.reviews && product.reviews.length > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full">
+                    <div className="flex -space-x-1.5">
+                      {product.reviews.slice(0, 3).map((r: any, i) => {
+                        const avatarUrl = r.userAvatar?.url || null;
+                        const initial = r.fullName?.charAt(0) || '';
 
-                      return (
-                        <div
-                          key={i}
-                          className="w-5 h-5 sm:w-7 sm:h-7 rounded-full border-2 border-white overflow-hidden bg-slate-200 flex items-center justify-center shrink-0"
-                        >
-                          {avatarUrl ? (
-                            <img src={avatarUrl} loading="lazy" className="w-full h-full object-cover" alt="av" />
-                          ) : (
-                            <span className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase">{initial}</span>
-                          )}
-                        </div>
-                      );
-                    })}
+                        return (
+                          <div
+                            key={i}
+                            className="w-5 h-5 sm:w-7 sm:h-7 rounded-full border-2 border-white overflow-hidden bg-slate-200 flex items-center justify-center shrink-0"
+                          >
+                            {avatarUrl ? (
+                              <img src={avatarUrl} loading="lazy" className="w-full h-full object-cover" alt="av" />
+                            ) : (
+                              <span className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase">{initial}</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <span className="text-xs font-black text-slate-900 leading-none">
+                      {product.rating ? product.rating.toFixed(1) : '5.0'}{' '}
+                      <span className="text-[#FF7348] uppercase italic">Rating</span>
+                    </span>
                   </div>
-                  <span className="text-xs font-black text-slate-900 leading-none">4.5 <span className="text-[#FF7348] uppercase italic">Rating</span></span>
-                </div>
+                )}
               </div>
             </div>
 
@@ -1385,7 +1392,12 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
               )}
               {product.orderType === 'request' ? (
                 <Link
-                  href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(product.collections?.find(c => !c.parentId)?.name || 'Product')}&subcategory=${encodeURIComponent(product.collections?.find(c => c.parentId)?.name || '')}`}
+                  href={(() => {
+                    const parentCol = product.collections?.find(c => !c.parentId);
+                    const childCol = product.collections?.find(c => c.parentId);
+                    const childSlug = typeof childCol?.parentId === 'object' ? childCol?.slug : childCol?.slug;
+                    return `/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(parentCol?.name || 'Product')}&categorySlug=${encodeURIComponent(parentCol?.slug || '')}&subcategory=${encodeURIComponent(childCol?.name || '')}&subcategorySlug=${encodeURIComponent(childSlug || '')}`;
+                  })()}
                   className="flex-1 flex items-center justify-center gap-2 sm:gap-3 rounded-2xl font-black uppercase italic tracking-tighter text-lg sm:text-xl px-4 py-4 bg-orange-600 hover:bg-orange-700 text-white transition-all shadow-xl active:scale-95 w-full"
                 >
                   <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -1405,7 +1417,11 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
             {/* Big Action Button */}
             {product.orderType === 'request' ? (
               <Link
-                href={`/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(product.collections?.find(c => !c.parentId)?.name || 'Product')}&subcategory=${encodeURIComponent(product.collections?.find(c => c.parentId)?.name || '')}`}
+                href={(() => {
+                  const parentCol = product.collections?.find(c => !c.parentId);
+                  const childCol = product.collections?.find(c => c.parentId);
+                  return `/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(parentCol?.name || 'Product')}&categorySlug=${encodeURIComponent(parentCol?.slug || '')}&subcategory=${encodeURIComponent(childCol?.name || '')}&subcategorySlug=${encodeURIComponent(childCol?.slug || '')}`;
+                })()}
                 className="w-full text-white py-4 sm:py-6 rounded-3xl font-black uppercase italic tracking-tighter text-xl sm:text-2xl transition-all shadow-xl active:scale-95 bg-black hover:bg-slate-900 border-2 border-orange-500 hover:shadow-2xl flex items-center justify-center gap-3 sm:gap-4"
               >
                 <span>Submit Inquiry</span>
@@ -1744,22 +1760,38 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
               </div>
 
               <div className="flex items-center justify-between w-full sm:w-auto gap-4 sm:gap-8 shrink-0">
-                <div className="text-left sm:text-right">
-                  <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-[0.1em] leading-none mb-1">Deployment Cost</p>
-                  <div className="flex items-baseline gap-1 justify-start sm:justify-end">
-                    <p className="text-xl sm:text-2xl font-black italic tracking-tighter text-slate-900 leading-none">${displayPrice.toFixed(2)}</p>
-                    <span className="text-[10px] font-bold text-slate-400">x{quantity}</span>
+                {product.orderType !== 'request' && (
+                  <div className="text-left sm:text-right">
+                    <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-[0.1em] leading-none mb-1">Deployment Cost</p>
+                    <div className="flex items-baseline gap-1 justify-start sm:justify-end">
+                      <p className="text-xl sm:text-2xl font-black italic tracking-tighter text-slate-900 leading-none">${displayPrice.toFixed(2)}</p>
+                      <span className="text-[10px] font-bold text-slate-400">x{quantity}</span>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <button
-                  onClick={handleAddToCart}
-                  className="bg-[#E5633D] text-white px-6 sm:px-12 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-xs sm:text-base flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-orange-500/20 hover:bg-orange-600"
-                >
-                  <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="hidden xs:inline">Deploy to Cart</span>
-                  <span className="xs:hidden">Deploy</span>
-                </button>
+                {product.orderType === 'request' ? (
+                  <Link
+                    href={(() => {
+                      const parentCol = product.collections?.find(c => !c.parentId);
+                      const childCol = product.collections?.find(c => c.parentId);
+                      return `/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(parentCol?.name || 'Product')}&categorySlug=${encodeURIComponent(parentCol?.slug || '')}&subcategory=${encodeURIComponent(childCol?.name || '')}&subcategorySlug=${encodeURIComponent(childCol?.slug || '')}`;
+                    })()}
+                    className="bg-orange-600 text-white px-6 sm:px-12 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-xs sm:text-base flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-orange-500/20 hover:bg-orange-700"
+                  >
+                    <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>Request Quote</span>
+                  </Link>
+                ) : (
+                  <button
+                    onClick={handleAddToCart}
+                    className="bg-[#E5633D] text-white px-6 sm:px-12 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-xs sm:text-base flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-orange-500/20 hover:bg-orange-600"
+                  >
+                    <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="hidden xs:inline">Deploy to Cart</span>
+                    <span className="xs:hidden">Deploy</span>
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
