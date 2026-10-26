@@ -107,6 +107,8 @@ function RequestOrderFormContent() {
     const [products, setProducts] = useState<ProductItem[]>([]);
     const [isLoadingHierarchy, setIsLoadingHierarchy] = useState(true);
     const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+    // Track last fetched subcategory to avoid duplicate fetches
+    const lastFetchedSubRef = useRef<string>('');
 
     const [form, setForm] = useState<FormState>({
         firstName: '',
@@ -231,42 +233,62 @@ function RequestOrderFormContent() {
     }, []);
 
     useEffect(() => {
-        if (form.subcategory && hierarchy.length > 0) {
-            const selectedSub = hierarchy
-                .flatMap(p => p.subcategories)
-                .find(s => s.name === form.subcategory);
+        if (!form.subcategory || hierarchy.length === 0) return;
 
-            if (selectedSub) {
-                const fetchProducts = async () => {
-                    setIsLoadingProducts(true);
-                    try {
-                        const res = await apiClient.get(`/api/products/explore?collection=${selectedSub.slug}`);
-                        if (res.data.ok) {
-                            const items = res.data.items || [];
-                            setProducts(items);
+        // Find the matching subcategory in the hierarchy by name
+        const selectedSub = hierarchy
+            .flatMap(p => p.subcategories)
+            .find(s => s.name === form.subcategory);
 
-                            // Resolve productId and image if we have a pre-filled product name but no ID
-                            if (form.product && (!form.productId || !form.productImage)) {
-                                const match = items.find((p: any) => p.name === form.product);
-                                if (match) {
-                                    setForm(prev => ({ 
-                                        ...prev, 
-                                        productId: prev.productId || match.id,
-                                        productImage: prev.productImage || match.mainImageUrl || ''
-                                    }));
-                                }
-                            }
-                        }
-                    } catch (err) {
-                        toast.error("Failed to load tactical product list.");
-                    } finally {
-                        setIsLoadingProducts(false);
-                    }
-                };
-                fetchProducts();
+        if (!selectedSub) return;
+
+        // Avoid re-fetching for the same subcategory (prevents double-fetch on hierarchy load)
+        if (lastFetchedSubRef.current === selectedSub.slug) {
+            // Hierarchy just loaded — if we already have products, just try to auto-select product
+            if (products.length > 0 && form.product) {
+                const match = products.find((p: any) => p.name === form.product);
+                if (match && (!form.productId || !form.productImage)) {
+                    setForm(prev => ({
+                        ...prev,
+                        productId: prev.productId || match.id,
+                        productImage: prev.productImage || match.mainImageUrl || ''
+                    }));
+                }
             }
+            return;
         }
-    }, [form.subcategory, hierarchy, form.product, form.productId]);
+
+        lastFetchedSubRef.current = selectedSub.slug;
+
+        const fetchProducts = async () => {
+            setIsLoadingProducts(true);
+            try {
+                const res = await apiClient.get(`/api/products/explore?collection=${selectedSub.slug}`);
+                if (res.data.ok) {
+                    const items = res.data.items || [];
+                    setProducts(items);
+
+                    // Auto-select the pre-filled product name
+                    if (form.product) {
+                        const match = items.find((p: any) => p.name === form.product);
+                        if (match) {
+                            setForm(prev => ({
+                                ...prev,
+                                productId: prev.productId || match.id,
+                                productImage: prev.productImage || match.mainImageUrl || ''
+                            }));
+                        }
+                    }
+                }
+            } catch (err) {
+                toast.error("Failed to load product list.");
+            } finally {
+                setIsLoadingProducts(false);
+            }
+        };
+        fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [form.subcategory, hierarchy]);
 
     // ─── HANDLERS ──────────────────────────────────────────────────────────────
 
@@ -274,8 +296,10 @@ function RequestOrderFormContent() {
         const { name, value } = e.target;
 
         if (name === 'category') {
+            lastFetchedSubRef.current = ''; // reset so new subcategory triggers a fresh fetch
             setForm(prev => ({ ...prev, category: value, subcategory: '', product: '', productId: '' }));
         } else if (name === 'subcategory') {
+            lastFetchedSubRef.current = ''; // reset so the new subcategory fetches fresh products
             setForm(prev => ({ ...prev, subcategory: value, product: '', productId: '' }));
         } else if (name === 'product') {
             const selectedProd = products.find(p => p.name === value);
@@ -446,7 +470,13 @@ function RequestOrderFormContent() {
                                         >
                                             <option value="">— Select Category —</option>
                                             {hierarchy
-                                                .filter(c => c.name.toLowerCase() !== 'merchandise')
+                                                .filter(c =>
+                                                    c.slug === 'accessories' ||
+                                                    c.slug === 'custom-uniforms' ||
+                                                    c.slug === 'custom-uniform' ||
+                                                     c.slug === 'custom-unforms' ||
+                                                    c.name.toLowerCase().includes('uniform')
+                                                )
                                                 .map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                                         </select>
                                         {isLoadingHierarchy && <Skeleton className="absolute inset-0 rounded-2xl" />}
