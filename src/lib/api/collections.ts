@@ -73,7 +73,7 @@ export async function updateAdminCollectionApi(collectionId: string, payload: Up
     formData.append('sortOrder', String(payload.sortOrder));
   }
 
-  if (payload.removeImage !== undefined) {
+  if (payload.removeImage === true) {
     formData.append('removeImage', String(payload.removeImage));
   }
 

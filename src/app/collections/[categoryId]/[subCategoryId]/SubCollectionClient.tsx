@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { PublicProduct, CollectionHierarchy } from "@/lib/api/types";
+import { PublicProduct, CollectionHierarchy, CollectionHierarchyNode } from "@/lib/api/types";
 import { Search, ChevronDown, Home, ChevronRight, SlidersHorizontal, Filter, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -19,12 +19,93 @@ import { getCollectionHierarchyApi } from "@/lib/api/publicCollections";
 import { mapPublicProductToCard } from "@/lib/products/mapPublicProductToCard";
 import { ShopSkeleton } from "@/app/shop/components/ShopSkeleton";
 
+const normalizeSlug = (slug: string | undefined) => (slug || "").trim().toLowerCase();
+
+function containsCollectionSlug(node: CollectionHierarchyNode, slug: string): boolean {
+  return normalizeSlug(node.slug) === normalizeSlug(slug) ||
+    (node.children || []).some(child => containsCollectionSlug(child, slug));
+}
+
 interface SubCollectionClientProps {
   initialProducts?: PublicProduct[];
   initialHierarchy?: CollectionHierarchy[];
   /** Override slugs when rendered outside the [subCategoryId] route */
   overrideParentSlug?: string;
   overrideSubSlug?: string;
+}
+
+function CollectionFilterNode({
+  node,
+  selectedSlug,
+  onSelect,
+  depth = 0,
+}: {
+node: CollectionHierarchyNode;
+selectedSlug: string;
+  onSelect: (slug: string) => void;
+  depth?: number;
+}) {
+  const children = node.children || [];
+  const containsSelected = (item: CollectionHierarchyNode): boolean =>
+    normalizeSlug(item.slug) === normalizeSlug(selectedSlug) ||
+    (item.children || []).some(containsSelected);
+  const [isExpanded, setIsExpanded] = useState(() => children.some(containsSelected));
+
+  useEffect(() => {
+    if (children.some(containsSelected)) {
+      setIsExpanded(true);
+    }
+  }, [children, selectedSlug]);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <div
+          onClick={children.length === 0 ? () => onSelect(node.slug) : () => setIsExpanded(value => !value)}
+          className={`flex min-w-0 flex-1 items-center group/item py-0.5 ${children.length === 0 ? "cursor-pointer" : "cursor-pointer"}`}
+        >
+          <span className={`truncate text-[12px] font-bold transition-all ${normalizeSlug(node.slug) === normalizeSlug(selectedSlug) ? "text-[#ff7348] translate-x-1" : "text-slate-600 group-hover/item:text-[#ff7348] group-hover/item:translate-x-1"}`}>
+            {node.name} <span className="text-[9px] font-bold opacity-40 ml-1">({node.productCount || 0})</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {children.length === 0 && (
+            <div className={`w-4 h-4 rounded-sm border-2 border-slate-200 flex items-center justify-center transition-all ${normalizeSlug(node.slug) === normalizeSlug(selectedSlug) ? "bg-[var(--color-accent)] border-[#FF7348] shadow-lg shadow-[#FF7348]/20" : "border-slate-100 bg-white"}`}>
+              {normalizeSlug(node.slug) === normalizeSlug(selectedSlug) && (
+                <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5 text-white" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+            </div>
+          )}
+          {children.length > 0 && (
+            <button
+              type="button"
+              aria-label={`${isExpanded ? "Collapse" : "Expand"} ${node.name}`}
+              onClick={() => setIsExpanded(value => !value)}
+              className="cursor-pointer p-0.5 text-slate-300 hover:text-[#ff7348]"
+            >
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {isExpanded && children.length > 0 && (
+        <div className={`space-y-2 border-l border-slate-100 pl-3 ${depth > 0 ? "ml-1" : ""}`}>
+          {children.map(child => (
+            <CollectionFilterNode
+              key={child.id}
+              node={child}
+              selectedSlug={selectedSlug}
+              onSelect={onSelect}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function SubCollectionClient({
@@ -46,11 +127,24 @@ export default function SubCollectionClient({
   const [sortBy, setSortBy] = useState("newest");
   const [priceRange, setPriceRange] = useState<number>(1400);
   const [quickViewProduct, setQuickViewProduct] = useState<PublicProduct | null>(null);
-  const [expandedParents, setExpandedParents] = useState<string[]>([]);
+  const [expandedParents, setExpandedParents] = useState<string[]>(() => {
+    const activeParent = initialHierarchy.find(
+      parent => normalizeSlug(parent.slug) === normalizeSlug(parentSlug)
+    );
+    return activeParent ? [activeParent.id] : [];
+  });
   const [selectedSubSlug, setSelectedSubSlug] = useState<string>(subSlug);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const router = useRouter();
+
+  const visibleHierarchy = useMemo(
+    () => hierarchy.filter(parent =>
+      ["custom-uniforms", "custom-unifomrs", "custom-unforms", "custom-uniform", "accessories", "merchandise"].includes(parent.slug) ||
+      /^custom\s+uniforms?$/i.test(parent.name.trim())
+    ),
+    [hierarchy]
+  );
 
   // Close sort dropdown when clicking outside
   useEffect(() => {
@@ -64,8 +158,24 @@ export default function SubCollectionClient({
   }, []);
 
   // --- Breadcrumb & Hero Intel ---
-  const parentData = useMemo(() => hierarchy.find(p => p.slug === parentSlug), [hierarchy, parentSlug]);
-  const subData = useMemo(() => parentData?.subcategories.find(s => s.slug === (selectedSubSlug === "ALL" ? "" : selectedSubSlug)), [parentData, selectedSubSlug]);
+  const parentData = useMemo(
+    () => hierarchy.find(p =>
+      normalizeSlug(p.slug) === normalizeSlug(parentSlug) ||
+      p.subcategories.some(child => containsCollectionSlug(child, selectedSubSlug))
+    ),
+    [hierarchy, parentSlug, selectedSubSlug]
+  );
+  const subData = useMemo(
+    () => parentData?.subcategories.find(s => normalizeSlug(s.slug) === normalizeSlug(selectedSubSlug === "ALL" ? "" : selectedSubSlug)),
+    [parentData, selectedSubSlug]
+  );
+
+  // Keep the active collection branch open so the current route is visible
+  // and its collection remains checked in the sidebar.
+  useEffect(() => {
+    if (!parentData) return;
+    setExpandedParents(prev => prev.includes(parentData.id) ? prev : [...prev, parentData.id]);
+  }, [parentData]);
 
   // --- Tactical Data Fetching ---
   const fetchSubCollectionData = useCallback(async () => {
@@ -85,15 +195,19 @@ export default function SubCollectionClient({
       if (hierarchyRes.ok && hierarchyRes.hierarchy) {
         setHierarchy(hierarchyRes.hierarchy);
         // Expand the current parent by default
-        const currentParent = hierarchyRes.hierarchy.find(p => p.slug === parentSlug);
-        if (currentParent) setExpandedParents([currentParent.id]);
+        const currentParent = hierarchyRes.hierarchy.find(
+          p => normalizeSlug(p.slug) === normalizeSlug(parentSlug)
+        );
+        if (currentParent) {
+          setExpandedParents(prev => prev.includes(currentParent.id) ? prev : [...prev, currentParent.id]);
+        }
       }
     } catch (err) {
       console.error("Tactical deployment failed:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [subSlug, searchQuery, priceRange, sortBy, parentSlug]);
+  }, [searchQuery, priceRange, sortBy, parentSlug, selectedSubSlug]);
 
   useEffect(() => {
     if (hasInitialData) {
@@ -159,43 +273,43 @@ export default function SubCollectionClient({
       {/* Navigation Hierarchy */}
       <div className="space-y-6">
         <div className="space-y-6">
-          {hierarchy.map((parent) => (
+          {visibleHierarchy.map((parent) => (
             <div key={parent.id} className="space-y-4">
-              <div className="flex items-center justify-between w-full group cursor-pointer" onClick={() => toggleParent(parent.id)}>
-                <span className={`text-xs font-black uppercase tracking-wider transition-all ${parent.slug === parentSlug ? 'text-[#ff7348]' : 'text-black group-hover:text-[#ff7348]'}`}>
+              <div className="flex items-center justify-between w-full group">
+                <span
+                  onClick={() => toggleParent(parent.id)}
+                  className={`cursor-pointer text-xs font-black uppercase tracking-wider transition-all ${parent.id === parentData?.id ? 'text-[#ff7348]' : 'text-black group-hover:text-[#ff7348]'}`}
+                >
                   {parent.name}
                 </span>
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform ${expandedParents.includes(parent.id) ? "rotate-180" : "text-slate-300"} group-hover:text-[#ff7348]`}
-                />
+                <button
+                  type="button"
+                  aria-label={`${expandedParents.includes(parent.id) ? "Collapse" : "Expand"} ${parent.name}`}
+                  onClick={() => toggleParent(parent.id)}
+                  className="cursor-pointer p-1 text-slate-300 hover:text-[#ff7348]"
+                >
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform ${expandedParents.includes(parent.id) ? "rotate-180" : ""} group-hover:text-[#ff7348]`}
+                  />
+                </button>
               </div>
 
               {expandedParents.includes(parent.id) && (
                 <div className="space-y-3 pl-1">
                   {parent.subcategories.map(sub => (
-                    <div
+                    <CollectionFilterNode
                       key={sub.id}
-                      onClick={() => {
-                        if (sub.slug === selectedSubSlug) {
+                      node={sub}
+                      selectedSlug={selectedSubSlug}
+                      onSelect={(slug) => {
+                        if (slug === selectedSubSlug) {
                           setSelectedSubSlug("ALL");
                         } else {
-                          router.push(`/collections/${parent.slug}/${sub.slug}`, { scroll: false });
+                          router.push(`/collections/${parent.slug}/${slug}`, { scroll: false });
                           setIsSidebarOpen(false);
                         }
                       }}
-                      className="flex items-center justify-between cursor-pointer group/item py-0.5"
-                    >
-                      <span className={`text-[12px] font-bold transition-all ${sub.slug === selectedSubSlug ? "text-[#ff7348] translate-x-1" : "text-slate-600 group-hover/item:text-[#ff7348] group-hover/item:translate-x-1"}`}>
-                        {sub.name} <span className="text-[9px] font-bold opacity-40 ml-1">({sub.productCount || 0})</span>
-                      </span>
-                      <div className={`w-4 h-4 rounded-sm border-2 border-slate-200 flex items-center justify-center transition-all ${sub.slug === selectedSubSlug ? "bg-[var(--color-accent)] border-[#FF7348] shadow-lg shadow-[#FF7348]/20" : "border-slate-100 bg-white"}`}>
-                        {sub.slug === selectedSubSlug && (
-                          <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5 text-white" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        )}
-                      </div>
-                    </div>
+                    />
                   ))}
                 </div>
               )}

@@ -132,17 +132,17 @@ const EmailWrapper = ({ children, hideHeader = false }: { children: React.ReactN
         </div>
 
         {/* Footer */}
-        <div className="bg-[#F8FAFC] p-10 text-center border-t border-slate-100">
-            <p className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-widest leading-loose">
-                4807 Greenleaf Ct, Ste DModesto, CA 95356 <br />
+        <div className="bg-[#1a1a1a] p-10 text-center border-t border-black">
+            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-loose">
+                4807 Greenleaf Ct, Ste D, Modesto, CA 95356 <br />
                 Call us: 707-741-5737 | Email: info@athleticforce1.com <br />
             </p>
             <div className="flex justify-center gap-6 mt-6">
-                <Instagram className="w-4 h-4 text-[#64748B]" />
-                <Facebook className="w-4 h-4 text-[#64748B]" />
-                <Twitter className="w-4 h-4 text-[#64748B]" />
+                <Instagram className="w-4 h-4 text-[#FF7348]" />
+                <Facebook className="w-4 h-4 text-[#FF7348]" />
+                <Twitter className="w-4 h-4 text-[#FF7348]" />
             </div>
-            <p className="text-[10px] font-bold text-[#94A3B8] mt-8 uppercase tracking-widest leading-loose">
+            <p className="text-[10px] font-bold text-slate-500 mt-8 uppercase tracking-widest leading-loose">
                 © 2026 Athletic Force 1. All Rights Reserved.
             </p>
         </div>

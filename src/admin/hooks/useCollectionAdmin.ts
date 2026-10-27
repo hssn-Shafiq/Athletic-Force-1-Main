@@ -41,6 +41,7 @@ type EditCollectionDraft = {
   isActive: boolean;
   sortOrder: number;
   removeImage: boolean;
+  imageUrl?: string;
 };
 
 function upsertParentOption(prevParents: AdminCollectionParent[], collection: AdminCollection) {
@@ -284,6 +285,7 @@ export function useCollectionAdmin() {
       isActive: collection.isActive ?? true,
       sortOrder: collection.sortOrder ?? 0,
       removeImage: false,
+      imageUrl: collection.imageUrl ?? '',
     });
     setEditImageFile(null);
   }
