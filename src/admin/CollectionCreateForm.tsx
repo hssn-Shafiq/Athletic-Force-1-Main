@@ -505,9 +505,9 @@ export const CollectionCreateForm: React.FC = () => {
                 </label>
 
                 <div className="rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden">
-                  {editImagePreview ? (
+                  {editImagePreview || (!editingCollection.removeImage && editingCollection.imageUrl) ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={editImagePreview} alt="New image preview" className="w-full h-44 object-cover" />
+                    <img src={editImagePreview || editingCollection.imageUrl} alt="Collection preview" className="w-full h-44 object-cover" />
                   ) : editingCollection.removeImage ? (
                     <div className="h-44 flex items-center justify-center text-slate-400">
                       <p className="text-xs font-semibold uppercase tracking-wider">Image will be removed</p>

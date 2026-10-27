@@ -1393,8 +1393,9 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
               {product.orderType === 'request' ? (
                 <Link
                   href={(() => {
-                    const parentCol = product.collections?.find(c => !c.parentId);
                     const childCol = product.collections?.find(c => c.parentId);
+                    const parentCol = product.collections?.find(c => !c.parentId)
+                      || (typeof childCol?.parentId === 'object' ? childCol.parentId : undefined);
                     const childSlug = typeof childCol?.parentId === 'object' ? childCol?.slug : childCol?.slug;
                     return `/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(parentCol?.name || 'Product')}&categorySlug=${encodeURIComponent(parentCol?.slug || '')}&subcategory=${encodeURIComponent(childCol?.name || '')}&subcategorySlug=${encodeURIComponent(childSlug || '')}`;
                   })()}
@@ -1418,8 +1419,9 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
             {product.orderType === 'request' ? (
               <Link
                 href={(() => {
-                  const parentCol = product.collections?.find(c => !c.parentId);
                   const childCol = product.collections?.find(c => c.parentId);
+                  const parentCol = product.collections?.find(c => !c.parentId)
+                    || (typeof childCol?.parentId === 'object' ? childCol.parentId : undefined);
                   return `/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(parentCol?.name || 'Product')}&categorySlug=${encodeURIComponent(parentCol?.slug || '')}&subcategory=${encodeURIComponent(childCol?.name || '')}&subcategorySlug=${encodeURIComponent(childCol?.slug || '')}`;
                 })()}
                 className="w-full text-white py-4 sm:py-6 rounded-3xl font-black uppercase italic tracking-tighter text-xl sm:text-2xl transition-all shadow-xl active:scale-95 bg-black hover:bg-slate-900 border-2 border-orange-500 hover:shadow-2xl flex items-center justify-center gap-3 sm:gap-4"
@@ -1773,8 +1775,9 @@ const ProductSingleClient: React.FC<ProductSingleClientProps> = ({ initialProduc
                 {product.orderType === 'request' ? (
                   <Link
                     href={(() => {
-                      const parentCol = product.collections?.find(c => !c.parentId);
                       const childCol = product.collections?.find(c => c.parentId);
+                      const parentCol = product.collections?.find(c => !c.parentId)
+                        || (typeof childCol?.parentId === 'object' ? childCol.parentId : undefined);
                       return `/request-order-form?productId=${product.id}&product=${encodeURIComponent(product.title)}&category=${encodeURIComponent(parentCol?.name || 'Product')}&categorySlug=${encodeURIComponent(parentCol?.slug || '')}&subcategory=${encodeURIComponent(childCol?.name || '')}&subcategorySlug=${encodeURIComponent(childCol?.slug || '')}`;
                     })()}
                     className="bg-orange-600 text-white px-6 sm:px-12 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-xs sm:text-base flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-orange-500/20 hover:bg-orange-700"

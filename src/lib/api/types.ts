@@ -155,12 +155,15 @@ export type CollectionHierarchy = {
   id: string;
   name: string;
   slug: string;
-  subcategories: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    productCount: number;
-  }>;
+  subcategories: CollectionHierarchyNode[];
+};
+
+export type CollectionHierarchyNode = {
+  id: string;
+  name: string;
+  slug: string;
+  productCount: number;
+  children?: CollectionHierarchyNode[];
 };
 
 /** Flat collection item returned by /api/collections/tree */
@@ -741,4 +744,3 @@ export type UpdateNavMenuRequest = {
   items?: NavItem[];
   isActive?: boolean;
 };
-

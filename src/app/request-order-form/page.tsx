@@ -151,12 +151,14 @@ function RequestOrderFormContent() {
     // Tactical Pre-fill: Ingest mission parameters from search params
     useEffect(() => {
         const category = searchParams.get('category');
+        const categorySlug = searchParams.get('categorySlug');
         const subcategory = searchParams.get('subcategory');
+        const subcategorySlug = searchParams.get('subcategorySlug');
         const product = searchParams.get('product');
         const productId = searchParams.get('productId');
         const productImage = searchParams.get('productImage');
 
-        if (category || subcategory || product || productId || productImage) {
+        if (category || categorySlug || subcategory || subcategorySlug || product || productId || productImage) {
             setForm(prev => ({
                 ...prev,
                 category: category || prev.category,
@@ -167,6 +169,31 @@ function RequestOrderFormContent() {
             }));
         }
     }, [searchParams]);
+
+    useEffect(() => {
+        if (!hierarchy.length) return;
+
+        const categorySlug = searchParams.get('categorySlug');
+        const subcategorySlug = searchParams.get('subcategorySlug');
+        const categoryParam = searchParams.get('category');
+        const subcategoryParam = searchParams.get('subcategory');
+        const category = hierarchy.find(item =>
+            (categorySlug && item.slug === categorySlug) ||
+            item.name === (categoryParam || form.category)
+        );
+        const subcategory = category?.subcategories.find(item =>
+            (subcategorySlug && item.slug === subcategorySlug) ||
+            item.name === (subcategoryParam || form.subcategory)
+        );
+
+        if (category && (category.name !== form.category || subcategory?.name !== form.subcategory)) {
+            setForm(prev => ({
+                ...prev,
+                category: category.name,
+                subcategory: subcategory?.name || prev.subcategory
+            }));
+        }
+    }, [hierarchy, searchParams, form.category, form.subcategory]);
 
     // Supreme Tactical Resolution: Bidirectional correction of category/subcategory hierarchy
     useEffect(() => {
@@ -236,9 +263,10 @@ function RequestOrderFormContent() {
         if (!form.subcategory || hierarchy.length === 0) return;
 
         // Find the matching subcategory in the hierarchy by name
+        const subcategorySlug = searchParams.get('subcategorySlug');
         const selectedSub = hierarchy
             .flatMap(p => p.subcategories)
-            .find(s => s.name === form.subcategory);
+            .find(s => (subcategorySlug && s.slug === subcategorySlug) || s.name === form.subcategory);
 
         if (!selectedSub) return;
 
@@ -246,7 +274,10 @@ function RequestOrderFormContent() {
         if (lastFetchedSubRef.current === selectedSub.slug) {
             // Hierarchy just loaded — if we already have products, just try to auto-select product
             if (products.length > 0 && form.product) {
-                const match = products.find((p: any) => p.name === form.product);
+                const match = products.find((p: any) =>
+                    (form.productId && p.id === form.productId) ||
+                    (form.product && p.name === form.product)
+                );
                 if (match && (!form.productId || !form.productImage)) {
                     setForm(prev => ({
                         ...prev,
@@ -270,7 +301,10 @@ function RequestOrderFormContent() {
 
                     // Auto-select the pre-filled product name
                     if (form.product) {
-                        const match = items.find((p: any) => p.name === form.product);
+                        const match = items.find((p: any) =>
+                            (form.productId && p.id === form.productId) ||
+                            (form.product && p.name === form.product)
+                        );
                         if (match) {
                             setForm(prev => ({
                                 ...prev,
