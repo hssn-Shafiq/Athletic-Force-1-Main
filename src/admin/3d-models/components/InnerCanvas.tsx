@@ -15,6 +15,7 @@ export function InnerCanvas({
   onRaycastDone,
   modelSceneRef,
   activeMaterial,
+  defaultColors,
   activeMeshName,
   ...sceneProps
 }: InnerCanvasProps) {
@@ -38,6 +39,7 @@ export function InnerCanvas({
     <ModelScene
       modelSceneRef={modelSceneRef}
       activeMaterial={activeMaterial}
+      defaultColors={defaultColors}
       activeMeshName={activeMeshName}
       {...sceneProps}
     />

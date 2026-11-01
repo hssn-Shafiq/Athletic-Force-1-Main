@@ -14,6 +14,7 @@ export default function OrdersListClient({ fixedType }: { fixedType?: 'direct' |
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState<'direct' | 'request'>(fixedType || 'direct');
+  const [sourceFilter, setSourceFilter] = useState<'all' | '3d-customizer' | 'custom-request'>('all');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -37,6 +38,7 @@ export default function OrdersListClient({ fixedType }: { fixedType?: 'direct' |
         limit: '15',
         status: statusFilter,
         type: typeFilter,
+        source: sourceFilter,
         search: search.trim()
       });
       const { data } = await apiClient.get(`/api/orders/admin/all?${query}`);
@@ -57,7 +59,7 @@ export default function OrdersListClient({ fixedType }: { fixedType?: 'direct' |
 
   useEffect(() => {
     fetchOrders();
-  }, [page, statusFilter, typeFilter]);
+  }, [page, statusFilter, typeFilter, sourceFilter]);
 
   // Debounced search
   useEffect(() => {
@@ -85,11 +87,13 @@ export default function OrdersListClient({ fixedType }: { fixedType?: 'direct' |
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black uppercase italic tracking-tighter text-slate-900">
-            {typeFilter === 'direct' ? 'Direct Orders' : 'Custom Requests'}
+            {sourceFilter === '3d-customizer' ? '3D Quote Orders' : typeFilter === 'direct' ? 'Direct Orders' : 'Custom Requests'}
           </h1>
           <p className="text-slate-500 font-bold text-sm mt-2 italic">
             {typeFilter === 'direct'
               ? 'Manage standardized inventory sales and shipping.'
+              : sourceFilter === '3d-customizer'
+                ? 'Review submitted 3D designs, previews, colors, and quote details.'
               : 'Analyze tactical custom requirements and issue specialized quotes.'}
           </p>
         </div>
@@ -151,6 +155,28 @@ export default function OrdersListClient({ fixedType }: { fixedType?: 'direct' |
             className={`px-8 py-3 rounded-xl text-xs font-black uppercase italic tracking-widest transition-all ${typeFilter === 'request' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
           >
             Custom Requests
+          </button>
+        </div>
+      )}
+      {typeFilter === 'request' && (
+        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl w-fit">
+          <button
+            onClick={() => { setSourceFilter('all'); setPage(1); }}
+            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${sourceFilter === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+          >
+            All Requests
+          </button>
+          <button
+            onClick={() => { setSourceFilter('3d-customizer'); setPage(1); }}
+            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${sourceFilter === '3d-customizer' ? 'bg-orange-500 text-white shadow-sm' : 'text-slate-400'}`}
+          >
+            3D Modal Orders
+          </button>
+          <button
+            onClick={() => { setSourceFilter('custom-request'); setPage(1); }}
+            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${sourceFilter === 'custom-request' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+          >
+            Form Requests
           </button>
         </div>
       )}
@@ -221,6 +247,9 @@ export default function OrdersListClient({ fixedType }: { fixedType?: 'direct' |
                   <tr key={order.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50 transition-colors group">
                     <td className="py-4 px-6 text-sm font-bold text-slate-900 border-r border-transparent group-hover:border-slate-200">
                       #{order.id.slice(-6).toUpperCase()}
+                      {order.source === '3d-customizer' && (
+                        <span className="block mt-1 text-[8px] font-black uppercase tracking-widest text-orange-600">3D Quote</span>
+                      )}
                     </td>
                     <td className="py-4 px-6">
                       <p className="text-sm font-black text-slate-900 truncate max-w-[200px]">

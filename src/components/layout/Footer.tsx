@@ -1,14 +1,14 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Facebook, Instagram, Youtube, Music2 } from "lucide-react";
+import { Facebook, Instagram, Youtube, Music2, Twitter } from "lucide-react";
 
 const aboutLinks = [
   { name: "About Us", href: "/about" },
   { name: "Careers", href: "#" },
   { name: "News", href: "/blog" },
   { name: "Feedback", href: "#" },
-  { name: "Contact", href: "#" },
+  { name: "Contact", href: "/contact" },
 ];
 const usefulLinks = [
   { name: "New Products", href: "/shop" },
@@ -22,7 +22,7 @@ const customerLinks = [
   { name: "My Account", href: "/account" },
   { name: "Track My Order", href: "#" },
   { name: "Return Policy", href: "/terms-and-conditions" },
-  { name: "Become Reseller", href: "#" },
+  { name: "Become Reseller", href: "/register-your-store" },
 ];
 
 export const Footer: React.FC = () => {
@@ -42,12 +42,12 @@ export const Footer: React.FC = () => {
 
           <div>
             <p className="text-xs uppercase tracking-wider text-white/60 mb-1">Call Us</p>
-            <p className="text-base font-medium">Shop 123-456</p>
+            <p className="text-base font-medium">(+1) 707-741-5737</p>
           </div>
 
           <div>
             <p className="text-xs uppercase tracking-wider text-white/60 mb-1">Email Us</p>
-            <p className="text-base font-medium">Support@example.com</p>
+            <p className="text-base font-medium">info@athleticforce1.com</p>
           </div>
 
           <div className="md:justify-self-end">
@@ -122,7 +122,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <div className="px-5 md:px-8 py-6 md:py-7 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <p className="text-xs text-white/60">Copyright (c) 2025 Reseller. All rights reserved.</p>
+          <p className="text-xs text-white/60">Copyright (c) 2026 Athletic Force 1. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-4 text-xs text-white/60">
             <Link href="/privacy-policy" className="hover:text-white/90">
               Privacy & Cookie Policy

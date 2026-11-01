@@ -154,15 +154,6 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
             <span>Get <span className="text-orange-500 font-bold">20% Off</span> on Every Customized Uniform</span>
           </div>
           <div className="hidden sm:flex items-center space-x-3 md:space-x-5 shrink-0">
-            {!isLoading && isAuthenticated && isVendorUser ? (
-              <Link
-                href="/vendor/dashboard"
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 hover:bg-[#FF7348] text-white hover:text-black font-black text-[10px] uppercase tracking-widest transition-all group"
-              >
-                <Store className="w-3 h-3 text-[#FF7348] group-hover:text-black" />
-                <span>Vendor Portal</span>
-              </Link>
-            ) : null}
             <button className="flex items-center uppercase tracking-widest font-bold text-[10px] whitespace-nowrap">
               USD <ChevronDown className="w-3 h-3 ml-1 text-slate-400" />
             </button>
@@ -205,7 +196,7 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
           </Link>
 
           {/* Search & Categories */}
-          <div className="flex-1 max-w-2xl hidden md:flex items-center gap-3 relative" ref={searchRef}>
+          <div className="flex-1 max-w-4xl hidden md:flex items-center gap-3 relative" ref={searchRef}>
             <button
               onClick={() => setIsMegaMenuOpen(!isMegaMenuOpen)}
               className={`px-8 py-3.5 flex items-center gap-3 font-bold text-sm rounded-full transition-all ${isMegaMenuOpen
@@ -234,13 +225,24 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchActive(true)}
-                className="w-full bg-transparent outline-none text-sm placeholder:text-slate-400 font-medium"
+                className="min-w-0 flex-1 bg-transparent outline-none text-sm placeholder:text-slate-400 font-medium"
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery("")} className="ml-2 p-1 hover:bg-slate-200 rounded-full transition-colors">
                   <X className="w-3.5 h-3.5 text-slate-400" />
                 </button>
               )}
+              <div className="hidden xl:flex items-center gap-4 ml-3 pl-4 border-l border-slate-200 shrink-0">
+                <Link href="/" className="text-[9px] font-black uppercase tracking-wider text-slate-600 hover:text-orange-600 transition-colors">
+                  Home
+                </Link>
+                <Link href="/request-order-form" className="text-[9px] font-black uppercase tracking-wider text-slate-600 hover:text-orange-600 transition-colors whitespace-nowrap">
+                  Custom Request Form
+                </Link>
+                <Link href="/register-your-store" className="text-[9px] font-black uppercase tracking-wider text-slate-600 hover:text-orange-600 transition-colors whitespace-nowrap">
+                  Brand Ambassador
+                </Link>
+              </div>
             </div>
 
             <AnimatePresence>
@@ -373,25 +375,6 @@ export const Header: React.FC<HeaderProps> = ({ onHomeClick }) => {
 
           {/* Action Icons */}
           <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-6 lg:space-x-8">
-            {!isLoading && isAuthenticated && isVendorUser ? (
-              <Link
-                href="/vendor/dashboard"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2.5 rounded-full bg-slate-950 text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#FF7348] hover:text-white transition-all shadow-sm border border-slate-800 hover:border-[#FF7348] group"
-                title="Go to Vendor Dashboard"
-              >
-                <Store className="w-3.5 h-3.5 text-[#FF7348] group-hover:scale-110 transition-transform" />
-                <span className="hidden sm:inline">Vendor Dashboard</span>
-                <span className="sm:hidden">Vendor</span>
-              </Link>
-            ) : null}
-            {!isLoading && isAuthenticated && isAdminUser ? (
-              <Link
-                href="/admin"
-                className="hidden md:inline-flex items-center px-4 py-2.5 rounded-full bg-orange-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-orange-500 transition-colors"
-              >
-                Admin Dashboard
-              </Link>
-            ) : null}
             <button
               id="af1-header-cart-trigger"
               onClick={() => setIsCartOpen(true)}

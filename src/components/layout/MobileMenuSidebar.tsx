@@ -4,8 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ChevronRight, ChevronDown, Store, LayoutDashboard } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { X, ChevronRight, ChevronDown } from 'lucide-react';
 
 interface MobileMenuSidebarProps {
   isOpen: boolean;
@@ -15,18 +14,6 @@ interface MobileMenuSidebarProps {
 
 export const MobileMenuSidebar: React.FC<MobileMenuSidebarProps> = ({ isOpen, onClose, hierarchy }) => {
   const [openSection, setOpenSection] = useState<string | null>(null);
-  const { user, isAuthenticated, isLoading } = useAuth();
-
-  const isAdminUser = Boolean(
-    user?.roles?.some((role) => ['superadmin', 'manager', 'sales_admin', 'editor', 'seo_specialist'].includes(role) || role === 'admin')
-  );
-
-  const isVendorUser = Boolean(
-    user?.roles?.some((r) => r.toLowerCase().includes('vendor')) ||
-    Boolean(user?.vendorStoreId) ||
-    user?.roles?.includes('superadmin')
-  );
-
   useEffect(() => {
     if (!isOpen) return;
 
@@ -78,52 +65,6 @@ export const MobileMenuSidebar: React.FC<MobileMenuSidebarProps> = ({ isOpen, on
                 </button>
               </div>
 
-              {/* Vendor & Admin Portals (Mobile Quick Access) */}
-              {isAuthenticated && !isLoading && (isVendorUser || isAdminUser) && (
-                <div className="p-3 bg-slate-50 border-b border-slate-100 space-y-2">
-                  {isVendorUser && (
-                    <Link
-                      href="/vendor/dashboard"
-                      onClick={onClose}
-                      className="flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white border border-slate-800 shadow-md group hover:border-[#FF7348] transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-[#FF7348]/20 flex items-center justify-center text-[#FF7348] group-hover:scale-110 transition-transform">
-                          <Store className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-black uppercase italic tracking-wider text-white">Vendor Dashboard</span>
-                            <span className="text-[8px] font-black uppercase tracking-widest bg-[#FF7348] text-black px-1.5 py-0.5 rounded">Store</span>
-                          </div>
-                          <p className="text-[10px] font-medium text-slate-400 mt-0.5">Manage products & orders</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#FF7348] group-hover:translate-x-1 transition-all" />
-                    </Link>
-                  )}
-
-                  {isAdminUser && (
-                    <Link
-                      href="/admin"
-                      onClick={onClose}
-                      className="flex items-center justify-between p-3 rounded-2xl bg-orange-600 text-white shadow-md group hover:bg-orange-700 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-white">
-                          <LayoutDashboard className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <span className="text-xs font-black uppercase italic tracking-wider text-white">Admin Dashboard</span>
-                          <p className="text-[10px] font-medium text-orange-100">Site control panel</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-orange-200 group-hover:translate-x-1 transition-all" />
-                    </Link>
-                  )}
-                </div>
-              )}
-
               <div className="divide-y divide-slate-100 px-2 py-3">
                 <Link
                   href="/"
@@ -131,7 +72,7 @@ export const MobileMenuSidebar: React.FC<MobileMenuSidebarProps> = ({ isOpen, on
                   className="flex items-center gap-3 px-4 py-3.5 text-sm font-black uppercase italic tracking-widest text-slate-900 hover:bg-slate-50 rounded-2xl transition-all"
                 >
                   <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-                  Home Base
+                  Home
                 </Link>
 
               {hierarchy.map((category) => {
@@ -204,7 +145,15 @@ export const MobileMenuSidebar: React.FC<MobileMenuSidebarProps> = ({ isOpen, on
                   className="flex items-center gap-3 px-4 py-4 text-sm font-black uppercase italic tracking-widest text-orange-600 bg-orange-50 rounded-2xl transition-all"
                 >
                   <div className="w-1.5 h-1.5 rounded-full bg-orange-600" />
-                  Custom Uniform Request
+                  Custom Request Form
+                </Link>
+                <Link
+                  href="/team"
+                  onClick={onClose}
+                  className="flex items-center gap-3 px-4 py-4 text-sm font-black uppercase italic tracking-widest text-slate-900 hover:bg-slate-50 rounded-2xl transition-all"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-900" />
+                  Brand Ambassador
                 </Link>
               </div>
             </div>

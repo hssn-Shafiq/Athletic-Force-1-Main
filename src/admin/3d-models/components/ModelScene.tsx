@@ -13,6 +13,7 @@ export interface SceneProps {
   zones: PrintZone[];
   logoMap: Record<string, HTMLImageElement>;
   activeMaterial: string | null;
+  defaultColors: Record<string, string>;
   activeMeshName?: string | null;
   activeZoneId: string | null;
   isPickingMaterial: boolean;
@@ -43,6 +44,7 @@ export function ModelScene({
   zones,
   logoMap,
   activeMaterial,
+  defaultColors,
   activeMeshName,
   activeZoneId,
   isPickingMaterial,
@@ -183,6 +185,23 @@ export function ModelScene({
       onMaterialsFound(modelIndex.materialsList);
     }
   }, [modelIndex, onMaterialsFound]);
+
+  useEffect(() => {
+    const colors = new Map(
+      Object.entries(defaultColors).map(([name, color]) => [name.trim().toLowerCase(), color])
+    );
+    for (const entry of modelIndex.meshEntries) {
+      for (const material of entry.standardMats) {
+        const key = (material.name || "").trim().toLowerCase();
+        const color = colors.get(key);
+        if (color) {
+          material.color.set(color);
+          material.needsUpdate = true;
+        }
+      }
+    }
+    invalidate();
+  }, [defaultColors, modelIndex, invalidate]);
 
   // Identify all 3D meshes belonging to the active variation/part
   const activeMeshes = useMemo(() => {

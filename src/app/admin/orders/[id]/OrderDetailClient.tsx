@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Save, Truck, Package, Calendar, Loader2, FileText, Trophy, Eye, Download } from 'lucide-react';
+import { ChevronLeft, Save, Truck, Package, Calendar, Loader2, FileText, Trophy, Eye, Download, X } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'react-toastify';
@@ -19,6 +19,7 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
   const [carrier, setCarrier] = useState('');
   const [trackingUrl, setTrackingUrl] = useState('');
   const [notes, setNotes] = useState('');
+  const [selectedPreview, setSelectedPreview] = useState<{ view: string; url: string } | null>(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -61,6 +62,25 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
       toast.error('Failed to update order');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const downloadPreview = async (preview: { view: string; url: string }) => {
+    try {
+      const response = await fetch(preview.url);
+      if (!response.ok) throw new Error('Preview download failed');
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `3d-${preview.view}-preview.${blob.type.includes('png') ? 'png' : 'jpg'}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error('Failed to download 3D preview', error);
+      toast.error('Unable to download this preview.');
     }
   };
 
@@ -151,7 +171,89 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
               <h3 className="text-2xl font-black uppercase tracking-tighter italic text-orange-500 mb-8 flex items-center gap-3">
                 <FileText className="w-6 h-6" /> Customization Dossier
               </h3>
+              {order.source === '3d-customizer' && order.customization3d && (
+                <div className="mb-8 space-y-5 relative z-10">
+                  <div className="flex flex-wrap gap-3 text-xs font-black uppercase tracking-widest">
+                    <span className="rounded-full bg-orange-500/15 px-4 py-2 text-orange-300">3D Customizer</span>
+                    <span className="rounded-full bg-white/10 px-4 py-2 text-slate-300">{order.customization3d.modelName}</span>
+                    <span className="rounded-full bg-white/10 px-4 py-2 text-slate-300">Qty: {order.customization3d.quantity}</span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {(order.customization3d.previewImages || []).map((preview: any) => (
+                      <div key={preview.view} className="rounded-2xl bg-white p-2">
+                        <button type="button" onClick={() => setSelectedPreview(preview)} className="group block w-full cursor-zoom-in" aria-label={`Open ${preview.view} preview`}>
+                          <img src={preview.url} alt={`${preview.view} 3D preview`} className="h-36 w-full rounded-xl object-contain" />
+                          <p className="pt-2 text-center text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-orange-600">{preview.view}</p>
+                        </button>
+                        <button type="button" onClick={() => downloadPreview(preview)} className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-slate-900 py-2 text-[9px] font-black uppercase tracking-widest text-white hover:bg-orange-600">
+                          <Download className="h-3 w-3" /> Download
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
+                    <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Garment Colors</p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="text-[9px] uppercase tracking-widest text-slate-500">
+                          <tr><th className="pb-2">Part</th><th className="pb-2">Color</th><th className="pb-2">Code</th></tr>
+                        </thead>
+                        <tbody>
+                          {(order.customization3d.colorDetails || Object.entries(order.customization3d.colors || {}).map(([part, hex]: [string, any]) => ({ part, name: hex, hex }))).map((color: any) => (
+                            <tr key={`${color.part}-${color.hex}`} className="border-t border-white/10">
+                              <td className="py-2 font-bold text-slate-300">{color.part}</td>
+                              <td className="py-2 font-bold text-white">
+                                <span className="mr-2 inline-block h-4 w-4 rounded-full border border-white/30 align-middle" style={{ backgroundColor: color.hex }} />
+                                {color.name}
+                              </td>
+                              <td className="py-2 font-mono text-slate-400">{color.hex}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
+                    <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Zone Details</p>
+                    <div className="space-y-3">
+                      {Object.entries(order.customization3d.zones || {}).map(([zoneId, zone]: [string, any]) => (
+                        <div key={zoneId} className="border-b border-white/10 pb-3 last:border-0 last:pb-0">
+                          <p className="text-sm font-black text-white">{zone.label || zoneId}</p>
+                          <p className="mt-1 text-xs text-slate-300">
+                            {[zone.customText && `Text: ${zone.customText}`, zone.textColor && `Text color: ${zone.textColor}`, zone.fontFamily && `Font: ${zone.fontFamily}`, zone.fontSize && `Size: ${zone.fontSize}`, zone.align && `Align: ${zone.align}`, zone.logoUrl && 'Logo uploaded'].filter(Boolean).join(' · ') || 'No text or logo'}
+                          </p>
+                          {(zone.customLogoTransform || zone.width || zone.height) && (
+                            <p className="mt-1 text-[11px] text-slate-400">
+                              {zone.width && zone.height ? `Area: ${zone.width} × ${zone.height}` : ''}
+                              {zone.customLogoTransform?.scale ? ` · Scale: ${zone.customLogoTransform.scale.x ?? '-'} / ${zone.customLogoTransform.scale.y ?? '-'}` : ''}
+                              {zone.customLogoTransform?.rotation ? ` · Rotation: ${zone.customLogoTransform.rotation}°` : ''}
+                            </p>
+                          )}
+                          {zone.logoUrl && <a className="mt-1 inline-block text-xs font-bold text-orange-400 underline" href={zone.logoUrl} target="_blank" rel="noreferrer">Open logo</a>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {(order.teamName || order.notes) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {order.teamName && (
+                        <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Team / Organization</p>
+                          <p className="mt-2 text-sm font-bold text-white">{order.teamName}</p>
+                        </div>
+                      )}
+                      {order.notes && (
+                        <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Additional Notes</p>
+                          <p className="mt-2 text-sm text-slate-300 whitespace-pre-wrap">{order.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
+              {order.source !== '3d-customizer' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
                 <div className="space-y-6">
                   <div>
@@ -234,6 +336,7 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
                   </div>
                 </div>
               </div>
+              )}
             </div>
           )}
 
@@ -360,6 +463,23 @@ export default function OrderDetailClient({ orderId }: { orderId: string }) {
           </div>
 
         </div>
+        {selectedPreview && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={`${selectedPreview.view} preview`}>
+            <button type="button" onClick={() => setSelectedPreview(null)} className="absolute inset-0 cursor-default" aria-label="Close preview" />
+            <div className="relative z-10 max-h-[90vh] max-w-4xl rounded-3xl bg-white p-4 shadow-2xl">
+              <button type="button" onClick={() => setSelectedPreview(null)} className="absolute right-4 top-4 rounded-full bg-slate-900 p-2 text-white hover:bg-orange-600" aria-label="Close preview">
+                <X className="h-5 w-5" />
+              </button>
+              <img src={selectedPreview.url} alt={`${selectedPreview.view} 3D preview enlarged`} className="max-h-[78vh] max-w-full rounded-2xl object-contain" />
+              <div className="flex items-center justify-between gap-4 px-2 pt-3">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-600">{selectedPreview.view} preview</p>
+                <button type="button" onClick={() => downloadPreview(selectedPreview)} className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white hover:bg-orange-600">
+                  <Download className="h-3.5 w-3.5" /> Download image
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -12,6 +12,9 @@ const CORE_PAGES = [
   { key: "shop", name: "Shop Page", path: "/shop" },
   { key: "blog", name: "Blog Section", path: "/blog" },
   { key: "contact", name: "Contact Page", path: "/contact" },
+  { key: "about", name: "About Page", path: "/about" },
+  { key: "privacy-policy", name: "Privacy Policy", path: "/privacy-policy" },
+  { key: "terms-and-conditions", name: "Terms & Conditions", path: "/terms-and-conditions" },
 ];
 
 export default function AdminSEOPage() {

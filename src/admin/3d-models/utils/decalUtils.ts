@@ -479,19 +479,14 @@ export function raycastRect(
   const height = Math.max(0.01, worldH / avgScale);
   const depth = Math.max(width, height) * 1.5;
 
-  // Orientation facing outward along normal
-  const dummy = new THREE.Object3D();
-  dummy.position.copy(localPos);
-  dummy.lookAt(localPos.clone().add(localNormal));
-  dummy.rotateZ(Math.PI);
-  dummy.rotateY(Math.PI);
-  const rot = dummy.rotation;
+  // Match Drei's decal texture orientation so text renders readable on the surface.
+  const rot = computeDecalRotationFromNormal([localNormal.x, localNormal.y, localNormal.z], 0);
 
   return {
     targetMeshName: targetMesh.name || "",
     materialName: detectedMaterial,
     position: [localPos.x, localPos.y, localPos.z],
-    rotation: [rot.x, rot.y, rot.z],
+    rotation: rot,
     width,
     height,
     depth,
@@ -552,4 +547,3 @@ export function getContentAspect(zone: PrintZone, logoImg?: HTMLImageElement | n
   }
   return 1.4;
 }
-

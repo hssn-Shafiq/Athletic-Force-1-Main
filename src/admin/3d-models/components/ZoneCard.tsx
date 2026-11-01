@@ -58,6 +58,8 @@ export function ZoneCard({
   }, [isActive]);
 
   const rotZ = Math.round(zone.rotationZ || 0);
+  const widthMax = Math.max(3, Math.ceil(zone.width * 100) / 100);
+  const heightMax = Math.max(3, Math.ceil(zone.height * 100) / 100);
 
   return (
     <div
@@ -179,8 +181,6 @@ export function ZoneCard({
                         maxCharacters: p.maxCharacters,
                         allowedInputType: p.allowedInputType,
                         defaultText: p.defaultText,
-                        width: p.w,
-                        height: p.h,
                         fontFamily: p.fontFamily,
                         fontSize: p.fontSize,
                       });
@@ -505,7 +505,7 @@ export function ZoneCard({
                 <input
                   type="range"
                   min="0.02"
-                  max="1.5"
+                  max={widthMax}
                   step="0.01"
                   value={zone.width}
                   onChange={(e) => onSetDimensions(parseFloat(e.target.value), undefined, lockAspect)}
@@ -520,7 +520,7 @@ export function ZoneCard({
                 <input
                   type="range"
                   min="0.02"
-                  max="1.5"
+                  max={heightMax}
                   step="0.01"
                   value={zone.height}
                   onChange={(e) => onSetDimensions(undefined, parseFloat(e.target.value), lockAspect)}

@@ -264,9 +264,11 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
       failedPayments: number;
       quotes: number;
       delays: number;
+      contacts: number;
     };
     recentOrders: any[];
-  }>({ count: 0, recentOrders: [] });
+    recentContactSubmissions: any[];
+  }>({ count: 0, recentOrders: [], recentContactSubmissions: [] });
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -288,7 +290,8 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
         setNotifications({
           count: data.pendingCount,
           details: data.details,
-          recentOrders: data.recentOrders || []
+          recentOrders: data.recentOrders || [],
+          recentContactSubmissions: data.recentContactSubmissions || []
         });
       }
     } catch (e) {
@@ -444,6 +447,10 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                 { label: "Request Orders", href: "/admin/orders/requests" }
               ]}
             />
+          )}
+
+          {canSeeOrders && (
+            <SidebarItem icon={Mail} label="Contact Entries" href="/admin/contact-submissions" isCollapsed={isSidebarCollapsed} />
           )}
 
           {canSeeJournal && (
@@ -666,6 +673,20 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('quotes'); }}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-indigo-50 rounded-md text-indigo-300 hover:text-indigo-600 transition-all opacity-0 group-hover:opacity-100"
                               >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                          {notifications.details.contacts > 0 && !dismissedKeys.has('contacts') && (
+                            <div className="group relative">
+                              <Link href="/admin/contact-submissions" onClick={() => setIsDropdownOpen(false)} className="flex items-center justify-between p-2 bg-white rounded-xl border border-orange-100 shadow-sm hover:scale-[1.02] transition-transform pr-10">
+                                <div className="flex items-center gap-3">
+                                  <Mail className="w-3.5 h-3.5 text-orange-600" />
+                                  <span className="text-[10px] font-black uppercase tracking-tighter text-orange-600">Incoming: {notifications.details.contacts} Contact Messages</span>
+                                </div>
+                                <ChevronDown className="-rotate-90 w-3 h-3 text-orange-400" />
+                              </Link>
+                              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissItem('contacts'); }} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-orange-50 rounded-md text-orange-300 hover:text-orange-600 transition-all opacity-0 group-hover:opacity-100">
                                 <X className="w-3 h-3" />
                               </button>
                             </div>
