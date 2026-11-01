@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useEffect, useState, use } from "react";
+import React, { useCallback, useEffect, useState, use } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
-  ShoppingBag,
   Sparkles,
   Layers,
   Box,
@@ -19,8 +18,9 @@ import {
   Info,
 } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
-import { useCart } from "@/contexts/CartContext";
 import { Model3DConfig, LogoTransform } from "@/components/3d/SmartCustomizer";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "react-toastify";
 
 // Dynamically import SmartCustomizer with SSR disabled for optimal 3D Three.js performance
 const SmartCustomizer = dynamic(
@@ -41,16 +41,43 @@ export default function CanvasEditorPage({ params }: PageProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const productIdFromQuery = searchParams.get("productId");
+  const { user } = useAuth();
 
   const [model, setModel] = useState<Model3DConfig | null>(null);
   const [productData, setProductData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [designReady, setDesignReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [initialDesign, setInitialDesign] = useState<any>(null);
   const [savedData, setSavedData] = useState<any>(null);
   const [showSavedModal, setShowSavedModal] = useState(false);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isSubmittingQuote, setIsSubmittingQuote] = useState(false);
+  const [quoteSubmitted, setQuoteSubmitted] = useState(false);
+  const [designSavedNotice, setDesignSavedNotice] = useState(false);
+  const [quoteForm, setQuoteForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    teamName: "",
+    address: "",
+    notes: "",
+  });
+  const quoteInputClass = "rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-xs text-white placeholder:text-white/40 outline-none focus:border-orange-400";
 
-  const { addItem } = useCart();
+  useEffect(() => {
+    if (!user) return;
+    const nameParts = user.name.trim().split(/\s+/);
+    const defaultAddress = user.savedAddresses?.find((address) => address.isDefault) || user.savedAddresses?.[0];
+    setQuoteForm((current) => ({
+      ...current,
+      firstName: current.firstName || nameParts[0] || "",
+      lastName: current.lastName || nameParts.slice(1).join(" ") || "",
+      email: current.email || user.email || "",
+      phone: current.phone || user.phone || defaultAddress?.phone || "",
+      address: current.address || [defaultAddress?.address1, defaultAddress?.city, defaultAddress?.state].filter(Boolean).join(", "),
+    }));
+  }, [user]);
 
   useEffect(() => {
     let isMounted = true;
@@ -70,6 +97,7 @@ export default function CanvasEditorPage({ params }: PageProps) {
             modelUrl: m.modelUrl,
             thumbnailUrl: m.thumbnailUrl,
             printZones: m.printZones || [],
+            defaultColors: m.defaultColors || {},
           });
 
           // If model has populated product info
@@ -109,8 +137,84 @@ export default function CanvasEditorPage({ params }: PageProps) {
     };
   }, [modelId, productIdFromQuery]);
 
+  useEffect(() => {
+    if (!model) return;
+    let active = true;
+    const loadSavedDesign = async () => {
+      let localDesign: any = null;
+      try {
+        const local = localStorage.getItem(`af1_custom_design_${modelId}`);
+        localDesign = local ? JSON.parse(local) : null;
+      } catch {
+        localDesign = null;
+      }
+
+      if (localDesign && active) setInitialDesign(localDesign);
+      if (user) {
+        try {
+          const { data } = await apiClient.get(`/api/saved-designs/${modelId}`);
+          if (active && data.design) {
+            const localZones = localDesign?.zones || {};
+            const mergedZones = Object.fromEntries(
+              Object.entries(data.design.zones || {}).map(([zoneId, zone]: [string, any]) => [
+                zoneId,
+                { ...zone, logoDataUrl: localZones[zoneId]?.logoDataUrl },
+              ])
+            );
+            setInitialDesign({ ...data.design, zones: mergedZones });
+          }
+        } catch (err) {
+          console.warn("Saved 3D design could not be loaded:", err);
+        }
+      }
+      if (active) setDesignReady(true);
+    };
+    void loadSavedDesign();
+    return () => {
+      active = false;
+    };
+  }, [model, modelId, user]);
+
+  const handleDraftChange = useCallback((data: any) => {
+    setInitialDesign(data);
+    try {
+      localStorage.setItem(`af1_custom_design_${modelId}`, JSON.stringify(data));
+    } catch (err) {
+      console.warn("Local 3D design recovery save failed:", err);
+    }
+  }, [modelId]);
+
+  useEffect(() => {
+    if (!user || !designReady || !initialDesign) return;
+    const timer = window.setTimeout(async () => {
+      try {
+        const serverZones = Object.fromEntries(
+          Object.entries(initialDesign.zones || {}).map(([zoneId, zone]: [string, any]) => {
+            const { logoDataUrl, ...serverZone } = zone;
+            return [zoneId, serverZone];
+          })
+        );
+        await apiClient.put(`/api/saved-designs/${modelId}`, {
+          ...initialDesign,
+          zones: serverZones,
+          modelId,
+          productId: productData?.id || productData?._id || undefined,
+          name: `${model?.name || "3D"} design`,
+        });
+        toast.success("Design autosaved.");
+      } catch (err) {
+        console.warn("Server 3D design autosave failed:", err);
+        toast.error("Autosave failed. Your latest design remains saved on this device.");
+      }
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [designReady, initialDesign, model, modelId, productData, user]);
+
   const handleCustomizationSave = (data: {
     colors: Record<string, string>;
+    colorDetails: Array<{ name: string; hex: string; part: string }>;
+    quantity: number;
+    previewImages: Array<{ view: string; dataUrl: string }>;
     zones: Record<
       string,
       {
@@ -135,32 +239,87 @@ export default function CanvasEditorPage({ params }: PageProps) {
     setShowSavedModal(true);
   };
 
-  const handleDeployToCart = async () => {
-    if (!productData && !model) return;
-    setIsAddingToCart(true);
-
+  const handleSubmit3DQuote = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!savedData || !model) return;
+    setIsSubmittingQuote(true);
     try {
-      await addItem({
-        productId: productData?.id || productData?._id || modelId,
-        variantSku: productData?.slug ? `${productData.slug.toUpperCase()}-3D` : "AF1-3D-CUSTOM",
-        slug: productData?.slug || "custom-product",
-        name: `${productData?.name || model?.name || "Apparel"} (3D Customized)`,
-        imageUrl: model?.thumbnailUrl || productData?.mainImageUrl || "",
-        price: Number(productData?.salePrice || productData?.basePrice || productData?.regularPrice || 0),
-        quantity: 1,
+      const formData = new FormData();
+      Object.entries(quoteForm).forEach(([key, value]) => formData.append(key, value));
+      formData.append("productId", productData?.id || productData?._id || "");
+      formData.append("productImage", productData?.mainImageUrl || model.thumbnailUrl || "");
+      const zones = Object.fromEntries(
+        Object.entries(savedData.zones || {}).map(([zoneId, zone]: [string, any]) => {
+          if (zone.customImageFile) formData.append(`logo_${zoneId}`, zone.customImageFile);
+          const { customImageFile, logoDataUrl, ...serializableZone } = zone;
+          return [zoneId, serializableZone];
+        })
+      );
+      formData.append("design", JSON.stringify({
+        modelId,
+        modelName: model.name,
+        modelUrl: model.modelUrl,
+        quantity: savedData.quantity,
+        colors: savedData.colors,
+        colorDetails: savedData.colorDetails,
+        zones,
+      }));
+      for (const preview of savedData.previewImages || []) {
+        const response = await fetch(preview.dataUrl);
+        formData.append(`preview_${preview.view}`, await response.blob(), `3d-preview-${preview.view}.png`);
+      }
+      const { data } = await apiClient.post("/api/orders/3d-quote", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-
-      setShowSavedModal(false);
-      router.push("/cart");
+      if (!data.ok) throw new Error(data.message || "Quote request failed");
+      router.push(`/thank-you?orderId=${encodeURIComponent(data.orderId)}&type=3d-quote`);
     } catch (err) {
-      console.error("Failed adding custom 3D item to cart", err);
+      console.error("Failed submitting custom 3D quote", err);
     } finally {
-      setIsAddingToCart(false);
+      setIsSubmittingQuote(false);
     }
   };
 
+  const handleSaveDesignAndExit = async () => {
+    let serverSaveSucceeded = !user;
+    if (user && initialDesign) {
+      try {
+        const serverZones = Object.fromEntries(
+          Object.entries(initialDesign.zones || {}).map(([zoneId, zone]: [string, any]) => {
+            const { logoDataUrl, ...serverZone } = zone;
+            return [zoneId, serverZone];
+          })
+        );
+        await apiClient.put(`/api/saved-designs/${modelId}`, {
+          ...initialDesign,
+          zones: serverZones,
+          modelId,
+          productId: productData?.id || productData?._id || undefined,
+          name: `${model?.name || "3D"} design`,
+        });
+        serverSaveSucceeded = true;
+        toast.success("Design saved successfully.");
+      } catch (err) {
+        console.warn("Saved design could not be synced before leaving:", err);
+        toast.error("Could not sync your design to your account. It remains saved on this device.");
+      }
+    }
+
+    setShowSavedModal(false);
+    setDesignSavedNotice(serverSaveSucceeded || Boolean(initialDesign));
+    if (!user && initialDesign) {
+      toast.success("Design saved on this device.");
+    }
+  };
+
+  useEffect(() => {
+    if (!designSavedNotice) return;
+    const timer = window.setTimeout(() => setDesignSavedNotice(false), 5000);
+    return () => window.clearTimeout(timer);
+  }, [designSavedNotice]);
+
   // ── SKELETON LOADING STATE ──────────────────────────────────────────────
-  if (loading) {
+  if (loading || !designReady) {
     return <CustomizerSkeletonLoader text="Loading 3D Model Configuration & Tactical Zones..." />;
   }
 
@@ -168,6 +327,19 @@ export default function CanvasEditorPage({ params }: PageProps) {
   if (error || !model) {
     return (
       <div className="min-h-screen bg-[#07090e] text-white flex flex-col">
+        {designSavedNotice && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="fixed right-5 top-5 z-[80] flex max-w-sm items-start gap-3 rounded-2xl border border-emerald-400/40 bg-emerald-950/95 px-5 py-4 shadow-2xl shadow-emerald-950/40"
+          >
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
+            <div>
+              <p className="text-sm font-black text-white">Design saved successfully</p>
+              <p className="mt-1 text-xs text-emerald-100/70">Your 3D design is ready to reopen and continue later.</p>
+            </div>
+          </div>
+        )}
         {/* Simple Top Navigation */}
         <header className="h-16 border-b border-white/10 px-6 flex items-center justify-between bg-[#0e1017]">
           <Link
@@ -231,9 +403,16 @@ export default function CanvasEditorPage({ params }: PageProps) {
 
   // ── MAIN 3D CANVAS STUDIO ────────────────────────────────────────────────
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#07090e] text-white flex flex-col select-none">
+    <div className="af1-editor-page h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 flex flex-col select-none">
+      <style>{`
+        .af1-editor-page [class*="text-white"] { color: #334155 !important; }
+        .af1-editor-page [class*="border-white"] { border-color: #e2e8f0 !important; }
+        .af1-editor-page [class*="bg-white/"] { background-color: #ffffff !important; }
+        .af1-editor-page [class*="bg-[#0"] { background-color: #ffffff !important; }
+        .af1-editor-page [class*="bg-black/"] { background-color: #f1f5f9 !important; }
+      `}</style>
       {/* ── TOP STUDIO NAVIGATION BAR ── */}
-      <header className="h-16 flex-shrink-0 border-b border-white/10 px-4 sm:px-6 flex items-center justify-between bg-[#0B0D13]/90 backdrop-blur-md z-30">
+      <header className="h-16 flex-shrink-0 border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between bg-white/95 backdrop-blur-md z-30">
         {/* Left: Back Link & Product Title */}
         <div className="flex items-center gap-3 sm:gap-4 min-w-0">
           {productData?.slug ? (
@@ -313,6 +492,8 @@ export default function CanvasEditorPage({ params }: PageProps) {
       <main className="flex-1 relative overflow-hidden min-h-0">
         <SmartCustomizer
           modelConfig={model}
+          initialDesign={initialDesign}
+          onDraftChange={handleDraftChange}
           className="w-full h-full min-h-0"
           onSave={handleCustomizationSave}
           onClose={() => {
@@ -327,56 +508,74 @@ export default function CanvasEditorPage({ params }: PageProps) {
 
       {/* ── SAVED CUSTOMIZATION MODAL CONFIRMATION ── */}
       {showSavedModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-[#0f111a] border border-white/20 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto shadow-inner">
-              <CheckCircle2 className="w-8 h-8" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+          <div className="bg-[#0f111a] border border-white/20 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5">
+            <div className="text-center">
+              <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-400" />
+              <h3 className="mt-3 text-xl font-black uppercase italic text-white">Request a 3D Quote</h3>
+              <p className="mt-2 text-xs text-white/60">Your design, quantity, colors, and preview will be sent to our team.</p>
             </div>
-
-            <div className="space-y-1.5">
-              <h3 className="text-xl font-black uppercase italic tracking-wide text-white">
-                Customization Saved!
-              </h3>
-              <p className="text-xs text-white/60 leading-relaxed">
-                Your custom graphics, logos, text details, and fabric colors have been bundled and attached to{" "}
-                <span className="text-white font-bold">{productData?.name || model.name}</span>.
+            <div className="rounded-2xl border border-orange-400/30 bg-orange-500/10 p-4 text-left">
+              <p className="text-sm font-black text-orange-300">Design saved automatically</p>
+              <p className="mt-1 text-xs leading-relaxed text-white/60">
+                You can save this design for later without submitting an order or quote request.
               </p>
-            </div>
-
-            <div className="p-3.5 bg-white/5 rounded-2xl border border-white/10 text-left text-xs space-y-1.5">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-white/40 uppercase font-bold tracking-wider">Zones Customized:</span>
-                <span className="text-white font-black">
-                  {Object.keys(savedData?.zones || {}).length} zones
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-white/40 uppercase font-bold tracking-wider">Garment Colors:</span>
-                <span className="text-white font-black">
-                  {Object.keys(savedData?.colors || {}).length} parts modified
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2.5 pt-2">
               <button
                 type="button"
-                onClick={handleDeployToCart}
-                disabled={isAddingToCart}
-                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#FF7348] to-[#ff8c69] hover:from-[#ff8660] hover:to-[#ffa082] text-black font-black uppercase tracking-wider text-xs shadow-xl shadow-orange-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                onClick={handleSaveDesignAndExit}
+                className="mt-3 w-full rounded-xl border border-orange-400/50 px-4 py-3 text-xs font-black uppercase tracking-widest text-orange-300 hover:bg-orange-500/20"
               >
-                <ShoppingBag className="w-4 h-4 text-black" />
-                <span>{isAddingToCart ? "Deploying to Cart..." : "Deploy Custom Order to Cart"}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowSavedModal(false)}
-                className="w-full py-3 px-6 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white font-black uppercase tracking-wider text-xs transition-all border border-white/10 cursor-pointer"
-              >
-                Continue Editing
+                Save design
               </button>
             </div>
+            {quoteSubmitted ? (
+              <div className="rounded-2xl bg-emerald-500/10 border border-emerald-400/30 p-4 text-emerald-300 text-sm font-bold">
+                Quote request submitted successfully. Check your email for the design summary.
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit3DQuote} className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="space-y-1.5 text-xs font-bold text-white/80">
+                    First name
+                    <input required value={quoteForm.firstName} onChange={(event) => setQuoteForm((current) => ({ ...current, firstName: event.target.value }))} placeholder="Enter your first name" className={`${quoteInputClass} w-full`} />
+                  </label>
+                  <label className="space-y-1.5 text-xs font-bold text-white/80">
+                    Last name
+                    <input required value={quoteForm.lastName} onChange={(event) => setQuoteForm((current) => ({ ...current, lastName: event.target.value }))} placeholder="Enter your last name" className={`${quoteInputClass} w-full`} />
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="space-y-1.5 text-xs font-bold text-white/80">
+                    Email address
+                    <input required type="email" value={quoteForm.email} onChange={(event) => setQuoteForm((current) => ({ ...current, email: event.target.value }))} placeholder="you@example.com" className={`${quoteInputClass} w-full`} />
+                  </label>
+                  <label className="space-y-1.5 text-xs font-bold text-white/80">
+                    Phone number
+                    <input value={quoteForm.phone} onChange={(event) => setQuoteForm((current) => ({ ...current, phone: event.target.value }))} placeholder="(555) 123-4567" className={`${quoteInputClass} w-full`} />
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="space-y-1.5 text-xs font-bold text-white/80">
+                    Delivery address
+                    <input required value={quoteForm.address} onChange={(event) => setQuoteForm((current) => ({ ...current, address: event.target.value }))} placeholder="Street, city, state" className={`${quoteInputClass} w-full`} />
+                  </label>
+                  <label className="space-y-1.5 text-xs font-bold text-white/80">
+                    Team or organization
+                    <input value={quoteForm.teamName} onChange={(event) => setQuoteForm((current) => ({ ...current, teamName: event.target.value }))} placeholder="Optional" className={`${quoteInputClass} w-full`} />
+                  </label>
+                </div>
+                <label className="space-y-1.5 text-xs font-bold text-white/80">
+                  Additional notes
+                  <textarea value={quoteForm.notes} onChange={(event) => setQuoteForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Tell us anything else about your order" rows={2} className={`${quoteInputClass} w-full`} />
+                </label>
+                <button type="submit" disabled={isSubmittingQuote} className="w-full py-4 rounded-2xl bg-[#FF7348] text-black font-black uppercase text-xs disabled:opacity-50">
+                  {isSubmittingQuote ? "Submitting quote request..." : "Request a quote"}
+                </button>
+              </form>
+            )}
+            <button type="button" onClick={() => setShowSavedModal(false)} className="w-full py-3 rounded-2xl bg-white/5 text-white/70 font-black uppercase text-xs">
+              Continue Editing
+            </button>
           </div>
         </div>
       )}

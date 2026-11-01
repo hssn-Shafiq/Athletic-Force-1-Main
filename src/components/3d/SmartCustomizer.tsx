@@ -12,6 +12,7 @@ import React, {
 import { Canvas, createPortal, useThree } from '@react-three/fiber';
 import { Decal, Environment, Loader, OrbitControls, useCursor, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import { ATHLETIC_COLOR_PRESETS } from '@/lib/3d/colors';
 import {
   AlignCenter,
   AlignLeft,
@@ -77,6 +78,7 @@ export interface Model3DConfig {
   modelUrl: string;
   thumbnailUrl?: string;
   printZones: PrintZone[];
+  defaultColors?: Record<string, string>;
 }
 
 export interface LogoTransform {
@@ -98,6 +100,7 @@ type CameraCommand = 'front' | 'back' | 'left' | 'right' | 'reset';
 export interface ZoneEdits {
   logo?: HTMLImageElement;
   logoFile?: File;
+  logoDataUrl?: string;
   transform?: LogoTransform;
   text?: string;
   textColor?: string;
@@ -112,6 +115,8 @@ type EditsMap = Record<string, ZoneEdits>;
    Constants
    ════════════════════════════════════════════════════════════════════════════ */
 
+/* Shared with the admin 3D model editor. */
+/*
 export const ATHLETIC_COLOR_PRESETS = [
   { name: 'Cardinal Red', hex: '#97233f' },
   { name: 'Yellow', hex: '#ffb612' },
@@ -152,6 +157,8 @@ export const ATHLETIC_COLOR_PRESETS = [
   { name: 'Burgundy', hex: '#5a1414' },
   { name: 'Forest Green', hex: '#154406' },
 ];
+*/
+export { ATHLETIC_COLOR_PRESETS };
 
 export const TEXT_SIZE_OPTIONS = [
   { label: 'Sm', value: 50 },
@@ -193,9 +200,58 @@ const VIEW_BUTTONS: { id: CameraCommand; label: string; icon: string }[] = [
   { id: 'reset', label: 'Center', icon: '🎯' },
 ];
 
+type PreviewImage = { view: 'front' | 'back' | 'left' | 'right'; dataUrl: string };
+type CaptureViews = () => Promise<PreviewImage[]>;
+
+function PreviewCaptureBridge({ onReady }: { onReady: (capture: CaptureViews) => void }) {
+  const { camera, gl, scene, controls } = useThree();
+
+  useEffect(() => {
+    onReady(async () => {
+      const box = new THREE.Box3().setFromObject(scene);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const cam = camera as THREE.PerspectiveCamera;
+      const distance = (Math.max(size.x, size.y, size.z) / (2 * Math.tan((cam.fov * Math.PI) / 360))) * 1.25;
+      const originalPosition = camera.position.clone();
+      const originalTarget = controls ? (controls as any).target.clone() : center.clone();
+      const views: Array<[PreviewImage['view'], THREE.Vector3]> = [
+        ['front', new THREE.Vector3(center.x, center.y, center.z + distance)],
+        ['back', new THREE.Vector3(center.x, center.y, center.z - distance)],
+        ['left', new THREE.Vector3(center.x - distance, center.y, center.z)],
+        ['right', new THREE.Vector3(center.x + distance, center.y, center.z)],
+      ];
+
+      const captures: PreviewImage[] = [];
+      for (const [view, position] of views) {
+        camera.position.copy(position);
+        if (controls) {
+          (controls as any).target.copy(center);
+          (controls as any).update();
+        } else {
+          camera.lookAt(center);
+        }
+        camera.updateProjectionMatrix();
+        gl.render(scene, camera);
+        captures.push({ view, dataUrl: gl.domElement.toDataURL('image/png') });
+      }
+
+      camera.position.copy(originalPosition);
+      if (controls) {
+        (controls as any).target.copy(originalTarget);
+        (controls as any).update();
+      }
+      gl.render(scene, camera);
+      return captures;
+    });
+  }, [camera, controls, gl, onReady, scene]);
+
+  return null;
+}
+
 /* Shared class strings keep the JSX readable */
-const cardCls = 'space-y-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5';
-const labelCls = 'text-white/50 text-xs font-bold tracking-wide';
+const cardCls = 'space-y-4 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm';
+const labelCls = 'text-slate-500 text-xs font-bold tracking-wide';
 const focusCls =
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400';
 
@@ -1441,10 +1497,15 @@ function TextEditor({
         <select
           value={style.fontFamily}
           onChange={(e) => onChange({ fontFamily: e.target.value })}
-          className="w-full bg-[#18181b] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FF7348] transition-colors"
+          className="w-full appearance-none bg-white border border-slate-200 rounded-xl px-3 py-3 text-sm font-bold text-slate-700 focus:outline-none focus:border-orange-400 transition-colors"
         >
           {FONT_FAMILY_PRESETS.map((f) => (
-            <option key={f.id} value={f.family} className="bg-[#18181b] text-white">
+            <option
+              key={f.id}
+              value={f.family}
+              className="bg-white text-slate-700 text-sm font-bold"
+              style={{ fontFamily: f.family }}
+            >
               {f.label} ({f.category})
             </option>
           ))}
@@ -1468,8 +1529,23 @@ function TextEditor({
 
 export interface SmartCustomizerProps {
   modelConfig: Model3DConfig;
+  initialDesign?: {
+    colors?: Record<string, string>;
+    colorDetails?: Array<{ name: string; hex: string; part: string }>;
+    quantity?: number;
+    zones?: Record<string, Record<string, any>>;
+  } | null;
+  onDraftChange?: (data: {
+    colors: Record<string, string>;
+    colorDetails: Array<{ name: string; hex: string; part: string }>;
+    quantity: number;
+    zones: Record<string, Record<string, any>>;
+  }) => void;
   onSave?: (data: {
     colors: Record<string, string>;
+    colorDetails: Array<{ name: string; hex: string; part: string }>;
+    quantity: number;
+    previewImages: PreviewImage[];
     zones: Record<
       string,
       {
@@ -1491,11 +1567,11 @@ export interface SmartCustomizerProps {
   className?: string;
 }
 
-export function SmartCustomizer({ modelConfig, onSave, onClose, className }: SmartCustomizerProps) {
+export function SmartCustomizer({ modelConfig, initialDesign, onDraftChange, onSave, onClose, className }: SmartCustomizerProps) {
   const zones = modelConfig.printZones;
 
   const [modelParts, setModelParts] = useState<FormattedPart[]>([]);
-  const [colors, setColors] = useState<Record<string, string>>({});
+  const [colors, setColors] = useState<Record<string, string>>(modelConfig.defaultColors ?? {});
   const [edits, setEdits] = useState<EditsMap>({});
   const [tab, setTab] = useState<'zones' | 'colors'>('zones');
   const [activeZoneId, setActiveZoneId] = useState<string | null>(zones[0]?.id ?? null);
@@ -1503,7 +1579,10 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
   const [cameraCommand, setCameraCommand] = useState<CameraCommand | null>('front');
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const [confirmReset, setConfirmReset] = useState(false);
+  const captureViewsRef = useRef<CaptureViews | null>(null);
+  const restoredDesignRef = useRef(false);
 
   const adminLogos = useAdminLogos(zones);
   const fontReady = useFontReady(`900 64px ${FONT_FAMILY}`);
@@ -1518,6 +1597,40 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
     },
     []
   );
+
+  useEffect(() => {
+    if (restoredDesignRef.current || !initialDesign) return;
+    restoredDesignRef.current = true;
+    if (initialDesign.colors) setColors(initialDesign.colors);
+    if (initialDesign.quantity) setQuantity(Math.min(999, Math.max(1, initialDesign.quantity)));
+    if (initialDesign.zones) {
+      setEdits((current) => {
+        const restored = { ...current };
+        Object.entries(initialDesign.zones || {}).forEach(([zoneId, zone]: [string, any]) => {
+          restored[zoneId] = {
+            ...restored[zoneId],
+            transform: zone.customLogoTransform,
+            text: zone.customText,
+            textColor: zone.customTextColor,
+            fontFamily: zone.customFontFamily,
+            fontSize: zone.fontSize,
+            bold: zone.isBold,
+            align: zone.align,
+            logoDataUrl: zone.logoDataUrl,
+          };
+          if (zone.logoDataUrl) {
+            const image = new Image();
+            image.onload = () => setEdits((latest) => ({
+              ...latest,
+              [zoneId]: { ...latest[zoneId], logo: image, logoDataUrl: zone.logoDataUrl },
+            }));
+            image.src = zone.logoDataUrl;
+          }
+        });
+        return restored;
+      });
+    }
+  }, [initialDesign]);
 
   // Auto-dismiss the "saved" and "confirm reset" states.
   useEffect(() => {
@@ -1558,6 +1671,15 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const logoDataUrl = typeof reader.result === 'string' ? reader.result : undefined;
+        setEdits((prev) => ({
+          ...prev,
+          [zoneId]: { ...prev[zoneId], logo: img, logoFile: file, logoDataUrl },
+        }));
+      };
+      reader.readAsDataURL(file);
       setEdits((prev) => {
         revokeLogoUrl(prev[zoneId]); // free the previous upload
         return { ...prev, [zoneId]: { ...prev[zoneId], logo: img, logoFile: file } };
@@ -1573,7 +1695,7 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
   const clearLogo = useCallback((zoneId: string) => {
     setEdits((prev) => {
       revokeLogoUrl(prev[zoneId]);
-      return { ...prev, [zoneId]: { ...prev[zoneId], logo: undefined, logoFile: undefined } };
+      return { ...prev, [zoneId]: { ...prev[zoneId], logo: undefined, logoFile: undefined, logoDataUrl: undefined } };
     });
   }, []);
 
@@ -1592,7 +1714,7 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
 
   const handlePartSelect = useCallback(
     (matName: string) => {
-      setActiveMaterial(matName);
+      setActiveMaterial((current) => (current === matName ? null : matName));
       setTab('colors');
       const part = modelParts.find((p) => p.rawName === matName);
       if (part) setCameraCommand(part.cameraCommand as CameraCommand);
@@ -1613,16 +1735,24 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
     }
     Object.values(edits).forEach(revokeLogoUrl);
     setEdits({});
-    setColors({});
+    setColors(modelConfig.defaultColors ?? {});
     setUploadError(null);
     setCameraCommand('front');
     setConfirmReset(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaved(true);
+    const previewImages = captureViewsRef.current ? await captureViewsRef.current() : [];
     onSave?.({
       colors,
+      colorDetails: Object.entries(colors).map(([part, hex]) => ({
+        part,
+        hex,
+        name: ATHLETIC_COLOR_PRESETS.find((preset) => preset.hex.toLowerCase() === hex.toLowerCase())?.name || hex,
+      })),
+      quantity,
+      previewImages,
       zones: Object.fromEntries(
         zones.map((z) => {
           const e = edits[z.id];
@@ -1632,6 +1762,7 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
             {
               type: z.type,
               customImageUrl: z.defaultImageUrl,
+              logoDataUrl: e?.logoDataUrl,
               customImageFile: e?.logoFile,
               customLogoTransform: e?.transform ?? DEFAULT_TRANSFORM,
               customText: style.text,
@@ -1647,43 +1778,77 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
     });
   };
 
+  useEffect(() => {
+    if (!onDraftChange) return;
+    const zonesSnapshot = Object.fromEntries(
+      zones.map((z) => {
+        const e = edits[z.id];
+        const style = resolveTextStyle(z, e);
+        return [z.id, {
+          type: z.type,
+          customImageUrl: z.defaultImageUrl,
+          customLogoTransform: e?.transform ?? DEFAULT_TRANSFORM,
+          customText: style.text,
+          customTextColor: style.color,
+          customFontFamily: style.fontFamily,
+          fontSize: style.fontSize,
+          isBold: style.bold,
+          align: style.align,
+        }];
+      })
+    );
+    const colorDetails = Object.entries(colors).map(([part, hex]) => ({
+      part,
+      hex,
+      name: ATHLETIC_COLOR_PRESETS.find((preset) => preset.hex.toLowerCase() === hex.toLowerCase())?.name || hex,
+    }));
+    onDraftChange({ colors, colorDetails, quantity, zones: zonesSnapshot });
+  }, [colors, edits, quantity, zones, onDraftChange]);
+
   /* ── Derived ────────────────────────────────────────────────────────────── */
 
   const activeZone = zones.find((z) => z.id === activeZoneId);
-  const activePart = modelParts.find((p) => p.rawName === activeMaterial);
   const customizedCount = useMemo(
     () => Object.keys(colors).length + Object.values(edits).filter(isZoneEdited).length,
     [colors, edits]
   );
-  const activeColor = activeMaterial ? colors[activeMaterial] ?? activePart?.originalColor ?? '#FFFFFF' : '#FFFFFF';
-
   /* ── Render ─────────────────────────────────────────────────────────────── */
 
   return (
     <div
       style={{ fontFamily: "'Barlow Condensed', 'Arial Narrow', Arial, sans-serif" }}
-      className={`flex flex-col lg:flex-row bg-[#0a0a0f] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative ${
+      className={`af1-customizer-light flex flex-col lg:flex-row bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-2xl relative ${
         className || 'w-full lg:h-[780px]'
       }`}
     >
+      <style>{`
+        .af1-customizer-light [class*="text-white"] { color: #334155 !important; }
+        .af1-customizer-light [class*="border-white"] { border-color: #e2e8f0 !important; }
+        .af1-customizer-light [class*="bg-white/"] { background-color: #ffffff !important; }
+        .af1-customizer-light [class*="bg-black/"] { background-color: #f1f5f9 !important; }
+        .af1-customizer-light [class*="text-purple-300"] { color: #7e22ce !important; }
+        .af1-customizer-light [class*="text-emerald-300"] { color: #047857 !important; }
+        .af1-customizer-light [class*="text-white/"] { color: #64748b !important; }
+      `}</style>
       {/* ── 3D viewport ─────────────────────────────────────────────────── */}
       <div className="flex-1 relative overflow-hidden select-none min-h-[340px] h-[52vh] lg:h-auto touch-none">
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ backgroundImage: 'radial-gradient(circle at 50% 35%, #1f2333 0%, #0d0f14 70%, #07080b 100%)' }}
+          style={{ backgroundImage: 'radial-gradient(circle at 50% 35%, #ffffff 0%, #f8fafc 70%, #eef2f7 100%)' }}
         />
 
         <ViewerErrorBoundary
           fallback={
-            <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-white/70">
+            <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-slate-700">
               <div>
                 <p className="text-lg font-black">The 3D preview couldn’t load</p>
-                <p className="text-sm text-white/40 mt-1">Check your connection and refresh the page.</p>
+                <p className="text-sm text-slate-500 mt-1">Check your connection and refresh the page.</p>
               </div>
             </div>
           }
         >
           <Canvas
+            gl={{ preserveDrawingBuffer: true, antialias: true }}
             dpr={[1, 2]}
             frameloop={RENDER_ON_DEMAND ? 'demand' : 'always'}
             camera={{ position: [0, 0, 4.2], fov: 45 }}
@@ -1714,6 +1879,7 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
               <OrbitControls makeDefault enablePan={false} minDistance={1} maxDistance={8} />
               <CameraFit scene={sceneRoot} />
               <CameraHelperController scene={sceneRoot} command={cameraCommand} onHandled={() => setCameraCommand(null)} />
+              <PreviewCaptureBridge onReady={(capture) => { captureViewsRef.current = capture; }} />
             </Suspense>
           </Canvas>
           <Loader />
@@ -1722,9 +1888,9 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
         <div className="absolute top-5 left-5 pointer-events-none space-y-1">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-            <p className="text-white text-2xl font-black uppercase tracking-[.18em] italic">3D Customizer</p>
+            <p className="text-slate-900 text-2xl font-black uppercase tracking-[.18em] italic">3D Customizer</p>
           </div>
-          <p className="text-white/55 text-xs font-medium tracking-wide">
+          <p className="text-slate-500 text-xs font-medium tracking-wide">
             Drag to rotate &bull; Click the shirt to customize that part
           </p>
         </div>
@@ -1737,7 +1903,7 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-black transition-all ${focusCls} ${
                 confirmReset
                   ? 'bg-red-500/20 border-red-500/50 text-red-300'
-                  : 'bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border-white/10'
+                  : 'bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border-slate-200'
               }`}
             >
               <Undo2 className="w-3.5 h-3.5 text-orange-400" />
@@ -1748,7 +1914,7 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
             <button
               type="button"
               onClick={onClose}
-              className={`p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 transition-colors ${focusCls}`}
+              className={`p-2 rounded-xl bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200 transition-colors ${focusCls}`}
               title="Exit customizer"
               aria-label="Exit customizer"
             >
@@ -1758,7 +1924,7 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
         </div>
 
         <div
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-[calc(100%-1rem)] overflow-x-auto flex items-center gap-1 p-1.5 bg-[#0F1116]/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl z-10"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-[calc(100%-1rem)] overflow-x-auto flex items-center gap-1 p-1.5 bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-xl z-10"
           role="group"
           aria-label="Camera view"
         >
@@ -1767,7 +1933,7 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
               key={v.id}
               type="button"
               onClick={() => setCameraCommand(v.id)}
-              className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black text-white/70 hover:text-white hover:bg-white/10 active:bg-orange-500/20 transition-all whitespace-nowrap ${focusCls}`}
+              className={`flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-black text-slate-600 hover:text-slate-900 hover:bg-slate-100 active:bg-orange-50 transition-all whitespace-nowrap ${focusCls}`}
             >
               <span aria-hidden>{v.icon}</span>
               <span>{v.label}</span>
@@ -1777,8 +1943,8 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
       </div>
 
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <div className="w-full lg:w-[420px] flex flex-col bg-[#111319] border-t lg:border-t-0 lg:border-l border-white/10 z-10 min-h-0">
-        <div className="flex border-b border-white/10 p-2 gap-2 bg-[#0e1015]" role="tablist">
+      <div className="w-full lg:w-[420px] flex flex-col bg-slate-50 border-t lg:border-t-0 lg:border-l border-slate-200 z-10 min-h-0">
+        <div className="flex border-b border-slate-200 p-2 gap-2 bg-white" role="tablist">
           {(
             [
               { id: 'zones', label: `Logos & text (${zones.length})`, icon: <ImageIcon className="w-4 h-4" /> },
@@ -1792,7 +1958,7 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
               aria-selected={tab === t.id}
               onClick={() => openTab(t.id)}
               className={`flex-1 py-3 px-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all ${focusCls} ${
-                tab === t.id ? 'bg-[#FF7348] text-black shadow-lg shadow-orange-500/20' : 'text-white/60 hover:text-white hover:bg-white/5'
+                tab === t.id ? 'bg-[#FF7348] text-slate-950 shadow-lg shadow-orange-500/20' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               {t.icon}
@@ -1918,96 +2084,146 @@ export function SmartCustomizer({ modelConfig, onSave, onClose, className }: Sma
                 {modelParts.length === 0 ? (
                   <p className="text-white/40 text-sm">Loading garment parts…</p>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="space-y-2">
                     {modelParts.map((part) => {
                       const selected = activeMaterial === part.rawName;
+                      const color = colors[part.rawName] ?? part.originalColor;
+                      const colorName =
+                        ATHLETIC_COLOR_PRESETS.find((preset) => preset.hex.toLowerCase() === color.toLowerCase())?.name ||
+                        color;
                       return (
-                        <button
+                        <div
                           key={part.id}
-                          type="button"
-                          aria-pressed={selected}
-                          onClick={() => handlePartSelect(part.rawName)}
-                          className={`px-3.5 py-3 rounded-2xl text-sm font-black text-left flex items-center justify-between gap-2 transition-all border ${focusCls} ${
-                            selected
-                              ? 'bg-orange-500/15 border-orange-500 text-white shadow-lg shadow-orange-500/10'
-                              : 'bg-white/[0.02] border-white/5 text-white/60 hover:bg-white/5 hover:text-white'
+                          className={`rounded-2xl border overflow-hidden transition-colors ${
+                            selected ? 'border-orange-500/60 bg-orange-500/5' : 'border-white/5 bg-white/[0.02]'
                           }`}
                         >
-                          <span className="flex items-center gap-2 truncate">
-                            <span className="text-base" aria-hidden>
-                              {part.icon}
+                          <button
+                            type="button"
+                            aria-expanded={selected}
+                            aria-controls={`garment-color-${part.id}`}
+                            onClick={() => handlePartSelect(part.rawName)}
+                            className={`w-full px-3.5 py-3 text-sm font-black text-left flex items-center justify-between gap-2 transition-all ${focusCls} ${
+                              selected ? 'text-white' : 'text-white/60 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            <span className="flex items-center gap-2 truncate">
+                              <span className="text-base" aria-hidden>
+                                {part.icon}
+                              </span>
+                              <span className="truncate">{part.label}</span>
                             </span>
-                            <span className="truncate">{part.label}</span>
-                          </span>
-                          <span
-                            className="w-4 h-4 rounded-full border border-white/20 shrink-0"
-                            style={{ backgroundColor: colors[part.rawName] ?? part.originalColor }}
-                          />
-                        </button>
+                            <span className="flex items-center gap-2 shrink-0">
+                              <span className="text-[11px] font-semibold text-white/45 hidden sm:inline">{colorName}</span>
+                              <span
+                                className="w-4 h-4 rounded-full border border-white/20"
+                                style={{ backgroundColor: color }}
+                              />
+                              <ChevronDown className={`w-4 h-4 transition-transform ${selected ? 'rotate-180 text-orange-400' : ''}`} />
+                            </span>
+                          </button>
+
+                          {selected && (
+                            <div id={`garment-color-${part.id}`} className="border-t border-white/10 px-3.5 py-4 space-y-4">
+                              <div className="flex items-center justify-between gap-2">
+                                <div>
+                                  <p className="text-white text-sm font-black">Choose garment color</p>
+                                  <p className="text-white/45 text-xs mt-0.5">Select from athletic preset shades</p>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-white/90 text-xs font-semibold block">{colorName}</span>
+                                  <span className="text-white/50 text-[11px] font-mono uppercase">{color}</span>
+                                </div>
+                              </div>
+
+                              <ColorSwatches
+                                value={color}
+                                onChange={(hex) => setColors((current) => ({ ...current, [part.rawName]: hex }))}
+                              />
+
+                              {colors[part.rawName] && (
+                                <div className="flex items-center justify-between gap-2 p-3 bg-white/[0.02] border border-white/5 rounded-2xl">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <span
+                                      className="w-4 h-4 rounded-full border border-white/20 inline-block shadow-sm shrink-0"
+                                      style={{ backgroundColor: color }}
+                                    />
+                                    <span className="text-xs text-white/70 truncate">
+                                      Customized: <strong className="text-white">{colorName}</strong>
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setColors((current) => {
+                                        const next = { ...current };
+                                        delete next[part.rawName];
+                                        return next;
+                                      })
+                                    }
+                                    className={`text-xs text-orange-400 font-bold hover:underline shrink-0 ${focusCls}`}
+                                  >
+                                    Reset
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
                 )}
               </div>
-
-              {activeMaterial && (
-                <div className="border-t border-white/10 pt-5 space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <p className="text-white text-base font-black">
-                        2. Color for {activePart?.label || activeMaterial.replace(/_/g, ' ')}
-                      </p>
-                      <p className="text-white/45 text-xs mt-0.5">Select from athletic preset shades</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-white/90 text-xs font-semibold block">
-                        {ATHLETIC_COLOR_PRESETS.find((c) => c.hex.toLowerCase() === activeColor.toLowerCase())?.name || ''}
-                      </span>
-                      <span className="text-white/50 text-[11px] font-mono uppercase">{activeColor}</span>
-                    </div>
-                  </div>
-
-                  <ColorSwatches value={activeColor} onChange={(hex) => setColors((p) => ({ ...p, [activeMaterial]: hex }))} />
-
-                  {colors[activeMaterial] && (
-                    <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-2xl">
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          className="w-4 h-4 rounded-full border border-white/20 inline-block shadow-sm"
-                          style={{ backgroundColor: colors[activeMaterial] }}
-                        />
-                        <span className="text-xs text-white/70">
-                          Customized: <strong className="text-white">{ATHLETIC_COLOR_PRESETS.find((c) => c.hex.toLowerCase() === colors[activeMaterial].toLowerCase())?.name || colors[activeMaterial]}</strong>
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setColors((p) => {
-                            const next = { ...p };
-                            delete next[activeMaterial];
-                            return next;
-                          })
-                        }
-                        className={`text-xs text-orange-400 font-bold hover:underline ${focusCls}`}
-                      >
-                        Reset to default
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
             </>
           )}
         </div>
 
         {/* ── Footer ──────────────────────────────────────────────────── */}
-        <div className="p-5 border-t border-white/10 bg-[#0e1015] space-y-3 shrink-0">
+        <div className="p-5 border-t border-slate-200 bg-white space-y-3 shrink-0">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-white/50 font-bold">Your changes</span>
+            <span className="text-slate-500 font-bold">Your changes</span>
             <span className="text-orange-400 font-black">
               {customizedCount === 0 ? 'None yet' : `${customizedCount} ${customizedCount === 1 ? 'change' : 'changes'}`}
             </span>
+          </div>
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-black text-slate-800">Quantity</p>
+              <p className="text-xs text-slate-500">How many of this design do you need?</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                disabled={quantity === 1}
+                className="h-9 w-9 rounded-xl border border-slate-300 bg-white text-lg font-black text-slate-700 hover:border-orange-400 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Decrease quantity"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                min={1}
+                max={999}
+                value={quantity}
+                onChange={(event) => {
+                  const next = Number(event.target.value);
+                  setQuantity(Number.isFinite(next) ? Math.min(999, Math.max(1, next)) : 1);
+                }}
+                className="h-9 w-16 rounded-xl border border-slate-300 bg-white text-center text-sm font-black text-slate-900 outline-none focus:border-orange-500"
+                aria-label="Design quantity"
+              />
+              <button
+                type="button"
+                onClick={() => setQuantity((current) => Math.min(999, current + 1))}
+                disabled={quantity === 999}
+                className="h-9 w-9 rounded-xl border border-slate-300 bg-white text-lg font-black text-slate-700 hover:border-orange-400 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Increase quantity"
+              >
+                +
+              </button>
+            </div>
           </div>
 
           <button

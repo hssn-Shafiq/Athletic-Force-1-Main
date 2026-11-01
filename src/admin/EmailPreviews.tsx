@@ -2,29 +2,24 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-    Mail,
     UserPlus,
+    ShoppingBag,
+    Banknote,
     Truck,
-    CheckCircle,
+    PackageCheck,
+    XCircle,
+    RotateCcw,
+    ShoppingCart,
+    FileText,
+    ShieldCheck,
+    ShieldAlert,
+    KeyRound,
     AlertCircle,
     RefreshCcw,
-    ShoppingCart,
-    Eye,
-    Instagram,
-    Facebook,
-    Twitter,
-    Globe,
     Save,
-    FileText,
-    Type,
-    XCircle,
-    Banknote,
-    ShoppingBag,
-    Zap,
-    ShieldCheck,
-    ShieldAlert
+    Eye,
+    Type
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'react-toastify';
 
@@ -32,16 +27,17 @@ import { toast } from 'react-toastify';
 type EmailType =
     | 'welcome'
     | 'order_placed'
+    | 'order_paid'
     | 'order_shipped'
+    | 'order_delivered'
     | 'order_cancelled'
     | 'order_refunded'
-    | 'order_paid'
-    | 'low_stock_alert'
-    | 'admin_new_order_direct'
-    | 'admin_new_order_request'
     | 'abandoned_cart'
     | 'quote_request'
-    | 'password_reset';
+    | 'admin_new_order_direct'
+    | 'admin_new_order_request'
+    | 'password_reset'
+    | 'low_stock_alert';
 
 interface EmailTemplateData {
     type: string;
@@ -51,405 +47,407 @@ interface EmailTemplateData {
     buttonText: string;
 }
 
+// ─── TOKENS (mirrors the email HTML) ─────────────────────────────────────────
+const C = {
+    page: '#FAFAFA',
+    card: '#FFFFFF',
+    heading: '#050505',
+    muted: '#9CA3AF',
+    body: '#4B5563',
+    accent: '#DD6132',
+    accentSoft: '#FCEFEA',
+    border: '#E5E7EB'
+};
+
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const MOCK_ORDER = {
     id: 'AF1-69EB6',
-    date: 'April 25, 2026',
     total: 129.99,
-    subtotal: 124.99,
-    shippingFee: 5.00,
+    subtotal: 129.99,
     items: [
         {
             name: 'Tactical Drift Pro Shirt',
             quantity: 1,
             price: 89.99,
-            color: 'Shadow Black',
             size: 'XL',
             image: 'https://res.cloudinary.com/dv1xqw5um/image/upload/v1776781646/af1/products/ci8kjg6q3sb55eyvulsn.png'
         },
         {
             name: 'Elite Training Shorts',
             quantity: 1,
-            price: 40.00,
-            color: 'Safety Orange',
+            price: 40.0,
             size: 'L',
             image: 'https://res.cloudinary.com/dv1xqw5um/image/upload/v1776781646/af1/products/ci8kjg6q3sb55eyvulsn.png'
         }
-    ],
-    shipping: {
-        name: 'Alex Johnson',
-        address: '4807 Greenleaf Ct, Ste DModesto, CA 95356'
-    }
+    ]
 };
 
-const DossierSummary = ({ items, total, subtotal, shippingFee, isCancelled = false }: any) => (
-    <div className="space-y-6">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic">Your Dossier Items</p>
-        <div className="space-y-4">
-            {items.map((item: any, i: number) => (
-                <div key={i} className={`flex gap-4 items-center ${isCancelled ? 'opacity-40' : ''}`}>
-                    <div className="w-16 h-16 bg-slate-50 rounded-xl overflow-hidden border border-slate-100 flex-shrink-0">
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex-grow">
-                        <p className={`text-xs font-black uppercase italic ${isCancelled ? 'line-through decoration-red-500' : ''}`}>{item.name}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">{item.size} &middot; Qty: {item.quantity}</p>
-                    </div>
-                    <p className={`text-xs font-black ${isCancelled ? 'line-through opacity-50' : ''}`}>${item.price.toFixed(2)}</p>
+// ─── EMAIL BUILDING BLOCKS ───────────────────────────────────────────────────
+const Label = ({ children }: { children: React.ReactNode }) => (
+    <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 600, color: C.muted }}>{children}</p>
+);
+
+const Block = ({ children, top = 24 }: { children: React.ReactNode; top?: number }) => (
+    <div style={{ padding: `${top}px 40px 0` }}>{children}</div>
+);
+
+const Hero = ({ title, text }: { title: string; text: React.ReactNode }) => (
+    <Block top={40}>
+        <h1 style={{ margin: '0 0 12px', fontSize: 26, lineHeight: 1.3, fontWeight: 700, color: C.heading, whiteSpace: 'pre-wrap' }}>{title}</h1>
+        <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: C.body, whiteSpace: 'pre-wrap' }}>{text}</p>
+    </Block>
+);
+
+const Accent = ({ children }: { children: React.ReactNode }) => (
+    <span style={{ color: C.accent }}>{children}</span>
+);
+
+const InfoBox = ({ items }: { items: [string, React.ReactNode][] }) => (
+    <Block top={28}>
+        <div style={{ display: 'flex', background: C.page, border: `1px solid ${C.border}`, borderRadius: 10 }}>
+            {items.map(([l, v]) => (
+                <div key={l} style={{ flex: 1, padding: '18px 20px' }}>
+                    <Label>{l}</Label>
+                    <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: C.heading }}>{v}</p>
                 </div>
             ))}
         </div>
-        <div className="pt-6 border-t border-slate-100 space-y-2">
-            <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+    </Block>
+);
+
+const DetailRows = ({ items }: { items: [string, string][] }) => (
+    <div style={{ fontSize: 14 }}>
+        {items.map(([l, v], i) => (
+            <div
+                key={l}
+                style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 24,
+                    padding: '12px 0',
+                    borderTop: i > 0 ? `1px solid ${C.border}` : 'none'
+                }}
+            >
+                <span style={{ color: C.muted }}>{l}</span>
+                <span style={{ fontWeight: 600, color: C.heading, textAlign: 'right' }}>{v}</span>
             </div>
-            <div className="flex justify-between text-[10px] font-bold text-green-600 uppercase tracking-widest">
-                <span>Shipping</span>
-                <span>FREE</span>
-            </div>
-            <div className="flex justify-between items-center pt-4 border-t-2 border-slate-100">
-                <span className="text-sm font-black uppercase italic">Total Paid</span>
-                <span className="text-xl font-black text-black">${total.toFixed(2)}</span>
-            </div>
-        </div>
+        ))}
     </div>
 );
 
-// ─── COMPONENTS ───────────────────────────────────────────────────────────────
+const OrderSummary = ({ title, faded = false }: { title: string; faded?: boolean }) => (
+    <Block top={32}>
+        <Label>{title}</Label>
+        <div style={{ opacity: faded ? 0.6 : 1 }}>
+            {MOCK_ORDER.items.map((item, i) => (
+                <div
+                    key={i}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 14,
+                        padding: '12px 0',
+                        borderTop: i > 0 ? `1px solid ${C.border}` : 'none'
+                    }}
+                >
+                    <img
+                        src={item.image}
+                        alt={item.name}
+                        style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover', border: `1px solid ${C.border}` }}
+                    />
+                    <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.heading }}>{item.name}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 12, color: C.muted }}>
+                            Size {item.size} · Qty {item.quantity}
+                        </p>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.heading }}>${item.price.toFixed(2)}</p>
+                </div>
+            ))}
+        </div>
+    </Block>
+);
 
-const EmailWrapper = ({ children, hideHeader = false }: { children: React.ReactNode; hideHeader?: boolean }) => (
-    <div className="w-full max-w-2xl mx-auto bg-white shadow-2xl rounded-[30px] overflow-hidden border border-slate-100 my-4 animate-in fade-in zoom-in duration-500">
-        {!hideHeader && (
-            <div className="bg-[#1a1a1a] p-10 text-center relative">
-                <img src="https://res.cloudinary.com/dv1xqw5um/image/upload/v1777093836/logo-new-white_mwj1xw.png" alt="Athletic Force 1" className="h-10 mx-auto mb-4" />
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#FF7348] italic">Elite Sports Uniforms and Accessoires</p>
+const TotalRow = ({ title }: { title: string }) => (
+    <Block top={12}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: C.heading }}>{title}</span>
+            <span style={{ fontSize: 18, fontWeight: 700, color: C.heading }}>${MOCK_ORDER.total.toFixed(2)}</span>
+        </div>
+    </Block>
+);
+
+const Steps = ({ items, active = 0 }: { items: [string, string][]; active?: number }) => (
+    <Block top={32}>
+        <Label>What happens next</Label>
+        {items.map(([title, text], i) => (
+            <div key={title} style={{ display: 'flex', gap: 14, padding: '8px 0' }}>
+                <div
+                    style={{
+                        width: 28,
+                        height: 28,
+                        flexShrink: 0,
+                        borderRadius: '50%',
+                        textAlign: 'center',
+                        lineHeight: '26px',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        background: i === active ? C.accent : C.page,
+                        color: i === active ? '#fff' : C.muted,
+                        border: `1px solid ${i === active ? C.accent : C.border}`
+                    }}
+                >
+                    {i + 1}
+                </div>
+                <div>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.heading }}>{title}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 13, lineHeight: 1.6, color: C.body }}>{text}</p>
+                </div>
             </div>
-        )}
+        ))}
+    </Block>
+);
 
-        <div className="p-0">
+const Cta = ({ children }: { children: React.ReactNode }) => (
+    <Block top={32}>
+        <span
+            style={{
+                display: 'inline-block',
+                background: C.accent,
+                color: '#fff',
+                padding: '14px 32px',
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 600
+            }}
+        >
             {children}
-        </div>
+        </span>
+    </Block>
+);
 
-        {/* Footer */}
-        <div className="bg-[#1a1a1a] p-10 text-center border-t border-black">
-            <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-loose">
-                4807 Greenleaf Ct, Ste D, Modesto, CA 95356 <br />
-                Call us: 707-741-5737 | Email: info@athleticforce1.com <br />
-            </p>
-            <div className="flex justify-center gap-6 mt-6">
-                <Instagram className="w-4 h-4 text-[#FF7348]" />
-                <Facebook className="w-4 h-4 text-[#FF7348]" />
-                <Twitter className="w-4 h-4 text-[#FF7348]" />
-            </div>
-            <p className="text-[10px] font-bold text-slate-500 mt-8 uppercase tracking-widest leading-loose">
-                © 2026 Athletic Force 1. All Rights Reserved.
-            </p>
+const Callout = ({ title, text }: { title: string; text: string }) => (
+    <Block top={28}>
+        <div style={{ background: C.accentSoft, borderRadius: 10, padding: '18px 20px' }}>
+            <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: C.heading }}>{title}</p>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: C.body }}>{text}</p>
         </div>
+    </Block>
+);
+
+const Person = ({ title, name, email }: { title: string; name: string; email: string }) => (
+    <Block top={28}>
+        <Label>{title}</Label>
+        <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: C.heading }}>{name}</p>
+        <p style={{ margin: '2px 0 0', fontSize: 14, color: C.body }}>{email}</p>
+    </Block>
+);
+
+const TrackingBox = () => (
+    <Block top={28}>
+        <div style={{ background: C.page, border: `1px solid ${C.border}`, borderRadius: 10, padding: '18px 20px' }}>
+            <Label>Tracking number</Label>
+            <p style={{ margin: '0 0 14px', fontSize: 16, fontWeight: 600, color: C.heading, fontFamily: 'monospace', letterSpacing: 1 }}>TRK-AF1-9284-XKPL</p>
+            <Label>Carrier</Label>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: C.heading }}>FedEx</p>
+        </div>
+    </Block>
+);
+
+const EmailWrapper = ({ children }: { children: React.ReactNode }) => (
+    <div style={{ width: '100%', maxWidth: 600, margin: '0 auto', background: C.card, border: `1px solid ${C.border}` }}>
+        {children}
     </div>
 );
 
+// ─── TEMPLATE SWITCH ─────────────────────────────────────────────────────────
 const DynamicTemplate = ({ type, data }: { type: EmailType; data: EmailTemplateData }) => {
+    const cta = (fallback: string) => <Cta>{data.buttonText || fallback}</Cta>;
+
     switch (type) {
         case 'welcome':
             return (
-                <div className="p-12 text-center space-y-8">
-                    <h1 className="text-4xl font-black italic uppercase tracking-tighter text-[#0F172A] leading-none whitespace-pre-wrap">{data.heading}</h1>
-                    <p className="text-[#64748B] text-lg font-medium whitespace-pre-wrap leading-relaxed">{data.body}</p>
-                    <button className="bg-black text-white px-10 py-5 rounded-lg font-black uppercase italic tracking-tighter text-xl shadow-xl">
-                        {data.buttonText}
-                    </button>
-                </div>
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    {cta('Start shopping')}
+                </>
             );
+
         case 'order_placed':
             return (
-                <div className="bg-[#f4f1eb]">
-                    <div className="bg-black p-16 text-center">
-                        <div className="w-20 h-20 bg-white/10 border-2 border-white/20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">🛍️</div>
-                        <h1 className="text-3xl font-black italic uppercase text-white mb-2">{data.heading}</h1>
-                        <p className="text-slate-400 text-sm">We've received your order and we're already on it. 🎯</p>
-                    </div>
-                    <div className="bg-[#fff8e6] py-3 text-center border-b border-[#f5d98a]">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[#7a5000]">✅ &nbsp; Order #AF1-2026 Placed Successfully</p>
-                    </div>
-                    <div className="p-12 space-y-10 text-left">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Hey,</p>
-                            <h2 className="text-2xl font-black italic uppercase text-black mb-4">Alex 👋</h2>
-                            <p className="text-[#475569] text-base leading-relaxed">{data.body}</p>
-                        </div>
-                        <div className="bg-[#fffbf0] border border-[#f5d98a] rounded-2xl p-8 grid grid-cols-2 gap-8">
-                            <div>
-                                <p className="text-[10px] font-black uppercase text-[#b8860b] mb-1">Order Number</p>
-                                <p className="text-sm font-black font-mono">#AF1-2026</p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black uppercase text-[#b8860b] mb-1">Status</p>
-                                <p className="text-sm font-black text-[#FF7348]">⏳ PROCESSING</p>
-                            </div>
-                        </div>
-                        <DossierSummary {...MOCK_ORDER} />
-                        <div className="space-y-6">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">What Happens Next</p>
-                            <div className="flex gap-4 items-center">
-                                <div className="w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center font-black">1</div>
-                                <div>
-                                    <p className="text-xs font-black uppercase">Order Processing</p>
-                                    <p className="text-[10px] text-slate-500">Preparing your gear for deployment.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    <InfoBox items={[['Order number', '#AF1-69EB6'], ['Status', <Accent key="s">Verifying</Accent>]]} />
+                    <OrderSummary title="Order summary" />
+                    <Steps
+                        items={[
+                            ['Payment verification', 'We’re verifying your transaction.'],
+                            ['Packed and shipped', 'Your items are handed to the carrier within 1–2 business days.']
+                        ]}
+                    />
+                    {cta('View my order')}
+                </>
             );
-        case 'order_shipped':
-            return (
-                <div style={{ backgroundColor: '#f0f4f8' }}>
-                    <div style={{ background: 'linear-gradient(135deg,#000000,#1a1a1a,#2a2a2a)', padding: '54px 40px', textAlign: 'center' }}>
-                        <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '84px', height: '84px', lineHeight: '84px', fontSize: '38px', marginBottom: '22px' }}>🚚</div>
-                        <h1 style={{ margin: '0 0 8px', color: '#ffffff', fontSize: '30px', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic' }}>{data.heading}</h1>
-                        <p style={{ margin: 0, color: '#94A3B8', fontSize: '15px' }}>Sit tight — your package is heading to you right now.</p>
-                    </div>
-                    <div className="p-12 text-left space-y-10">
-                        <div>
-                            <p className="text-[#94A3B8] text-[10px] font-black uppercase tracking-widest mb-2">Hello,</p>
-                            <h2 className="text-2xl font-black italic uppercase text-[#0F172A] mb-4">ALEX 👋</h2>
-                            <p className="text-[#475569] text-base leading-relaxed">{data.body}</p>
-                        </div>
-                        <div className="bg-[#eaf4fb] border-[1.5px] border-[#c5dff0] rounded-2xl p-8">
-                            <p className="text-[#7fa8bf] text-[10px] font-black uppercase tracking-widest mb-2">Tracking Number</p>
-                            <p className="text-xl font-black tracking-[0.2em] text-[#0f2027] mb-6 font-mono">TRK-AF1-9284-XKPL</p>
-                            <p className="text-[#7fa8bf] text-[10px] font-black uppercase tracking-widest mb-2">Carrier</p>
-                            <p className="text-lg text-[#1a2d3d] font-black uppercase italic">FedEx Tactical</p>
-                        </div>
-                        <DossierSummary {...MOCK_ORDER} />
-                        <button className="w-full bg-black text-white py-5 rounded-lg font-black uppercase italic tracking-tighter text-xl shadow-xl">
-                            {data.buttonText || 'Track My Package'}
-                        </button>
-                    </div>
-                </div>
-            );
-        case 'order_cancelled':
-            return (
-                <div className="bg-[#f7f2f2]">
-                    <div className="bg-gradient-to-br from-[#4a0010] to-[#a93252] p-16 text-center text-white">
-                        <div className="w-20 h-20 bg-white/10 border-2 border-white/20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">❌</div>
-                        <h1 className="text-3xl font-black italic uppercase mb-2">{data.heading}</h1>
-                        <p className="text-red-200 text-sm">We're sorry to see this happen. Here's the intel.</p>
-                    </div>
-                    <div className="bg-[#fde8ec] py-3 text-center border-b border-[#f5c2cc]">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[#7b1a2e]">🚫 &nbsp; Order #AF1-2026 Status: CANCELLED</p>
-                    </div>
-                    <div className="p-12 space-y-10 text-left">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Hi there,</p>
-                            <h2 className="text-2xl font-black italic uppercase text-black mb-4">Alex 👋</h2>
-                            <p className="text-[#6b3040] text-base leading-relaxed">{data.body}</p>
-                        </div>
-                        <DossierSummary {...MOCK_ORDER} isCancelled />
-                        <div className="bg-gradient-to-br from-[#f0fdf4] to-[#f8fffb] border border-[#a8d5b5] rounded-2xl p-8">
-                            <p className="text-[10px] font-black uppercase text-[#4a9966] mb-2 tracking-widest">💳 Refund Information</p>
-                            <p className="text-sm font-black text-[#1a3d2b] mb-2">A full refund of <span className="text-green-700">${MOCK_ORDER.total.toFixed(2)}</span> is on its way!</p>
-                            <p className="text-xs text-[#4a7a5a]">Credited back to your payment method within 5–7 business days.</p>
-                        </div>
-                        <button className="w-full bg-black text-white py-5 rounded-lg font-black uppercase italic tracking-tighter text-xl">
-                            {data.buttonText || 'Shop Again'}
-                        </button>
-                    </div>
-                </div>
-            );
+
         case 'order_paid':
             return (
-                <div style={{ backgroundColor: '#f0fff4' }}>
-                    <div style={{ background: 'linear-gradient(135deg,#166534,#15803d,#166534)', padding: '54px 40px', textAlign: 'center' }}>
-                        <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', borderRadius: '50%', width: '84px', height: '84px', lineHeight: '84px', fontSize: '38px', marginBottom: '22px' }}>💰</div>
-                        <h1 style={{ margin: '0 0 8px', color: '#ffffff', fontSize: '30px', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic' }}>{data.heading}</h1>
-                        <p style={{ margin: 0, color: '#dcfce7', fontSize: '15px' }}>Your transaction is secure and confirmed. 🎯</p>
-                    </div>
-                    <div className="bg-[#f0fdf4] py-3 text-center border-b border-[#bcf0da]">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[#166534]">✨ &nbsp; Transaction for #AF1-2026 is SUCCESSFUL</p>
-                    </div>
-                    <div className="p-12 text-left space-y-10">
-                        <div>
-                            <p className="text-[#94A3B8] text-[10px] font-black uppercase tracking-widest mb-2">Confirmed,</p>
-                            <h2 className="text-2xl font-black italic uppercase text-[#0F172A] mb-4">ALEX 👋</h2>
-                            <p className="text-[#475569] text-base leading-relaxed">{data.body}</p>
-                        </div>
-                        <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-8 grid grid-cols-2 gap-8">
-                            <div>
-                                <p className="text-[10px] font-black uppercase text-[#64748b] mb-1">Order ID</p>
-                                <p className="text-sm font-black font-mono">#AF1-2026</p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black uppercase text-[#64748b] mb-1">Status</p>
-                                <p className="text-sm font-black text-[#166534]">✅ PAID & SECURE</p>
-                            </div>
-                        </div>
-                        <DossierSummary {...MOCK_ORDER} />
-                        <button className="w-full bg-black text-white py-5 rounded-lg font-black uppercase italic tracking-tighter text-xl shadow-xl">
-                            {data.buttonText || 'Track My Progress'}
-                        </button>
-                    </div>
-                </div>
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    <InfoBox items={[['Order number', '#AF1-69EB6'], ['Status', <Accent key="s">Paid</Accent>]]} />
+                    <OrderSummary title="Order summary" />
+                    <Steps
+                        active={1}
+                        items={[
+                            ['Payment confirmed', 'Your transaction was verified.'],
+                            ['Preparing your order', 'We’re packing your items for dispatch.']
+                        ]}
+                    />
+                    {cta('Track my order')}
+                </>
             );
-        case 'admin_new_order_direct':
+
+        case 'order_shipped':
             return (
-                <div className="p-10 space-y-8 font-sans text-slate-900">
-                    <h2 className="text-xl font-black uppercase italic border-b-2 border-black pb-4">🚨 New Direct Order Received</h2>
-                    <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer Intelligence</p>
-                        <p className="font-bold text-lg">Alex Johnson</p>
-                        <p className="text-slate-500">alex.j@example.com</p>
-                    </div>
-                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex justify-between items-center">
-                        <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">Order ID</p>
-                            <p className="font-mono font-black">#AF1-69EB6</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">Revenue</p>
-                            <p className="text-2xl font-black text-green-600">$129.99</p>
-                        </div>
-                    </div>
-                    <DossierSummary {...MOCK_ORDER} />
-                    <div className="pt-6 border-t border-slate-100">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Shipping Logistics</p>
-                        <p className="text-sm leading-relaxed text-slate-600">4807 Greenleaf Ct, Ste D, Modesto, CA 95356</p>
-                    </div>
-                    <button className="w-full bg-black text-white py-4 rounded-xl font-black uppercase italic text-sm shadow-lg shadow-black/10">
-                        Open Order in Command Center
-                    </button>
-                </div>
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    <TrackingBox />
+                    <OrderSummary title="Order summary" />
+                    <TotalRow title="Total" />
+                    {cta('Track my package')}
+                </>
             );
-        case 'admin_new_order_request':
+
+        case 'order_delivered':
             return (
-                <div className="p-10 space-y-8 font-sans text-slate-900">
-                    <h2 className="text-xl font-black uppercase italic border-b-2 border-orange-500 pb-4 text-orange-600">📝 New Quote Request Received</h2>
-                    <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Requester Intelligence</p>
-                        <p className="font-bold text-lg">Hassan Shafiq</p>
-                        <p className="text-slate-500">shafiq@example.com</p>
-                    </div>
-                    <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100 flex justify-between items-center">
-                        <div>
-                            <p className="text-[10px] font-bold text-orange-400 uppercase">Request ID</p>
-                            <p className="font-mono font-black text-orange-900">#AF1-QUOTE-782</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-bold text-orange-400 uppercase">Type</p>
-                            <p className="text-lg font-black text-orange-700 italic">CUSTOM REQUEST</p>
-                        </div>
-                    </div>
-                    <div className="space-y-4">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tactical Dossier</p>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-slate-50 rounded-xl">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Team Name</p>
-                                <p className="font-black text-sm uppercase">Shadow Wolves</p>
-                            </div>
-                            <div className="p-4 bg-slate-50 rounded-xl">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Deployment Date</p>
-                                <p className="font-black text-sm">May 15, 2026</p>
-                            </div>
-                        </div>
-                        <div className="p-4 bg-slate-50 rounded-xl">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Technical Notes</p>
-                            <p className="text-xs italic text-slate-600">Need the logo to be reflective silver. Contrast stitching on the sleeves is required.</p>
-                        </div>
-                    </div>
-                    <DossierSummary {...MOCK_ORDER} />
-                    <button className="w-full bg-orange-500 text-white py-4 rounded-xl font-black uppercase italic text-sm shadow-lg shadow-orange-500/20">
-                        Review Custom Dossier
-                    </button>
-                </div>
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    <InfoBox items={[['Order number', '#AF1-69EB6'], ['Status', <Accent key="s">Delivered</Accent>]]} />
+                    <OrderSummary title="Order summary" />
+                    <TotalRow title="Total paid" />
+                    <Callout title="Enjoying your order?" text="A quick review helps other shoppers and means a lot to us." />
+                    {cta('Write a review')}
+                </>
             );
+
+        case 'order_cancelled':
+            return (
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    <InfoBox items={[['Order number', '#AF1-69EB6'], ['Status', 'Cancelled']]} />
+                    <OrderSummary title="Cancelled items" faded />
+                    <TotalRow title="Total refund" />
+                    <Callout title="Your refund is on its way" text="It will be credited to your original payment method within 5–7 business days." />
+                    {cta('Shop again')}
+                </>
+            );
+
+        case 'order_refunded':
+            return (
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    <InfoBox items={[['Order number', '#AF1-69EB6'], ['Refund amount', <Accent key="r">${MOCK_ORDER.total.toFixed(2)}</Accent>]]} />
+                    {cta('View order status')}
+                </>
+            );
+
         case 'abandoned_cart':
             return (
-                <div className="bg-[#f0eef8]">
-                    <div className="bg-black p-16 text-center text-white">
-                        <div className="w-20 h-20 bg-white/10 border-2 border-white/20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">🛒</div>
-                        <h1 className="text-3xl font-black italic uppercase mb-2">{data.heading}</h1>
-                        <p className="text-slate-400 text-sm">Your cart is missing you. Come back and complete your order! 💜</p>
-                    </div>
-                    <div className="bg-[#fff0f0] py-3 text-center border-b border-[#ffb3b3]">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[#c0392b]">⏰ &nbsp; Items in your cart are moving fast — secure yours now!</p>
-                    </div>
-                    <div className="p-12 space-y-10 text-left">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Hey,</p>
-                            <h2 className="text-2xl font-black italic uppercase text-black mb-4">Alex 👋</h2>
-                            <p className="text-[#475569] text-base leading-relaxed">{data.body}</p>
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    <OrderSummary title="Your cart" />
+                    {cta('Complete my order')}
+                    <Block top={32}>
+                        <div style={{ border: `1px dashed ${C.accent}`, borderRadius: 10, padding: 20, textAlign: 'center' }}>
+                            <p style={{ margin: '0 0 8px', fontSize: 14, color: C.body }}>Take 10% off your order. Expires in 24 hours.</p>
+                            <p style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: 4, color: C.accent, fontFamily: 'monospace' }}>ELITE10</p>
                         </div>
-                        <DossierSummary {...MOCK_ORDER} />
-                        <div className="bg-black p-8 rounded-2xl text-center">
-                            <p className="text-[10px] font-black uppercase text-[#FF7348] mb-2 tracking-widest">🎁 &nbsp; Special Tactical Offer</p>
-                            <p className="text-xl font-black text-white italic uppercase mb-4">Get 10% OFF Your Order!</p>
-                            <div className="inline-block bg-white/10 border border-white/20 border-dashed rounded-xl px-10 py-4 mb-4">
-                                <p className="text-2xl font-black text-white tracking-[0.3em] font-mono">ELITE10</p>
-                            </div>
-                        </div>
-                        <button className="w-full bg-black text-white py-5 rounded-lg font-black uppercase italic tracking-tighter text-xl">
-                            {data.buttonText || 'Complete My Order'}
-                        </button>
-                    </div>
-                </div>
+                    </Block>
+                </>
             );
+
         case 'quote_request':
             return (
-                <div className="bg-[#f4f1eb]">
-                    <div className="bg-gradient-to-br from-[#1e293b] to-[#020617] p-16 text-center text-white">
-                        <div className="w-20 h-20 bg-white/10 border-2 border-white/20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">📝</div>
-                        <h1 className="text-3xl font-black italic uppercase mb-2">{data.heading}</h1>
-                        <p className="text-slate-400 text-sm">Dossier Received. Tactical Review in Progress. 🎯</p>
-                    </div>
-                    <div className="bg-[#f1f5f9] py-3 text-center border-b border-[#e2e8f0]">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[#475569]">📝 &nbsp; Request #AF1-QUOTE Logged Successfully</p>
-                    </div>
-                    <div className="p-12 space-y-10 text-left">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Hey,</p>
-                            <h2 className="text-2xl font-black italic uppercase text-black mb-4">Alex 👋</h2>
-                            <p className="text-[#475569] text-base leading-relaxed">{data.body}</p>
-                        </div>
-                        <div className="bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl p-8 grid grid-cols-2 gap-8">
-                            <div>
-                                <p className="text-[10px] font-black uppercase text-[#64748b] mb-1">Request ID</p>
-                                <p className="text-sm font-black font-mono">#AF1-QUOTE</p>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black uppercase text-[#64748b] mb-1">Current Status</p>
-                                <p className="text-sm font-black text-[#FF7348]">🔍 UNDER REVIEW</p>
-                            </div>
-                        </div>
-                        <DossierSummary {...MOCK_ORDER} />
-                        <div className="space-y-6">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Next Operational Steps</p>
-                            <div className="flex gap-4 items-center">
-                                <div className="w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center font-black">1</div>
-                                <div>
-                                    <p className="text-xs font-black uppercase">Dossier Review</p>
-                                    <p className="text-[10px] text-slate-500">Evaluating your design and logistics requirements.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    <InfoBox items={[['Request ID', '#AF1-QUOTE'], ['Status', <Accent key="s">Under review</Accent>]]} />
+                    <OrderSummary title="Requested items" />
+                    <Steps
+                        items={[
+                            ['Request review', 'We evaluate your design, quantity and delivery requirements.'],
+                            ['Quote sent', 'A proposal with pricing and timelines arrives in your inbox.']
+                        ]}
+                    />
+                </>
             );
+
+        case 'admin_new_order_direct':
+            return (
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    <Person title="Customer" name="Alex Johnson" email="alex.j@example.com" />
+                    <InfoBox items={[['Order number', '#AF1-69EB6'], ['Revenue', <Accent key="r">${MOCK_ORDER.total.toFixed(2)}</Accent>]]} />
+                    <OrderSummary title="Order contents" />
+                    <Block top={28}>
+                        <Label>Shipping address</Label>
+                        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: C.body }}>4807 Greenleaf Ct, Ste D, Modesto, CA 95356</p>
+                    </Block>
+                    {cta('Open order in admin')}
+                </>
+            );
+
+        case 'admin_new_order_request':
+            return (
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    <Person title="Requester" name="Hassan Shafiq" email="shafiq@example.com" />
+                    <InfoBox items={[['Request ID', '#AF1-QUOTE-782'], ['Type', <Accent key="t">Custom request</Accent>]]} />
+                    <Block top={28}>
+                        <Label>Requirements</Label>
+                        <DetailRows
+                            items={[
+                                ['Team name', 'Shadow Wolves'],
+                                ['Deployment date', 'May 15, 2026'],
+                                ['Notes', 'Reflective silver logo, contrast stitching on sleeves']
+                            ]}
+                        />
+                    </Block>
+                    <OrderSummary title="Selected gear" />
+                    {cta('Review request')}
+                </>
+            );
+
+        case 'password_reset':
+            return (
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    {cta('Reset my password')}
+                    <Block top={28}>
+                        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: C.muted }}>
+                            This link expires in 30 minutes. If the button doesn’t work, copy and paste the reset link into your browser.
+                        </p>
+                    </Block>
+                </>
+            );
+
+        case 'low_stock_alert':
+            return (
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    {cta('Manage inventory')}
+                </>
+            );
+
         default:
             return (
-                <div className="p-12 text-center space-y-8">
-                    <h1 className="text-4xl font-black italic uppercase tracking-tighter text-[#0F172A] leading-none">{data.heading}</h1>
-                    <p className="text-[#64748B] text-lg font-medium whitespace-pre-wrap leading-relaxed">{data.body}</p>
-                    <button className="bg-black text-white px-10 py-5 rounded-lg font-black uppercase italic tracking-tighter text-xl">
-                        {data.buttonText}
-                    </button>
-                </div>
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    {data.buttonText && <Cta>{data.buttonText}</Cta>}
+                </>
             );
     }
 };
 
 // ─── PAGE ────────────────────────────────────────────────────────────────────
-
 export const EmailPreviews: React.FC = () => {
     const [activeTab, setActiveTab] = useState<EmailType>('welcome');
     const [formData, setFormData] = useState<EmailTemplateData | null>(null);
@@ -458,14 +456,18 @@ export const EmailPreviews: React.FC = () => {
 
     const tabs: { id: EmailType; label: string; icon: any }[] = [
         { id: 'welcome', label: 'Welcome', icon: UserPlus },
-        { id: 'order_placed', label: 'New Order', icon: ShoppingBag },
+        { id: 'order_placed', label: 'New order', icon: ShoppingBag },
+        { id: 'order_paid', label: 'Payment', icon: Banknote },
         { id: 'order_shipped', label: 'Shipped', icon: Truck },
-        { id: 'admin_new_order_direct', label: 'Admin (Direct)', icon: ShieldCheck },
-        { id: 'admin_new_order_request', label: 'Admin (Quote)', icon: ShieldAlert },
-        { id: 'abandoned_cart', label: 'Cart Reminder', icon: ShoppingCart },
-        { id: 'quote_request', label: 'Quote Request', icon: FileText },
-        { id: 'password_reset', label: 'Reset Pwd', icon: Zap },
-        { id: 'low_stock_alert', label: 'Stock Alert', icon: AlertCircle },
+        { id: 'order_delivered', label: 'Delivered', icon: PackageCheck },
+        { id: 'order_cancelled', label: 'Cancelled', icon: XCircle },
+        { id: 'order_refunded', label: 'Refunded', icon: RotateCcw },
+        { id: 'abandoned_cart', label: 'Cart reminder', icon: ShoppingCart },
+        { id: 'quote_request', label: 'Quote request', icon: FileText },
+        { id: 'admin_new_order_direct', label: 'Admin: order', icon: ShieldCheck },
+        { id: 'admin_new_order_request', label: 'Admin: quote', icon: ShieldAlert },
+        { id: 'password_reset', label: 'Password reset', icon: KeyRound },
+        { id: 'low_stock_alert', label: 'Low stock', icon: AlertCircle }
     ];
 
     const fetchTemplate = async (type: string) => {
@@ -477,7 +479,7 @@ export const EmailPreviews: React.FC = () => {
             }
         } catch (err) {
             console.error(err);
-            toast.error("Failed to load tactical template.");
+            toast.error('Failed to load template.');
         } finally {
             setIsLoading(false);
         }
@@ -493,117 +495,122 @@ export const EmailPreviews: React.FC = () => {
         try {
             const res = await apiClient.put(`/api/admin/emails/templates/${activeTab}`, formData);
             if (res.data.ok) {
-                toast.success("Template intelligence updated!");
+                toast.success('Template saved.');
             }
         } catch (err) {
             console.error(err);
-            toast.error("Failed to persist mission data.");
+            toast.error('Failed to save template.');
         } finally {
             setIsSaving(false);
         }
     };
 
-    const isShippedType = activeTab === 'order_shipped' || activeTab === 'order_cancelled' || activeTab === 'order_refunded' || activeTab === 'order_placed' || activeTab === 'abandoned_cart' || activeTab === 'quote_request' || activeTab === 'order_paid' || activeTab === 'admin_new_order_direct' || activeTab === 'admin_new_order_request';
+    const inputClass =
+        'w-full bg-page-background border border-slate-200 p-3.5 rounded-xl text-sm text-heading outline-none focus:border-accent focus:bg-white transition-colors';
 
     return (
-        <div className="min-h-screen bg-[#FDFDFD] p-6 lg:p-12">
-            <div className="max-w-[1600px] mx-auto space-y-12">
+        <div className="min-h-screen bg-page-background p-6 lg:p-12">
+            <div className="max-w-[1600px] mx-auto space-y-10">
 
-                <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
+                {/* HEADER + TABS */}
+                <div className="space-y-6">
                     <div className="space-y-1">
-                        <h1 className="text-5xl font-black italic uppercase tracking-tighter text-slate-900 leading-none">Template Commander</h1>
-                        <p className="text-slate-400 font-medium italic text-sm text-[12px] uppercase tracking-widest leading-loose">Mission-level customization of elite brand communications.</p>
+                        <h1 className="text-3xl font-semibold text-heading">Email templates</h1>
+                        <p className="text-sm text-content">Edit the content of every email your store sends and preview it live.</p>
                     </div>
 
-                    <div className="flex bg-slate-100 p-2 rounded-[25px] overflow-x-auto no-scrollbar border border-slate-200/50">
-                        {tabs.map((t) => (
-                            <button
-                                key={t.id}
-                                onClick={() => setActiveTab(t.id)}
-                                className={`flex items-center gap-3 px-6 py-3 rounded-2xl text-[10px] whitespace-nowrap font-black uppercase tracking-widest italic transition-all ${activeTab === t.id ? "bg-white text-black shadow-xl shadow-black/5 scale-[1.02]" : "text-slate-400 hover:text-black"
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                        {tabs.map((t) => {
+                            const isActive = activeTab === t.id;
+                            return (
+                                <button
+                                    key={t.id}
+                                    onClick={() => setActiveTab(t.id)}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm whitespace-nowrap border transition-colors ${
+                                        isActive
+                                            ? 'bg-heading text-white border-heading'
+                                            : 'bg-white text-content border-slate-200 hover:text-heading hover:border-slate-300'
                                     }`}
-                            >
-                                <t.icon className={`w-4 h-4 ${activeTab === t.id ? 'text-[#FF7348]' : 'text-slate-300'}`} />
-                                {t.label}
-                            </button>
-                        ))}
+                                >
+                                    <t.icon className={`w-4 h-4 ${isActive ? 'text-accent' : ''}`} />
+                                    {t.label}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-                    {/* EDITOR FORM */}
-                    <div className="lg:col-span-4 space-y-8">
-                        <div className="bg-white border border-slate-100 p-8 rounded-[40px] shadow-sm space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    {/* EDITOR */}
+                    <div className="lg:col-span-4">
+                        <div className="bg-white border border-slate-200 p-6 rounded-2xl space-y-6">
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-black text-white rounded-xl">
-                                        <FileText className="w-5 h-5" />
-                                    </div>
-                                    <h3 className="text-lg font-black italic uppercase tracking-tighter">Content Editor</h3>
-                                </div>
+                                <h3 className="text-base font-semibold text-heading">Content</h3>
                                 <button
                                     onClick={handleSave}
-                                    disabled={isSaving}
-                                    className={`flex items-center gap-2 px-6 py-3 bg-[var(--color-accent)] text-white rounded-2xl text-[10px] font-black uppercase italic tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all ${isSaving ? 'opacity-50' : 'hover:bg-orange-600'}`}
+                                    disabled={isSaving || !formData}
+                                    className={`flex items-center gap-2 px-5 py-2.5 bg-accent text-white rounded-lg text-sm font-semibold transition-opacity ${
+                                        isSaving ? 'opacity-50' : 'hover:opacity-90'
+                                    }`}
                                 >
-                                    {isSaving ? <RefreshCcw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                                    Persist
+                                    {isSaving ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    Save
                                 </button>
                             </div>
 
                             {!formData || isLoading ? (
-                                <div className="space-y-6">
-                                    <div className="h-10 bg-slate-50 animate-pulse rounded-xl" />
-                                    <div className="h-10 bg-slate-50 animate-pulse rounded-xl" />
-                                    <div className="h-32 bg-slate-50 animate-pulse rounded-xl" />
+                                <div className="space-y-5">
+                                    <div className="h-11 bg-slate-100 animate-pulse rounded-xl" />
+                                    <div className="h-11 bg-slate-100 animate-pulse rounded-xl" />
+                                    <div className="h-32 bg-slate-100 animate-pulse rounded-xl" />
                                 </div>
                             ) : (
-                                <div className="space-y-6">
+                                <div className="space-y-5">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase italic text-slate-400 px-2 flex items-center gap-2">
-                                            <Type className="w-3 h-3" /> Subject Line
+                                        <label className="text-xs font-semibold text-content flex items-center gap-2">
+                                            <Type className="w-3.5 h-3.5" /> Subject line
                                         </label>
                                         <input
                                             type="text"
                                             value={formData.subject}
                                             onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                            className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-xs font-bold outline-none focus:border-orange-500 focus:bg-white transition-all"
+                                            className={inputClass}
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase italic text-slate-400 px-2 flex items-center gap-2">
-                                            <Type className="w-3 h-3" /> Hero Heading
+                                        <label className="text-xs font-semibold text-content flex items-center gap-2">
+                                            <Type className="w-3.5 h-3.5" /> Heading
                                         </label>
                                         <input
                                             type="text"
                                             value={formData.heading}
                                             onChange={(e) => setFormData({ ...formData, heading: e.target.value })}
-                                            className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-xs font-bold outline-none focus:border-orange-500 focus:bg-white transition-all"
+                                            className={inputClass}
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase italic text-slate-400 px-2 flex items-center gap-2">
-                                            <FileText className="w-3 h-3" /> Body Directive
+                                        <label className="text-xs font-semibold text-content flex items-center gap-2">
+                                            <FileText className="w-3.5 h-3.5" /> Message
                                         </label>
                                         <textarea
                                             value={formData.body}
                                             rows={8}
                                             onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-                                            className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-xs font-bold outline-none focus:border-orange-500 focus:bg-white transition-all no-scrollbar leading-relaxed"
+                                            className={`${inputClass} no-scrollbar leading-relaxed`}
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase italic text-slate-400 px-2 flex items-center gap-2">
-                                            <Zap className="w-3 h-3" /> Button Action Text
+                                        <label className="text-xs font-semibold text-content flex items-center gap-2">
+                                            <Type className="w-3.5 h-3.5" /> Button text
                                         </label>
                                         <input
                                             type="text"
                                             value={formData.buttonText}
                                             onChange={(e) => setFormData({ ...formData, buttonText: e.target.value })}
-                                            className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-xs font-bold outline-none focus:border-orange-500 focus:bg-white transition-all"
+                                            className={inputClass}
                                         />
                                     </div>
                                 </div>
@@ -612,24 +619,21 @@ export const EmailPreviews: React.FC = () => {
                     </div>
 
                     {/* LIVE PREVIEW */}
-                    <div className="lg:col-span-8 bg-slate-100 rounded-[60px] p-8 lg:p-16 border border-slate-100 shadow-inner flex items-start justify-center relative sticky top-12 overflow-y-auto no-scrollbar h-[calc(100vh-100px)]">
-                        <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-2 bg-white rounded-full border border-slate-200 shadow-sm z-10">
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 italic">Tactical Preview</span>
-                            </div>
-                            <div className="w-px h-3 bg-slate-200" />
-                            <Eye className="w-3.5 h-3.5 text-slate-400" />
+                    <div className="lg:col-span-8 bg-slate-100 rounded-3xl p-6 lg:p-12 border border-slate-200 flex items-start justify-center relative sticky top-12 overflow-y-auto no-scrollbar h-[calc(100vh-100px)]">
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-1.5 bg-white rounded-full border border-slate-200 z-10">
+                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                            <span className="text-xs font-medium text-content">Live preview</span>
+                            <Eye className="w-3.5 h-3.5 text-content" />
                         </div>
 
                         <div className="w-full mt-10">
                             {!formData ? (
-                                <div className="flex flex-col items-center justify-center pt-40 gap-4 opacity-20">
-                                    <RefreshCcw className="w-12 h-12 animate-spin" />
-                                    <p className="text-sm font-black uppercase italic">Extracting Intel...</p>
+                                <div className="flex flex-col items-center justify-center pt-40 gap-3 opacity-30">
+                                    <RefreshCcw className="w-8 h-8 animate-spin" />
+                                    <p className="text-sm">Loading preview…</p>
                                 </div>
                             ) : (
-                                <EmailWrapper hideHeader={isShippedType}>
+                                <EmailWrapper>
                                     <DynamicTemplate type={activeTab} data={formData} />
                                 </EmailWrapper>
                             )}

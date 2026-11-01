@@ -82,6 +82,7 @@ export interface Model3D {
   thumbnailUrl?: string;
   isActive: boolean;
   printZones: PrintZone[];
+  defaultColors?: Record<string, string>;
   createdAt: string;
   product_id?: string;
   productId?: string;

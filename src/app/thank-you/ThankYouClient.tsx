@@ -23,6 +23,7 @@ export default function ThankYouClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderId = searchParams.get("orderId");
+  const is3DQuote = searchParams.get("type") === "3d-quote";
   const { width, height } = useWindowSize();
   const [showConfetti, setShowConfetti] = useState(true);
 
@@ -58,7 +59,7 @@ export default function ThankYouClient() {
             transition={{ delay: 0.2 }}
             className="text-4xl md:text-6xl font-black uppercase tracking-tighter italic text-slate-900 mb-4"
           >
-            Order Confirmed
+            {is3DQuote ? "Quote Request Received" : "Order Confirmed"}
           </motion.h1>
 
           <motion.p
@@ -67,7 +68,9 @@ export default function ThankYouClient() {
             transition={{ delay: 0.3 }}
             className="text-lg text-slate-500 font-bold uppercase tracking-widest mb-8"
           >
-            Welcome to the Athletic Force 1 Family
+            {is3DQuote
+              ? "Your 3D design has been sent to the AF1 team"
+              : "Welcome to the Athletic Force 1 Family"}
           </motion.p>
 
           {orderId && (
@@ -78,7 +81,7 @@ export default function ThankYouClient() {
               className="inline-block bg-slate-50 border border-slate-200 rounded-2xl px-6 py-3 mb-10"
             >
               <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                Order Reference: <span className="text-slate-900 ml-1">#{orderId}</span>
+                {is3DQuote ? "Quote Reference" : "Order Reference"}: <span className="text-slate-900 ml-1">#{orderId}</span>
               </p>
             </motion.div>
           )}
@@ -93,7 +96,7 @@ export default function ThankYouClient() {
               href="/account?tab=orders"
               className="w-full sm:w-auto px-10 py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-orange-600 transition-all shadow-xl shadow-slate-200 active:scale-95 flex items-center justify-center gap-3"
             >
-              View Order Status
+              {is3DQuote ? "View Request Status" : "View Order Status"}
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
@@ -114,21 +117,21 @@ export default function ThankYouClient() {
             {
               icon: Mail,
               title: "Email Confirmed",
-              desc: "Check your inbox for your order summary and receipt.",
+              desc: is3DQuote ? "Check your inbox for the design summary and quote request details." : "Check your inbox for your order summary and receipt.",
               color: "text-blue-500",
               bgColor: "bg-blue-50"
             },
             {
               icon: Package,
-              title: "Processing Gear",
-              desc: "Our team is prepping your uniforms for deployment.",
+              title: is3DQuote ? "Design Review" : "Processing Gear",
+              desc: is3DQuote ? "Our design team is reviewing your colors, logos, text, and quantity." : "Our team is prepping your uniforms for deployment.",
               color: "text-orange-500",
               bgColor: "bg-orange-50"
             },
             {
               icon: Truck,
-              title: "Fast Shipment",
-              desc: "You'll get a tracking number as soon as it ships.",
+              title: is3DQuote ? "Quote Follow-up" : "Fast Shipment",
+              desc: is3DQuote ? "An AF1 advisor will contact you with pricing and next steps." : "You'll get a tracking number as soon as it ships.",
               color: "text-green-500",
               bgColor: "bg-green-50"
             }

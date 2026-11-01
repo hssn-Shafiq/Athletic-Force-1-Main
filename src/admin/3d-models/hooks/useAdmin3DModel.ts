@@ -25,6 +25,7 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
   const [view, setView] = useState<"list" | "select_product" | "editor">(initialView);
   const [editingModel, setEditingModel] = useState<Partial<Model3D> | null>(null);
   const [zones, setZones] = useState<PrintZone[]>([]);
+  const [defaultColors, setDefaultColors] = useState<Record<string, string>>({});
   const [materials, setMaterials] = useState<MaterialInfo[]>([]);
   const [activeMaterial, setActiveMaterial] = useState<string | null>(null);
   const [activeMeshName, setActiveMeshName] = useState<string | null>(null);
@@ -307,6 +308,7 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
       resetEditor();
       if (model) {
         setEditingModel(model);
+        setDefaultColors(model.defaultColors ?? {});
         const normalized = (model.printZones || []).map((z) => normalizeZone(z));
         setZones(normalized);
         setPreviewUrl(model.modelUrl);
@@ -335,6 +337,7 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
           product: selectedProduct as any,
         });
         setZones([]);
+        setDefaultColors({});
         setPreviewUrl(null);
         setModelUrlInput("");
       }
@@ -347,6 +350,7 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
   const loadModel = useCallback((url: string) => {
     resetEditor();
     setZones([]);
+    setDefaultColors({});
     setPreviewUrl(url);
     setIsModelLoading(true);
     setModelKey((k) => k + 1);
@@ -571,6 +575,7 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
         name: editingModel.name,
         description: editingModel.description,
         isActive: editingModel.isActive ?? true,
+        defaultColors,
         printZones: zones,
         ...(editingModel.product_id ? { product_id: editingModel.product_id } : {}),
         ...(snapshotUrl ? { thumbnailUrl: snapshotUrl } : {}),
@@ -651,6 +656,8 @@ export function useAdmin3DModel(initialView: "list" | "select_product" | "editor
     editingModel,
     setEditingModel,
     zones,
+    defaultColors,
+    setDefaultColors,
     materials,
     activeMaterial,
     setActiveMaterial,
