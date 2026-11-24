@@ -118,7 +118,7 @@ export default async function SubCollectionPage({ params }: Props) {
   const [productRes, hierarchyRes] = await Promise.all([
     getExploreProductsApi({
       collection: subCategoryId,
-      pageSize: 40,
+      pageSize: 12,
       sortBy: "series-low-high",
     }),
     getCollectionHierarchyApi(),
@@ -131,6 +131,8 @@ export default async function SubCollectionPage({ params }: Props) {
     <SubCollectionClient
       initialProducts={initialProducts as any}
       initialHierarchy={initialHierarchy as any}
+      initialTotal={productRes.ok ? productRes.pagination?.total : 0}
+      initialTotalPages={productRes.ok ? productRes.pagination?.totalPages : 1}
     />
   );
 }
