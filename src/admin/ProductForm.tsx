@@ -2382,18 +2382,23 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
               </div>
 
               {/* Modal toolbar */}
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
-                <div className="relative flex-1 min-w-0">
+              <div className="px-6 py-4 border-b border-gray-100 grid grid-cols-1 md:grid-cols-[minmax(220px,1fr)_160px_auto] items-center gap-3 overflow-hidden">
+                <div className="relative min-w-0">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input type="text" value={mediaSearch}
                     onChange={(e) => { setMediaSearch(e.target.value); void fetchMedia({ search: e.target.value, sort: mediaSort }); }}
                     placeholder="Search images…"
                     className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10" />
                 </div>
-                <FieldSelect value={mediaSort} onChange={(e) => { const s = e.target.value as 'new' | 'old'; setMediaSort(s); void fetchMedia({ search: mediaSearch, sort: s }); }} className="w-40 shrink-0">
+                <select
+                  value={mediaSort}
+                  onChange={(e) => { const s = e.target.value as 'new' | 'old'; setMediaSort(s); void fetchMedia({ search: mediaSearch, sort: s }); }}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10 bg-white"
+                  aria-label="Sort media"
+                >
                   <option value="new">Newest first</option>
                   <option value="old">Oldest first</option>
-                </FieldSelect>
+                </select>
                 <label className="flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 transition-all cursor-pointer">
                   <Upload size={14} /> Upload
                   <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple
