@@ -79,7 +79,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
             src={product.image}
             alt={product.title}
             loading="lazy"
-            className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
+            className="w-full h-full object-contain rounded-xl sm:rounded-[32px] mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
           />
         </Link>
 
@@ -114,7 +114,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenQuickVi
           </div>
         </div>
         <Link href={productHref} className="block">
-          <h3 className="font-bold text-slate-900 text-[13px] sm:text-lg leading-tight mb-1 sm:mb-3 group-hover:text-[#FF7348] transition-colors line-clamp-2">
+          <h3 className="font-bold text-slate-900 text-[13px] sm:text-lg leading-tight mb-1 sm:mb-3 group-hover:text-[#FF7348] transition-colors line-clamp-3">
             {product.title}
           </h3>
         </Link>

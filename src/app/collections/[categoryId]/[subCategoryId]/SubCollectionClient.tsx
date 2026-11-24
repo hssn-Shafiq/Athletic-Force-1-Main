@@ -124,7 +124,7 @@ export default function SubCollectionClient({
   const [isLoading, setIsLoading] = useState(initialProducts.length === 0);
   const [hasInitialData, setHasInitialData] = useState(initialProducts.length > 0);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
+  const [sortBy, setSortBy] = useState("series-low-high");
   const [priceRange, setPriceRange] = useState<number>(1400);
   const [quickViewProduct, setQuickViewProduct] = useState<PublicProduct | null>(null);
   const [expandedParents, setExpandedParents] = useState<string[]>(() => {
@@ -280,7 +280,7 @@ export default function SubCollectionClient({
                   onClick={() => toggleParent(parent.id)}
                   className={`cursor-pointer text-xs font-black uppercase tracking-wider transition-all ${parent.id === parentData?.id ? 'text-[#ff7348]' : 'text-black group-hover:text-[#ff7348]'}`}
                 >
-                  {parent.name}
+                  {parent.name} <span className="text-[9px] font-bold opacity-40 ml-1">({parent.productCount || 0})</span>
                 </span>
                 <button
                   type="button"
@@ -436,6 +436,8 @@ export default function SubCollectionClient({
                     {isSortOpen && (
                       <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-2xl z-50 overflow-hidden py-2 animate-in fade-in slide-in-from-top-2">
                         {[
+                          { value: 'series-low-high', label: 'Series: Low to High' },
+                          { value: 'series-high-low', label: 'Series: High to Low' },
                           { value: 'newest', label: 'Newest First' },
                           { value: 'most-selling', label: 'Best Sellers' },
                           { value: 'price-low-high', label: 'Price: Low to High' },

@@ -155,6 +155,7 @@ export type CollectionHierarchy = {
   id: string;
   name: string;
   slug: string;
+  productCount?: number;
   subcategories: CollectionHierarchyNode[];
 };
 

@@ -490,9 +490,13 @@ export function useProductForm(productId?: string) {
       const toAdd: string[] = [];
       prev.forEach((id) => {
         const col = collections.find((c) => c.id === id);
-        const parentId = typeof col?.parentId === 'string' ? col.parentId : null;
-        if (parentId && !prev.includes(parentId) && !toAdd.includes(parentId)) {
-          toAdd.push(parentId);
+        let ancestorId = typeof col?.parentId === 'string' ? col.parentId : null;
+        while (ancestorId) {
+          if (!prev.includes(ancestorId) && !toAdd.includes(ancestorId)) {
+            toAdd.push(ancestorId);
+          }
+          const ancestor = collections.find((entry) => entry.id === ancestorId);
+          ancestorId = typeof ancestor?.parentId === 'string' ? ancestor.parentId : null;
         }
       });
 
@@ -1308,34 +1312,63 @@ export function useProductForm(productId?: string) {
 
       if (prev.includes(collectionId)) {
         // --- Deselecting ---
-        // Block deselecting a parent that is being held by an active sub
+        // Block deselecting a parent or ancestor that is being held by an active descendant
         if (!col?.parentId) {
-          const hasActiveSub = prev.some((id) => {
+          const hasActiveDescendant = prev.some((id) => {
             const c = collections.find((c) => c.id === id);
-            return c?.parentId === collectionId;
+            if (!c) return false;
+            let ancestorId = typeof c.parentId === 'string' ? c.parentId : null;
+            while (ancestorId) {
+              if (ancestorId === collectionId) return true;
+              ancestorId = typeof collections.find((entry) => entry.id === ancestorId)?.parentId === 'string'
+                ? collections.find((entry) => entry.id === ancestorId)?.parentId as string
+                : null;
+            }
+            return false;
           });
-          if (hasActiveSub) return prev; // silently block — sub will handle parent removal
+          if (hasActiveDescendant) return prev;
         }
 
         const next = prev.filter((id) => id !== collectionId);
 
-        // If this was a sub, auto-remove its parent if no other selected subs still need it
+        // If this was a descendant, remove ancestors that no other selected descendant needs.
         if (col?.parentId) {
-          const stillNeedsParent = next.some((id) => {
-            const c = collections.find((c) => c.id === id);
-            return c?.parentId === col.parentId;
-          });
-          if (!stillNeedsParent) {
-            return next.filter((id) => id !== col.parentId);
+          let ancestorId = typeof col.parentId === 'string' ? col.parentId : null;
+          while (ancestorId) {
+            const stillNeeded = next.some((id) => {
+              if (id === ancestorId) return false;
+              const selected = collections.find((entry) => entry.id === id);
+              let currentAncestor = typeof selected?.parentId === 'string' ? selected.parentId : null;
+              while (currentAncestor) {
+                if (currentAncestor === ancestorId) return true;
+                currentAncestor = typeof collections.find((entry) => entry.id === currentAncestor)?.parentId === 'string'
+                  ? collections.find((entry) => entry.id === currentAncestor)?.parentId as string
+                  : null;
+              }
+              return false;
+            });
+            if (stillNeeded) break;
+            const ancestorIndex = next.indexOf(ancestorId);
+            if (ancestorIndex >= 0) next.splice(ancestorIndex, 1);
+            const ancestor = collections.find((entry) => entry.id === ancestorId);
+            ancestorId = typeof ancestor?.parentId === 'string' ? ancestor.parentId : null;
           }
         }
         return next;
       }
 
       // --- Selecting ---
-      // If selecting a sub, auto-add its parent if not already included
-      if (col?.parentId && !prev.includes(col.parentId)) {
-        return [...prev, collectionId, col.parentId];
+      // If selecting a descendant, auto-add every ancestor in the hierarchy.
+      if (col?.parentId) {
+        const next = [...prev];
+        if (!next.includes(collectionId)) next.push(collectionId);
+        let ancestorId = typeof col.parentId === 'string' ? col.parentId : null;
+        while (ancestorId) {
+          if (!next.includes(ancestorId)) next.push(ancestorId);
+          const ancestor = collections.find((entry) => entry.id === ancestorId);
+          ancestorId = typeof ancestor?.parentId === 'string' ? ancestor.parentId : null;
+        }
+        return next;
       }
       return [...prev, collectionId];
     });

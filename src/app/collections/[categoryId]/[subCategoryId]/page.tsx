@@ -119,7 +119,7 @@ export default async function SubCollectionPage({ params }: Props) {
     getExploreProductsApi({
       collection: subCategoryId,
       pageSize: 40,
-      sortBy: "newest",
+      sortBy: "series-low-high",
     }),
     getCollectionHierarchyApi(),
   ]);

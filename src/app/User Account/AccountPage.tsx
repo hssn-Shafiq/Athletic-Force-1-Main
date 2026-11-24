@@ -200,8 +200,56 @@ const OrdersView = () => {
               </div>
             </div>
 
+            {selectedOrder.source === '3d-customizer' && selectedOrder.customization3d && (
+              <div className="bg-slate-900 text-white rounded-[32px] p-8 shadow-2xl space-y-8">
+                <div>
+                  <h3 className="text-xl font-black uppercase tracking-tighter italic text-orange-400">3D Design Details</h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-2">
+                    {selectedOrder.customization3d.modelName} · Quantity {selectedOrder.customization3d.quantity}
+                  </p>
+                </div>
+
+                {selectedOrder.customization3d.previewImages?.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {selectedOrder.customization3d.previewImages.map((preview: any) => (
+                      <div key={preview.view} className="space-y-2">
+                        <div className="aspect-square rounded-2xl bg-white overflow-hidden border border-white/10">
+                          <img src={preview.url} alt={`${preview.view} design preview`} className="w-full h-full object-contain" />
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest text-center">{preview.view}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedOrder.customization3d.colorDetails?.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3">Garment Colors</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {selectedOrder.customization3d.colorDetails.map((color: any) => (
+                        <div key={`${color.part}-${color.hex}`} className="flex items-center justify-between gap-3 rounded-xl bg-white/5 px-3 py-2">
+                          <span className="text-xs font-bold text-slate-200 truncate">{color.part}</span>
+                          <span className="flex items-center gap-2 text-[10px] text-slate-400 font-mono uppercase shrink-0">
+                            <span className="w-3 h-3 rounded-full border border-white/30" style={{ backgroundColor: color.hex }} />
+                            {color.name || color.hex}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedOrder.notes && (
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Your Notes</p>
+                    <p className="text-sm text-slate-300 whitespace-pre-wrap">{selectedOrder.notes}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Customization Dossier (Only for Requests) */}
-            {selectedOrder.type === 'request' && (
+            {selectedOrder.type === 'request' && selectedOrder.source !== '3d-customizer' && (
               <div className="bg-[#141414] text-white rounded-[32px] p-8 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
                   <Package className="w-32 h-32 rotate-12" />
@@ -365,7 +413,7 @@ const OrdersView = () => {
                     <div>
                       <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest italic">Total</p>
                       <p className="font-black text-sm italic tracking-tighter text-orange-600 mt-1">
-                        {order.type === 'request' ? 'QUOTE PENDING' : `$${order.total.toFixed(2)}`}
+                          {order.source === '3d-customizer' ? '3D QUOTE' : order.type === 'request' ? 'QUOTE PENDING' : `$${Number(order.total || 0).toFixed(2)}`}
                       </p>
                     </div>
                     <div>
@@ -382,9 +430,9 @@ const OrdersView = () => {
 
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                   <div className="flex -space-x-4">
-                    {order.items.slice(0, 4).map((item: any, idx: number) => (
+                    {(order.items.length ? order.items : [{ imageUrl: order.customization3d?.previewImages?.[0]?.url, name: order.customization3d?.modelName }]).slice(0, 4).map((item: any, idx: number) => (
                       <div key={idx} className="w-16 h-16 rounded-2xl bg-slate-50 border-4 border-white overflow-hidden shadow-sm ring-1 ring-slate-100 shrink-0">
-                        <img src={item.imageUrl || '/placeholder.png'} className="w-full h-full object-cover" alt={item.name} />
+                        <img src={item.imageUrl || '/placeholder.png'} className="w-full h-full object-cover" alt={item.name || 'Order preview'} />
                       </div>
                     ))}
                     {order.items.length > 4 && (
@@ -819,7 +867,7 @@ export const AccountPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#FDFDFD] pt-8 pb-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row gap-12">
+          <div className="flex flex-col lg:flex-row lg:items-start gap-12">
             <aside className="lg:w-80 shrink-0">
               <Skeleton className="h-[400px] w-full rounded-[40px]" />
             </aside>
@@ -864,8 +912,8 @@ export const AccountPage: React.FC = () => {
         <div className="flex flex-col lg:flex-row gap-12">
 
           {/* Sidebar / Mobile Nav */}
-          <aside className="lg:w-80 shrink-0 space-y-8">
-            <div className="bg-white rounded-[40px] p-4 lg:p-8 border border-slate-100 shadow-sm space-y-8 lg:sticky lg:top-32 overflow-hidden">
+          <aside className="lg:w-80 shrink-0 space-y-8 lg:sticky lg:top-8">
+            <div className="bg-white rounded-[40px] p-4 lg:p-8 border border-slate-100 shadow-sm space-y-8 overflow-hidden">
               <div className="hidden lg:flex items-center gap-4">
                 <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center -rotate-3 shadow-lg">
                   <span className="text-white text-2xl font-black italic">{initials}</span>
@@ -910,7 +958,7 @@ export const AccountPage: React.FC = () => {
           </aside>
 
           {/* Main Content Area */}
-          <main className="flex-1 space-y-8">
+          <main className="min-w-0 flex-1 space-y-8 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:pr-3 lg:pb-24 overscroll-contain">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
