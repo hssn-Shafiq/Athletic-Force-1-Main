@@ -1,14 +1,13 @@
-
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { X, Search, Loader2, Upload } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Loader2, Search, Upload, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
   listAdminMedia,
   signAdminMediaUpload,
   uploadImageWithSignature,
-  type AdminMediaItem
+  type AdminMediaItem,
 } from '@/lib/api/media';
 
 interface MediaLibraryModalProps {
@@ -24,35 +23,35 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
   onClose,
   onSelect,
   folder = 'af1/products',
-  title = "Media Library"
+  title = 'Media Library',
 }) => {
   const [mediaItems, setMediaItems] = useState<AdminMediaItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'new' | 'old'>('new');
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchMedia();
-    }
-  }, [isOpen, folder]);
 
   const fetchMedia = async () => {
     setIsLoading(true);
     try {
       const response = await listAdminMedia({ prefix: folder, pageSize: 100 });
       setMediaItems(response.items || []);
-    } catch (err) {
-      toast.error('Unable to load tactical media assets.');
+    } catch {
+      toast.error('Unable to load media assets.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (isOpen) {
+      void fetchMedia();
+    }
+  }, [isOpen, folder]);
+
   const handleUpload = async (files: FileList | null) => {
-    if (!files || !files.length) return;
+    if (!files?.length) return;
 
     setIsUploading(true);
     setUploadProgress(0);
@@ -63,24 +62,27 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
       for (const file of batch) {
         const signed = await signAdminMediaUpload(folder);
         await uploadImageWithSignature(file, signed, (percent) => {
-          const aggregate = Math.min(99, Math.round(((finished + percent / 100) / batch.length) * 100));
+          const aggregate = Math.min(
+            99,
+            Math.round(((finished + percent / 100) / batch.length) * 100)
+          );
           setUploadProgress(aggregate);
         });
         finished += 1;
         setUploadProgress(Math.round((finished / batch.length) * 100));
       }
       toast.success(`Upload successful: ${batch.length} assets deployed.`);
-      fetchMedia();
-    } catch (err) {
-      toast.error('Tactical failure during media deployment.');
+      await fetchMedia();
+    } catch {
+      toast.error('Media upload failed.');
     } finally {
       setIsUploading(false);
     }
   };
 
   const filteredItems = mediaItems
-    .filter(item =>
-      item.publicId.toLowerCase().includes(searchQuery.toLowerCase())
+    .filter((item) =>
+      item.publicId.toLowerCase().includes(searchQuery.trim().toLowerCase())
     )
     .sort((a, b) => {
       const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -91,103 +93,120 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm p-4 flex items-center justify-center animate-in fade-in duration-200">
-      <div className="w-full max-w-6xl max-h-[90vh] overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl flex flex-col scale-100 animate-in zoom-in-95 duration-200">
-
-        {/* Header */}
-        <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between gap-4 bg-slate-50/50">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[90vh] w-full max-w-6xl scale-100 flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-center justify-between gap-4 border-b border-slate-100 bg-slate-50/50 px-8 py-6">
           <div>
-            <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900">{title}</h3>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Tactical Asset Command & Deployment</p>
+            <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900">
+              {title}
+            </h3>
+            <p className="mt-0.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Upload once, reuse across products
+            </p>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-white transition-all shadow-sm"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 shadow-sm transition-all hover:bg-white"
+            aria-label="Close media library"
           >
-            <X className="w-5 h-5 text-slate-400" />
+            <X className="h-5 w-5 text-slate-400" />
           </button>
         </div>
 
-        {/* Toolbar */}
-        <div className="px-4 sm:px-8 py-5 border-b border-slate-100 bg-white">
+        <div className="border-b border-slate-100 bg-white px-4 py-4 sm:px-8">
           <div className="flex w-full items-center gap-3">
             <div className="relative min-w-0 flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-300" />
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-11 pl-12 pr-4 bg-slate-50 border border-slate-200 focus:border-slate-300 rounded-xl text-xs font-bold outline-none"
-                placeholder="Search assets by Public ID..."
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-xs font-bold outline-none focus:border-slate-300"
+                placeholder="Search images..."
+                aria-label="Search media"
               />
             </div>
+
             <select
               value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as 'new' | 'old')}
+              onChange={(event) => setSortOrder(event.target.value as 'new' | 'old')}
               className="h-11 w-40 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold outline-none"
               aria-label="Sort media"
             >
               <option value="new">Newest first</option>
               <option value="old">Oldest first</option>
             </select>
-            <label className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-black px-5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-black/10 transition-all hover:scale-105 active:scale-95 cursor-pointer">
-              <Upload className="w-4 h-4" />
+
+            <label className="flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-black px-5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-black/10 transition-all hover:scale-105 active:scale-95">
+              <Upload className="h-4 w-4" />
               Upload
               <input
                 type="file"
                 multiple
                 accept="image/*"
-                onChange={(e) => handleUpload(e.target.files)}
+                onChange={(event) => void handleUpload(event.target.files)}
                 className="hidden"
               />
             </label>
           </div>
         </div>
 
-        {/* Progress Bar */}
         {isUploading && (
-          <div className="px-8 py-3 bg-orange-50 border-b border-orange-100 flex items-center gap-4">
-            <div className="flex-1 h-2 bg-orange-200/50 rounded-full overflow-hidden">
-              <div className="h-full bg-orange-500 transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+          <div className="flex items-center gap-4 border-b border-orange-100 bg-orange-50 px-8 py-3">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-orange-200/50">
+              <div
+                className="h-full bg-orange-500 transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
             </div>
-            <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest whitespace-nowrap">Deploying: {uploadProgress}%</span>
+            <span className="whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-orange-600">
+              Uploading: {uploadProgress}%
+            </span>
           </div>
         )}
 
-        {/* Media Grid */}
-        <div className="flex-1 overflow-auto p-8 bg-white">
+        <div className="flex-1 overflow-auto bg-white p-8">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-full py-20">
-              <Loader2 className="w-12 h-12 text-slate-200 animate-spin mb-4" />
-              <p className="text-xs font-black uppercase tracking-widest text-slate-300">Synchronizing Vault...</p>
+            <div className="flex h-full flex-col items-center justify-center py-20">
+              <Loader2 className="mb-4 h-12 w-12 animate-spin text-slate-200" />
+              <p className="text-xs font-black uppercase tracking-widest text-slate-300">
+                Loading media...
+              </p>
             </div>
           ) : filteredItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full py-20 border-2 border-dashed border-slate-50 rounded-[32px]">
-              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-                <Upload className="w-8 h-8 text-slate-200" />
+            <div className="flex h-full flex-col items-center justify-center rounded-[32px] border-2 border-dashed border-slate-100 py-20">
+              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-slate-50">
+                <Upload className="h-8 w-8 text-slate-200" />
               </div>
-              <h4 className="text-sm font-black uppercase italic text-slate-900">No Assets Identified</h4>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center max-w-[240px]">
-                Upload new tactical images or clear your search to view the library.
+              <h4 className="text-sm font-black uppercase italic text-slate-900">
+                No assets found
+              </h4>
+              <p className="mt-1 max-w-[240px] text-center text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Upload new images or clear your search.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {filteredItems.map((item) => (
                 <button
                   key={item.publicId}
+                  type="button"
                   onClick={() => onSelect(item)}
-                  className="group relative flex flex-col rounded-2xl border border-slate-100 bg-white overflow-hidden hover:border-orange-500/50 hover:shadow-2xl hover:shadow-orange-500/10 transition-all duration-300"
+                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white transition-all duration-300 hover:border-orange-500/50 hover:shadow-2xl hover:shadow-orange-500/10"
                 >
                   <div className="aspect-square w-full overflow-hidden bg-slate-50">
-                    <img src={item.secureUrl} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <img
+                      src={item.secureUrl}
+                      alt=""
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
                   </div>
-                  <div className="p-3 border-t border-slate-50">
-                    <p className="text-[9px] font-bold text-slate-400 truncate uppercase tracking-widest group-hover:text-slate-900 transition-colors">
+                  <div className="border-t border-slate-50 p-3">
+                    <p className="truncate text-[9px] font-bold uppercase tracking-widest text-slate-400 transition-colors group-hover:text-slate-900">
                       {item.publicId.split('/').pop()}
                     </p>
                   </div>
-                  <div className="absolute inset-0 bg-orange-600/0 group-hover:bg-orange-600/5 transition-all" />
                 </button>
               ))}
             </div>
