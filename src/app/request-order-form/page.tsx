@@ -28,7 +28,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'react-toastify';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -97,6 +97,7 @@ export default function RequestOrderFormPage() {
 
 function RequestOrderFormContent() {
     const { user, isAuthenticated } = useAuth();
+    const router = useRouter();
     const searchParams = useSearchParams();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
@@ -418,6 +419,17 @@ function RequestOrderFormContent() {
     }
 
     const selectedCategory = hierarchy.find(c => c.name === form.category);
+    const categoryOptions = hierarchy.filter(c =>
+        c.slug === 'accessories' ||
+        c.slug === 'custom-uniforms' ||
+        c.slug === 'custom-uniform' ||
+        c.slug === 'custom-unforms' ||
+        c.name.toLowerCase().includes('uniform')
+    );
+    const hasPrefilledCategoryOption = form.category && !categoryOptions.some(c => c.name === form.category);
+    const hasPrefilledSubcategoryOption = form.subcategory &&
+        !selectedCategory?.subcategories.some(s => s.name === form.subcategory);
+    const hasPrefilledProductOption = form.product && !products.some(p => p.name === form.product);
 
     return (
         <div className="min-h-screen bg-[#FDFDFD]">
@@ -427,9 +439,19 @@ function RequestOrderFormContent() {
                     CUSTOM
                 </div>
                 <div className="max-w-4xl mx-auto relative z-10 space-y-4 text-center">
-                    <Link href="/" className="inline-flex items-center gap-2 text-orange-500 font-black uppercase italic text-xs mb-8 hover:text-orange-400 transition-colors">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (window.history.length > 1) {
+                                router.back();
+                            } else {
+                                router.push('/');
+                            }
+                        }}
+                        className="inline-flex items-center gap-2 text-orange-500 font-black uppercase italic text-xs mb-8 hover:text-orange-400 transition-colors cursor-pointer"
+                    >
                         <ArrowLeft className="w-4 h-4" /> Exit to Storefront
-                    </Link>
+                    </button>
                     <h1 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.85] animate-in slide-in-from-bottom duration-700">
                         Tactical <br /> <span className="text-orange-500">Customization</span>
                     </h1>
@@ -503,15 +525,10 @@ function RequestOrderFormContent() {
                                             className={`w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-xs font-bold outline-none focus:border-orange-500 focus:bg-white transition-all appearance-none ${isLoadingHierarchy ? 'opacity-50' : ''}`}
                                         >
                                             <option value="">— Select Category —</option>
-                                            {hierarchy
-                                                .filter(c =>
-                                                    c.slug === 'accessories' ||
-                                                    c.slug === 'custom-uniforms' ||
-                                                    c.slug === 'custom-uniform' ||
-                                                     c.slug === 'custom-unforms' ||
-                                                    c.name.toLowerCase().includes('uniform')
-                                                )
-                                                .map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                            {hasPrefilledCategoryOption && (
+                                                <option value={form.category}>{form.category}</option>
+                                            )}
+                                            {categoryOptions.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                                         </select>
                                         {isLoadingHierarchy && <Skeleton className="absolute inset-0 rounded-2xl" />}
                                     </div>
@@ -530,6 +547,9 @@ function RequestOrderFormContent() {
                                             className={`w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-xs font-bold outline-none focus:border-orange-500 focus:bg-white transition-all appearance-none ${(!form.category || isLoadingHierarchy) ? 'opacity-50' : ''}`}
                                         >
                                             <option value="">— Select Subcategory —</option>
+                                            {hasPrefilledSubcategoryOption && (
+                                                <option value={form.subcategory}>{form.subcategory}</option>
+                                            )}
                                             {selectedCategory?.subcategories.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                                         </select>
                                     </div>
@@ -548,6 +568,9 @@ function RequestOrderFormContent() {
                                             className={`w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-xs font-bold outline-none focus:border-orange-500 focus:bg-white transition-all appearance-none ${(!form.subcategory || isLoadingProducts) ? 'opacity-50' : ''}`}
                                         >
                                             <option value="">— Select Product —</option>
+                                            {hasPrefilledProductOption && (
+                                                <option value={form.product}>{form.product}</option>
+                                            )}
                                             {products.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
                                         </select>
                                         {isLoadingProducts && <div className="absolute inset-y-0 right-4 flex items-center"><Loader2 className="w-4 h-4 animate-spin text-orange-600" /></div>}

@@ -78,7 +78,7 @@ export default async function CollectionsCategoryPage({ params }: PageProps) {
 
       // ── LEAF COLLECTION: no children → show products directly ───────────────
       const [productRes, hierarchyRes] = await Promise.all([
-        getExploreProductsApi({ collection: categoryId, pageSize: 40, sortBy: 'newest' }),
+        getExploreProductsApi({ collection: categoryId, pageSize: 40, sortBy: 'series-low-high' }),
         getCollectionHierarchyApi(),
       ]);
 

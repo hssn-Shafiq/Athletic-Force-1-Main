@@ -2,7 +2,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Plus,
@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   Package,
   Columns3,
-  MessageSquare
+  MessageSquare,
+  ChevronDown
 } from 'lucide-react';
 import { deleteAdminProductApi, getAdminProductCollectionsApi, getAdminProductsApi } from '@/lib/api/products';
 import { AdminProduct, ProductCollectionOption } from '@/lib/api/types';
@@ -24,6 +25,55 @@ import { toast } from 'react-toastify';
 import { ReviewModerationModal } from './components/ReviewModerationModal';
 
 type ColumnKey = 'product' | 'sku' | 'type' | 'price' | 'stock' | 'status' | 'actions';
+
+const PRODUCT_LIST_FILTERS_KEY = 'admin-product-list-filters';
+
+type ProductListFilterState = {
+  search: string;
+  status: '' | 'active' | 'draft' | 'archived';
+  stock: '' | 'in-stock' | 'out-of-stock' | 'low-stock';
+  collectionId: string;
+  sortBy: 'createdAt' | 'updatedAt' | 'name' | 'basePrice';
+  sortDir: 'asc' | 'desc';
+  page: number;
+};
+
+function getSavedProductListFilters(): ProductListFilterState {
+  if (typeof window === 'undefined') {
+    return {
+      search: '',
+      status: '',
+      stock: '',
+      collectionId: '',
+      sortBy: 'createdAt',
+      sortDir: 'desc',
+      page: 1,
+    };
+  }
+
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(PRODUCT_LIST_FILTERS_KEY) || '{}');
+    return {
+      search: typeof saved.search === 'string' ? saved.search : '',
+      status: saved.status || '',
+      stock: saved.stock || '',
+      collectionId: typeof saved.collectionId === 'string' ? saved.collectionId : '',
+      sortBy: saved.sortBy || 'createdAt',
+      sortDir: saved.sortDir || 'desc',
+      page: Number.isInteger(saved.page) && saved.page > 0 ? saved.page : 1,
+    };
+  } catch {
+    return {
+      search: '',
+      status: '',
+      stock: '',
+      collectionId: '',
+      sortBy: 'createdAt',
+      sortDir: 'desc',
+      page: 1,
+    };
+  }
+}
 
 const DEFAULT_COLUMN_VISIBILITY: Record<ColumnKey, boolean> = {
   product: true,
@@ -36,17 +86,21 @@ const DEFAULT_COLUMN_VISIBILITY: Record<ColumnKey, boolean> = {
 };
 
 export const AdminProductList: React.FC = () => {
+  const savedFilters = useMemo(() => getSavedProductListFilters(), []);
   const router = useRouter();
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState(savedFilters.search);
+  const [debouncedSearch, setDebouncedSearch] = useState(savedFilters.search);
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [collections, setCollections] = useState<ProductCollectionOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<'active' | 'draft' | 'archived' | ''>('');
-  const [stockFilter, setStockFilter] = useState<'in-stock' | 'out-of-stock' | 'low-stock' | ''>('');
-  const [collectionFilter, setCollectionFilter] = useState('');
-  const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt' | 'name' | 'basePrice'>('createdAt');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<'active' | 'draft' | 'archived' | ''>(savedFilters.status);
+  const [stockFilter, setStockFilter] = useState<'in-stock' | 'out-of-stock' | 'low-stock' | ''>(savedFilters.stock);
+  const [collectionFilter, setCollectionFilter] = useState(savedFilters.collectionId);
+  const [isCollectionDropdownOpen, setIsCollectionDropdownOpen] = useState(false);
+  const [collectionSearch, setCollectionSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt' | 'name' | 'basePrice'>(savedFilters.sortBy);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(savedFilters.sortDir);
+  const [page, setPage] = useState(savedFilters.page);
   const [pageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -55,12 +109,33 @@ export const AdminProductList: React.FC = () => {
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
   const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
   const [selectedProductForReviews, setSelectedProductForReviews] = useState<{ id: string; name: string } | null>(null);
+  const skipInitialFilterResetRef = useRef(true);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+    }, 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput]);
+
+  useEffect(() => {
+    const filterState: ProductListFilterState = {
+      search: searchInput,
+      status: statusFilter,
+      stock: stockFilter,
+      collectionId: collectionFilter,
+      sortBy,
+      sortDir,
+      page,
+    };
+    sessionStorage.setItem(PRODUCT_LIST_FILTERS_KEY, JSON.stringify(filterState));
+  }, [searchInput, statusFilter, stockFilter, collectionFilter, sortBy, sortDir, page]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadCollections() {
-      const response = await getAdminProductCollectionsApi({ page: 1, pageSize: 200 });
+      const response = await getAdminProductCollectionsApi({ page: 1, pageSize: 500 });
       if (!isMounted) return;
       setCollections(response.items);
     }
@@ -81,7 +156,7 @@ export const AdminProductList: React.FC = () => {
         const response = await getAdminProductsApi({
           page,
           pageSize,
-          search: search || undefined,
+          search: debouncedSearch || undefined,
           status: statusFilter || undefined,
           stock: stockFilter || undefined,
           collectionId: collectionFilter || undefined,
@@ -108,11 +183,49 @@ export const AdminProductList: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [collectionFilter, page, pageSize, search, sortBy, sortDir, statusFilter, stockFilter]);
+  }, [collectionFilter, page, pageSize, debouncedSearch, sortBy, sortDir, statusFilter, stockFilter]);
 
   useEffect(() => {
+    if (skipInitialFilterResetRef.current) {
+      skipInitialFilterResetRef.current = false;
+      return;
+    }
     setPage(1);
-  }, [search, statusFilter, stockFilter, collectionFilter, sortBy, sortDir]);
+  }, [debouncedSearch, statusFilter, stockFilter, collectionFilter, sortBy, sortDir]);
+
+  useEffect(() => {
+    if (!isCollectionDropdownOpen) return;
+
+    const closeDropdown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.collection-dropdown')) {
+        setIsCollectionDropdownOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsCollectionDropdownOpen(false);
+    };
+
+    document.addEventListener('mousedown', closeDropdown);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeDropdown);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [isCollectionDropdownOpen]);
+
+  const filteredCollectionOptions = useMemo(() => {
+    const query = collectionSearch.trim().toLowerCase();
+    if (!query) return collections;
+    return collections.filter((collection) =>
+      collection.name.toLowerCase().includes(query) ||
+      collection.slug.toLowerCase().includes(query)
+    );
+  }, [collectionSearch, collections]);
+
+  const selectedCollectionName = collectionFilter
+    ? collections.find((collection) => collection.id === collectionFilter)?.name || 'Selected Collection'
+    : 'All Collections';
 
   const pageNumbers = useMemo(() => {
     const numbers: (number | '...')[] = [];
@@ -199,8 +312,8 @@ export const AdminProductList: React.FC = () => {
               type="text"
               placeholder="Search by ID, Name, or SKU..."
               className="w-full bg-slate-50 border border-transparent focus:border-slate-200 focus:bg-white rounded-2xl py-3 pl-12 pr-4 outline-none text-xs font-medium transition-all"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
@@ -249,12 +362,63 @@ export const AdminProductList: React.FC = () => {
             <option value="low-stock">Low Stock</option>
             <option value="out-of-stock">Out Of Stock</option>
           </select>
-          <select value={collectionFilter} onChange={(e) => setCollectionFilter(e.target.value)} className="bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider outline-none">
-            <option value="">All Collections</option>
-            {collections.map((collection) => (
-              <option key={collection.id} value={collection.id}>{collection.name}</option>
-            ))}
-          </select>
+          <div className="relative collection-dropdown">
+            <button
+              type="button"
+              onClick={() => setIsCollectionDropdownOpen((open) => !open)}
+              className="w-full min-w-44 flex items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider outline-none"
+            >
+              <span className="truncate">{selectedCollectionName}</span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${isCollectionDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isCollectionDropdownOpen ? (
+              <div className="absolute right-0 md:left-0 mt-2 w-full min-w-64 max-h-72 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl z-30">
+                <div className="p-2 border-b border-slate-100">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <input
+                      type="text"
+                      value={collectionSearch}
+                      onChange={(e) => setCollectionSearch(e.target.value)}
+                      placeholder="Search collections..."
+                      className="w-full rounded-xl bg-slate-50 py-2.5 pl-9 pr-3 text-xs font-medium outline-none focus:ring-2 focus:ring-orange-100"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <div className="max-h-52 overflow-y-auto p-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCollectionFilter('');
+                      setCollectionSearch('');
+                      setIsCollectionDropdownOpen(false);
+                    }}
+                    className={`w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold ${!collectionFilter ? 'bg-orange-50 text-orange-600' : 'text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    All Collections
+                  </button>
+                  {filteredCollectionOptions.map((collection) => (
+                    <button
+                      key={collection.id}
+                      type="button"
+                      onClick={() => {
+                        setCollectionFilter(collection.id);
+                        setCollectionSearch('');
+                        setIsCollectionDropdownOpen(false);
+                      }}
+                      className={`w-full rounded-xl px-3 py-2.5 text-left text-xs font-semibold ${collectionFilter === collection.id ? 'bg-orange-50 text-orange-600' : 'text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      {collection.name}
+                    </button>
+                  ))}
+                  {filteredCollectionOptions.length === 0 ? (
+                    <p className="px-3 py-4 text-center text-xs text-slate-400">No collections found</p>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+          </div>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className="bg-slate-50 border border-slate-100 rounded-xl py-2.5 px-3 text-[10px] font-bold uppercase tracking-wider outline-none">
             <option value="createdAt">Sort By Created</option>
             <option value="updatedAt">Sort By Updated</option>
