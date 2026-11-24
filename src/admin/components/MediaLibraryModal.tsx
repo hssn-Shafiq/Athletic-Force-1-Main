@@ -31,6 +31,7 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<'new' | 'old'>('new');
 
   useEffect(() => {
     if (isOpen) {
@@ -77,9 +78,15 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
     }
   };
 
-  const filteredItems = mediaItems.filter(item =>
-    item.publicId.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredItems = mediaItems
+    .filter(item =>
+      item.publicId.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return sortOrder === 'new' ? bTime - aTime : aTime - bTime;
+    });
 
   if (!isOpen) return null;
 
@@ -102,42 +109,39 @@ export const MediaLibraryModal: React.FC<MediaLibraryModalProps> = ({
         </div>
 
         {/* Toolbar */}
-        <div className="px-8 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-white">
-          <div className="relative flex gap-4 items-center flex-1 min-w-[280px]">
-            <div className='flex-1'>
-
-
-              <Search className="absolute left-4 top-3 w-5 h-5 text-slate-300" />
+        <div className="px-4 sm:px-8 py-5 border-b border-slate-100 bg-white">
+          <div className="flex w-full items-center gap-3">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-11 pl-12 pr-4 bg-slate-50 border border-transparent focus:border-slate-100 rounded-xl text-xs font-bold outline-none"
+                className="w-full h-11 pl-12 pr-4 bg-slate-50 border border-slate-200 focus:border-slate-300 rounded-xl text-xs font-bold outline-none"
                 placeholder="Search assets by Public ID..."
               />
             </div>
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 px-6 h-11 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10 cursor-pointer">
-                <Upload className="w-4 h-4" />
-                Upload Intel
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => handleUpload(e.target.files)}
-                  className="hidden"
-                />
-              </label>
-              <button
-                onClick={fetchMedia}
-                className="px-6 h-11 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
-              >
-                Sync Library
-              </button>
-            </div>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as 'new' | 'old')}
+              className="h-11 w-40 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold outline-none"
+              aria-label="Sort media"
+            >
+              <option value="new">Newest first</option>
+              <option value="old">Oldest first</option>
+            </select>
+            <label className="flex h-11 shrink-0 items-center gap-2 rounded-xl bg-black px-5 text-[10px] font-black uppercase tracking-widest text-white shadow-xl shadow-black/10 transition-all hover:scale-105 active:scale-95 cursor-pointer">
+              <Upload className="w-4 h-4" />
+              Upload
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => handleUpload(e.target.files)}
+                className="hidden"
+              />
+            </label>
           </div>
-
-
         </div>
 
         {/* Progress Bar */}

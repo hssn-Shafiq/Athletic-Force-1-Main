@@ -29,9 +29,16 @@ import { LockerRoomSection } from "../home/components/LockerRoomSection";
 interface ShopClientProps {
   initialProducts?: PublicProduct[];
   initialHierarchy?: CollectionHierarchy[];
+  initialTotal?: number;
+  initialTotalPages?: number;
 }
 
-export default function ShopClient({ initialProducts = [], initialHierarchy = [] }: ShopClientProps) {
+export default function ShopClient({
+  initialProducts = [],
+  initialHierarchy = [],
+  initialTotal,
+  initialTotalPages,
+}: ShopClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -41,6 +48,7 @@ export default function ShopClient({ initialProducts = [], initialHierarchy = []
   const urlSearch = searchParams.get("q") || "";
   const urlSort = searchParams.get("sort") || "newest";
   const urlMaxPrice = searchParams.get("maxPrice") ? parseInt(searchParams.get("maxPrice")!) : 1400;
+  const urlPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
 
   // --- State Command Center ---
   const [products, setProducts] = useState<PublicProduct[]>(initialProducts);
@@ -55,6 +63,10 @@ export default function ShopClient({ initialProducts = [], initialHierarchy = []
   const [expandedParents, setExpandedParents] = useState<string[]>([]);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [page, setPage] = useState(urlPage);
+  const [total, setTotal] = useState(initialTotal ?? initialProducts.length);
+  const [totalPages, setTotalPages] = useState(initialTotalPages ?? 1);
+  const pageSize = 12;
 
 
 
@@ -92,6 +104,7 @@ export default function ShopClient({ initialProducts = [], initialHierarchy = []
     setSelectedSubSlug(searchParams.get("category") || "ALL");
     setSortBy(searchParams.get("sort") || "newest");
     setPriceRange(searchParams.get("maxPrice") ? parseInt(searchParams.get("maxPrice")!) : 1400);
+    setPage(Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1));
   }, [searchParams]);
 
   // --- Tactical Data Fetching ---
@@ -105,6 +118,8 @@ export default function ShopClient({ initialProducts = [], initialHierarchy = []
       const [productRes, hierarchyRes] = await Promise.all([
         getExploreProductsApi({
           collection: activeCollection,
+          page,
+          pageSize,
           search: searchQuery || undefined,
           maxPrice: priceRange,
           sortBy: (selectedSubSlug === "ALL" && !searchQuery) ? 'most-selling' : sortBy,
@@ -112,7 +127,11 @@ export default function ShopClient({ initialProducts = [], initialHierarchy = []
         getCollectionHierarchyApi()
       ]);
 
-      if (productRes.ok) setProducts(productRes.items as any);
+      if (productRes.ok) {
+        setProducts(productRes.items as any);
+        setTotal(productRes.pagination?.total ?? productRes.items.length);
+        setTotalPages(productRes.pagination?.totalPages ?? 1);
+      }
       if (hierarchyRes.ok && hierarchyRes.hierarchy) {
         setHierarchy(hierarchyRes.hierarchy);
         // Expand relevant parents
@@ -135,7 +154,7 @@ export default function ShopClient({ initialProducts = [], initialHierarchy = []
     } finally {
       setIsLoading(false);
     }
-  }, [selectedParentSlug, selectedSubSlug, searchQuery, priceRange, sortBy]);
+  }, [selectedParentSlug, selectedSubSlug, searchQuery, priceRange, sortBy, page]);
 
   // Auto-scroll active tab into view
   useEffect(() => {
@@ -159,7 +178,7 @@ export default function ShopClient({ initialProducts = [], initialHierarchy = []
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery !== urlSearch) {
-        updateUrl({ q: searchQuery });
+        updateUrl({ q: searchQuery, page: 1 });
       }
     }, 500);
     return () => clearTimeout(timer);
@@ -169,14 +188,15 @@ export default function ShopClient({ initialProducts = [], initialHierarchy = []
   const handleCollectionSelect = (parentSlug: string, subSlug: string = "ALL") => {
     updateUrl({
       collection: parentSlug,
-      category: subSlug
+      category: subSlug,
+      page: 1,
     });
   };
 
   const handlePriceChange = (val: number) => {
     setPriceRange(val);
     // Debounce price URL update
-    const timer = setTimeout(() => updateUrl({ maxPrice: val }), 500);
+    const timer = setTimeout(() => updateUrl({ maxPrice: val, page: 1 }), 500);
     return () => clearTimeout(timer);
   };
 
@@ -303,7 +323,7 @@ export default function ShopClient({ initialProducts = [], initialHierarchy = []
       {/* Reset Control */}
       <button
         onClick={() => {
-          updateUrl({ collection: "ALL", category: "ALL", q: "", sort: "newest", maxPrice: 1400 });
+          updateUrl({ collection: "ALL", category: "ALL", q: "", sort: "newest", maxPrice: 1400, page: 1 });
           setIsSidebarOpen(false);
         }}
         className="w-full py-4 border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:bg-black hover:text-white hover:border-black transition-all group italic cursor-pointer"
@@ -408,7 +428,7 @@ export default function ShopClient({ initialProducts = [], initialHierarchy = []
                           <button
                             key={option.value}
                             onClick={() => {
-                              updateUrl({ sort: option.value });
+                              updateUrl({ sort: option.value, page: 1 });
                               setIsSortOpen(false);
                             }}
                             className={`w-full px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer ${sortBy === option.value ? 'bg-slate-50 text-[#FF7348]' : 'text-slate-600 hover:bg-slate-50 hover:text-black'}`}
@@ -502,25 +522,86 @@ export default function ShopClient({ initialProducts = [], initialHierarchy = []
                   <h3 className="text-2xl font-black italic uppercase tracking-tighter mb-4 text-slate-900">Zero Gear Detected</h3>
                   <p className="text-sm text-slate-400 max-w-xs mx-auto font-medium mb-8">Try adjusting your filters or mission parameters.</p>
                   <button
-                    onClick={() => updateUrl({ collection: "ALL", category: "ALL", q: "", sort: "newest", maxPrice: 1400 })}
+                    onClick={() => updateUrl({ collection: "ALL", category: "ALL", q: "", sort: "newest", maxPrice: 1400, page: 1 })}
                     className="px-12 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] italic hover:bg-orange-600 transition-all shadow-xl shadow-black/10 active:scale-95"
                   >
                     Reset Operational Area
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map((p: any) => {
-                    const mappedProduct = mapPublicProductToCard(p);
-                    return (
-                      <ProductCard
-                        key={mappedProduct.id}
-                        product={mappedProduct}
-                        onOpenQuickView={() => setQuickViewProduct(mappedProduct as any)}
-                      />
-                    );
-                  })}
-                </div>
+                <>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                    {products.map((p: any) => {
+                      const mappedProduct = mapPublicProductToCard(p);
+                      return (
+                        <ProductCard
+                          key={mappedProduct.id}
+                          product={mappedProduct}
+                          onOpenQuickView={() => setQuickViewProduct(mappedProduct as any)}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {totalPages > 1 && (
+                    <nav aria-label="Shop pagination" className="mt-10 flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        disabled={page <= 1}
+                        onClick={() => {
+                          updateUrl({ page: Math.max(1, page - 1) });
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-black hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label="Previous page"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+
+                      {Array.from({ length: totalPages }, (_, index) => index + 1)
+                        .filter((pageNumber) =>
+                          pageNumber === 1 ||
+                          pageNumber === totalPages ||
+                          Math.abs(pageNumber - page) <= 1
+                        )
+                        .map((pageNumber, index, visiblePages) => (
+                          <div key={pageNumber} className="flex items-center gap-2">
+                            {index > 0 && pageNumber - visiblePages[index - 1] > 1 && (
+                              <span className="px-1 text-xs font-bold text-slate-400">...</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateUrl({ page: pageNumber });
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              className={`h-10 min-w-10 px-3 rounded-xl text-xs font-black transition-all ${
+                                page === pageNumber
+                                  ? 'bg-black text-white'
+                                  : 'border border-slate-200 bg-white text-slate-600 hover:border-black hover:text-black'
+                              }`}
+                              aria-current={page === pageNumber ? 'page' : undefined}
+                            >
+                              {pageNumber}
+                            </button>
+                          </div>
+                        ))}
+
+                      <button
+                        type="button"
+                        disabled={page >= totalPages}
+                        onClick={() => {
+                          updateUrl({ page: Math.min(totalPages, page + 1) });
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-black hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label="Next page"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </nav>
+                  )}
+                </>
               )}
             </div>
           </div>

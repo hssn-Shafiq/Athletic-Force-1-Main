@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PublicProduct, CollectionHierarchy, CollectionHierarchyNode } from "@/lib/api/types";
-import { Search, ChevronDown, Home, ChevronRight, SlidersHorizontal, Filter, X } from "lucide-react";
+import { Search, ChevronDown, Home, ChevronRight, ChevronLeft, SlidersHorizontal, Filter, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import { ProductCard } from "@/components/layout/ProductCard";
@@ -29,6 +29,8 @@ function containsCollectionSlug(node: CollectionHierarchyNode, slug: string): bo
 interface SubCollectionClientProps {
   initialProducts?: PublicProduct[];
   initialHierarchy?: CollectionHierarchy[];
+  initialTotal?: number;
+  initialTotalPages?: number;
   /** Override slugs when rendered outside the [subCategoryId] route */
   overrideParentSlug?: string;
   overrideSubSlug?: string;
@@ -111,6 +113,8 @@ selectedSlug: string;
 export default function SubCollectionClient({
   initialProducts = [],
   initialHierarchy = [],
+  initialTotal,
+  initialTotalPages,
   overrideParentSlug,
   overrideSubSlug,
 }: SubCollectionClientProps) {
@@ -126,6 +130,10 @@ export default function SubCollectionClient({
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("series-low-high");
   const [priceRange, setPriceRange] = useState<number>(1400);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(initialTotal ?? initialProducts.length);
+  const [totalPages, setTotalPages] = useState(initialTotalPages ?? 1);
+  const pageSize = 12;
   const [quickViewProduct, setQuickViewProduct] = useState<PublicProduct | null>(null);
   const [expandedParents, setExpandedParents] = useState<string[]>(() => {
     const activeParent = initialHierarchy.find(
@@ -184,6 +192,8 @@ export default function SubCollectionClient({
       const [productRes, hierarchyRes] = await Promise.all([
         getExploreProductsApi({
           collection: selectedSubSlug === "ALL" ? parentSlug : selectedSubSlug,
+          page,
+          pageSize,
           search: searchQuery || undefined,
           maxPrice: priceRange,
           sortBy: sortBy,
@@ -191,7 +201,11 @@ export default function SubCollectionClient({
         getCollectionHierarchyApi()
       ]);
 
-      if (productRes.ok) setProducts(productRes.items as any);
+      if (productRes.ok) {
+        setProducts(productRes.items as any);
+        setTotal(productRes.pagination?.total ?? productRes.items.length);
+        setTotalPages(productRes.pagination?.totalPages ?? 1);
+      }
       if (hierarchyRes.ok && hierarchyRes.hierarchy) {
         setHierarchy(hierarchyRes.hierarchy);
         // Expand the current parent by default
@@ -207,7 +221,7 @@ export default function SubCollectionClient({
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, priceRange, sortBy, parentSlug, selectedSubSlug]);
+  }, [searchQuery, priceRange, sortBy, parentSlug, selectedSubSlug, page]);
 
   useEffect(() => {
     if (hasInitialData) {
@@ -216,6 +230,10 @@ export default function SubCollectionClient({
     }
     fetchSubCollectionData();
   }, [fetchSubCollectionData]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, priceRange, sortBy, selectedSubSlug]);
 
   // --- UI Logic ---
   const toggleParent = (id: string) => {
@@ -409,7 +427,7 @@ export default function SubCollectionClient({
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-5 bg-[var(--color-accent)] rounded-full animate-pulse" />
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                    Results: <span className="text-black ml-1 font-sora font-black">{products.length}</span>
+                    Results: <span className="text-black ml-1 font-sora font-black">{total}</span>
                   </p>
                 </div>
 
@@ -495,18 +513,82 @@ export default function SubCollectionClient({
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map((p: any) => {
-                    const mappedProduct = mapPublicProductToCard(p);
-                    return (
-                      <ProductCard
-                        key={mappedProduct.id}
-                        product={mappedProduct}
-                        onOpenQuickView={() => setQuickViewProduct(mappedProduct as any)}
-                      />
-                    );
-                  })}
-                </div>
+                <>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                    {products.map((p: any) => {
+                      const mappedProduct = mapPublicProductToCard(p);
+                      return (
+                        <ProductCard
+                          key={mappedProduct.id}
+                          product={mappedProduct}
+                          onOpenQuickView={() => setQuickViewProduct(mappedProduct as any)}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {totalPages > 1 && (
+                    <nav
+                      aria-label="Product pagination"
+                      className="mt-10 flex items-center justify-center gap-2"
+                    >
+                      <button
+                        type="button"
+                        disabled={page <= 1}
+                        onClick={() => {
+                          setPage((current) => Math.max(1, current - 1));
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-black hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label="Previous page"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+
+                      {Array.from({ length: totalPages }, (_, index) => index + 1)
+                        .filter((pageNumber) =>
+                          pageNumber === 1 ||
+                          pageNumber === totalPages ||
+                          Math.abs(pageNumber - page) <= 1
+                        )
+                        .map((pageNumber, index, visiblePages) => (
+                          <div key={pageNumber} className="flex items-center gap-2">
+                            {index > 0 && pageNumber - visiblePages[index - 1] > 1 && (
+                              <span className="px-1 text-xs font-bold text-slate-400">...</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPage(pageNumber);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              className={`h-10 min-w-10 px-3 rounded-xl text-xs font-black transition-all ${
+                                page === pageNumber
+                                  ? 'bg-black text-white'
+                                  : 'border border-slate-200 bg-white text-slate-600 hover:border-black hover:text-black'
+                              }`}
+                              aria-current={page === pageNumber ? 'page' : undefined}
+                            >
+                              {pageNumber}
+                            </button>
+                          </div>
+                        ))}
+
+                      <button
+                        type="button"
+                        disabled={page >= totalPages}
+                        onClick={() => {
+                          setPage((current) => Math.min(totalPages, current + 1));
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-black hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label="Next page"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </nav>
+                  )}
+                </>
               )}
             </div>
           </div>

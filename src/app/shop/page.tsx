@@ -13,6 +13,7 @@ type PageProps = {
     q?: string; 
     sort?: string; 
     maxPrice?: string; 
+    page?: string;
   }>;
 };
 
@@ -45,6 +46,7 @@ export default async function ShopPage({ searchParams }: PageProps) {
   const search = params.q;
   const sortBy = params.sort || 'most-selling';
   const maxPrice = params.maxPrice ? parseInt(params.maxPrice) : 1400;
+  const page = Math.max(1, parseInt(params.page as string || '1') || 1);
 
   // Prefetch data on the server based on URL parameters
   const [productRes, hierarchyRes] = await Promise.all([
@@ -53,7 +55,8 @@ export default async function ShopPage({ searchParams }: PageProps) {
       search: search || undefined,
       maxPrice: maxPrice,
       sortBy: sortBy,
-      pageSize: 40,
+      page,
+      pageSize: 12,
     }),
     getCollectionHierarchyApi()
   ]);
@@ -65,7 +68,9 @@ export default async function ShopPage({ searchParams }: PageProps) {
     <Suspense fallback={<div className="min-h-screen bg-white" />}>
       <ShopClient 
         initialProducts={initialProducts as any} 
-        initialHierarchy={initialHierarchy as any} 
+        initialHierarchy={initialHierarchy as any}
+        initialTotal={productRes.ok ? productRes.pagination?.total : 0}
+        initialTotalPages={productRes.ok ? productRes.pagination?.totalPages : 1}
       />
     </Suspense>
   );
