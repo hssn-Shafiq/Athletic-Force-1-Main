@@ -2382,7 +2382,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
               </div>
 
               {/* Modal toolbar */}
-              <div className="px-6 py-4 border-b border-gray-100 grid grid-cols-1 md:grid-cols-[minmax(220px,1fr)_160px_auto] items-center gap-3 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 grid grid-cols-1 md:grid-cols-[minmax(220px,1fr)_160px_auto] items-center gap-3 ">
                 <div className="relative min-w-0">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input type="text" value={mediaSearch}
