@@ -37,7 +37,8 @@ import {
   FileText,
   MessageSquareDashed,
   Navigation,
-  Percent
+  Percent,
+  Receipt
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiClient } from '@/lib/api/client';
@@ -448,6 +449,8 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
               ]}
             />
           )}
+
+          {canSeeOrders && <SidebarItem icon={Receipt} label="Invoices" href="/admin/invoices" isCollapsed={isSidebarCollapsed} />}
 
           {canSeeOrders && (
             <SidebarItem icon={Mail} label="Contact Entries" href="/admin/contact-submissions" isCollapsed={isSidebarCollapsed} />

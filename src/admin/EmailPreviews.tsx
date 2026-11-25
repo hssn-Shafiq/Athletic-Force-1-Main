@@ -26,6 +26,7 @@ import { toast } from 'react-toastify';
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 type EmailType =
     | 'welcome'
+    | 'invoice'
     | 'order_placed'
     | 'order_paid'
     | 'order_shipped'
@@ -273,6 +274,19 @@ const DynamicTemplate = ({ type, data }: { type: EmailType; data: EmailTemplateD
                 </>
             );
 
+        case 'invoice':
+            return (
+                <>
+                    <Hero title={data.heading} text={data.body} />
+                    <InfoBox items={[
+                        ['Invoice number', 'AF1-2026-00001'],
+                        ['Due date', 'Due on receipt'],
+                        ['Total due', <Accent key="total">$125.00</Accent>]
+                    ]} />
+                    <Callout title="PDF attached" text="The invoice is included as a PDF attachment." />
+                </>
+            );
+
         case 'order_placed':
             return (
                 <>
@@ -456,6 +470,7 @@ export const EmailPreviews: React.FC = () => {
 
     const tabs: { id: EmailType; label: string; icon: any }[] = [
         { id: 'welcome', label: 'Welcome', icon: UserPlus },
+        { id: 'invoice', label: 'Invoice', icon: FileText },
         { id: 'order_placed', label: 'New order', icon: ShoppingBag },
         { id: 'order_paid', label: 'Payment', icon: Banknote },
         { id: 'order_shipped', label: 'Shipped', icon: Truck },
